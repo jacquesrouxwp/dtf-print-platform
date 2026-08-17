@@ -6,9 +6,9 @@
   --paper-dim: #e8e4db;
   --ink: #12110e;
   --ink-soft: #2a282e;
-  --muted: #6f6b61;
+  --muted: #b7b3aa;
   --grey: #8b8792;
-  --rule: #d4cec0;
+  --rule: rgba(255, 255, 255, 0.16);
   --accent: #e22b12;
   --accent-deep: #d93a0c;
   --accent-soft: #f7d7d1;
@@ -35,8 +35,8 @@
 
 html,
 body {
-  background: transparent;
-  color: var(--ink);
+  background: #0a0a0a;
+  color: var(--paper);
 }
 
 body {
@@ -69,23 +69,31 @@ button {
   font: inherit;
 }
 
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+select {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--paper);
+}
+
 input[type="number"]::-webkit-inner-spin-button {
   opacity: 1;
 }
 
 .panel {
-  background: rgba(18, 17, 14, 0.07);
-  border: 1px solid rgba(18, 17, 14, 0.16);
-  backdrop-filter: blur(14px) saturate(1.08);
-  -webkit-backdrop-filter: blur(14px) saturate(1.08);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: var(--paper);
+  backdrop-filter: blur(16px) saturate(1.1);
+  -webkit-backdrop-filter: blur(16px) saturate(1.1);
 }
 
 .panel-ink {
-  background: rgba(18, 17, 14, 0.86);
-  border: 1px solid rgba(18, 17, 14, 0.92);
+  background: rgba(10, 10, 10, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   color: var(--paper);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 
 .checker {

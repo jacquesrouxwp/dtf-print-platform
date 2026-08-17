@@ -5,7 +5,7 @@ import { BeamsBackground } from "@/components/ui/beams-background";
 
 export function SiteShell({ children }: { children: ReactNode }) {
   return (
-    <BeamsBackground intensity="medium" className="min-h-screen">
+    <BeamsBackground intensity="strong" className="min-h-screen">
       {children}
     </BeamsBackground>
   );

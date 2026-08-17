@@ -291,7 +291,7 @@ export default function HeroCarousel({
                 aria-label={s.title}
                 onClick={() => goTo(i)}
                 className={`relative h-[3px] flex-1 overflow-hidden rounded-sm transition-colors ${
-                  active ? 'bg-[rgba(17,16,19,.16)]' : 'bg-[var(--paper-dim)]'
+                  active ? 'bg-white/20' : 'bg-white/10'
                 }`}
               >
                 {active && (
@@ -314,8 +314,8 @@ export default function HeroCarousel({
           <ArrowButton onClick={next} label="Next slide" dir="right" />
         </div>
 
-        <div className="min-w-[44px] text-right font-mono text-xs tabular-nums text-[var(--grey)]">
-          <b className="text-[var(--ink)]">{String(index + 1).padStart(2, '0')}</b> /{' '}
+        <div className="min-w-[44px] text-right font-mono text-xs tabular-nums text-white/45">
+          <b className="text-white">{String(index + 1).padStart(2, '0')}</b> /{' '}
           {String(count).padStart(2, '0')}
         </div>
       </div>
@@ -393,7 +393,7 @@ function ArrowButton({
     <button
       onClick={onClick}
       aria-label={label}
-      className="grid h-8 w-8 place-items-center rounded-full border-[1.5px] border-[var(--paper-dim)] text-[var(--ink)] transition-all duration-200 hover:border-[var(--ink)] hover:bg-[var(--ink)] hover:text-[var(--paper)]"
+      className="grid h-8 w-8 place-items-center rounded-full border-[1.5px] border-white/25 text-white transition-all duration-200 hover:border-white hover:bg-white hover:text-neutral-950"
     >
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
         <path d={dir === 'left' ? 'M15 6l-6 6 6 6' : 'M9 6l6 6-6 6'} />

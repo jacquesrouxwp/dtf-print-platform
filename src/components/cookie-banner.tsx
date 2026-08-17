@@ -21,7 +21,7 @@ export function CookieBanner() {
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-rule bg-paper p-4 shadow-[0_-8px_30px_rgba(18,17,14,0.08)]">
+    <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-rule bg-neutral-950/80 p-4 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <p className="max-w-2xl text-sm text-muted">{t.cookies.body}</p>
         <div className="flex gap-2">

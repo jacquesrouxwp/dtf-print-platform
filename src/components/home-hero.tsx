@@ -29,7 +29,7 @@ export function HomeHero({
           <h1 className="font-display mt-4 text-5xl leading-[0.95] tracking-tight md:text-7xl">
             {t.home.headline}
           </h1>
-          <p className="mt-8 max-w-xl text-xl text-ink md:text-2xl">{t.home.sub}</p>
+          <p className="mt-8 max-w-xl text-xl text-paper md:text-2xl">{t.home.sub}</p>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-muted md:text-lg">
             {t.home.lede}
           </p>
@@ -37,7 +37,7 @@ export function HomeHero({
             <Link href={L("/order")} className="bg-accent px-5 py-3 text-sm text-white">
               {t.common.startOrder}
             </Link>
-            <Link href={L("/samples")} className="border border-ink px-5 py-3 text-sm">
+            <Link href={L("/samples")} className="border border-white/40 px-5 py-3 text-sm">
               {t.common.samples}
             </Link>
           </div>

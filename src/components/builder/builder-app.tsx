@@ -104,7 +104,7 @@ export function BuilderApp() {
 
       <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)_280px]">
         <aside className="grid gap-3 self-start">
-          <label className="grid cursor-pointer place-items-center border border-dashed border-ink px-4 py-8 text-center text-sm">
+          <label className="grid cursor-pointer place-items-center border border-dashed border-white/35 px-4 py-8 text-center text-sm">
             <span>{t.builder.drop}</span>
             <span className="mt-2 text-xs text-muted">{t.builder.or}</span>
             <span className="mt-2 underline">{t.builder.browse}</span>
@@ -198,7 +198,7 @@ export function BuilderApp() {
           {added && (
             <Link
               href={localizedPath(locale, "/checkout")}
-              className="mt-2 block w-full border border-ink py-3 text-center text-sm"
+              className="mt-2 block w-full border border-white/40 py-3 text-center text-sm"
             >
               {t.builder.checkout}
             </Link>

@@ -166,7 +166,10 @@ export function BeamsBackground({
 
   return (
     <div
-      className={cn("relative min-h-screen w-full bg-[#f3efe6]", className)}
+      className={cn(
+        "relative min-h-screen w-full bg-neutral-950",
+        className
+      )}
     >
       <canvas
         ref={canvasRef}
@@ -175,7 +178,7 @@ export function BeamsBackground({
       />
       <motion.div
         aria-hidden
-        className="pointer-events-none fixed inset-0 z-0 bg-[#111013]/5"
+        className="pointer-events-none fixed inset-0 z-0 bg-neutral-950/5"
         animate={{ opacity: [0.05, 0.15, 0.05] }}
         style={{ backdropFilter: "blur(50px)" }}
         transition={{

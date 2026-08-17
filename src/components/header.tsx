@@ -47,7 +47,7 @@ export function Header() {
     return (
       <Link
         href={localizedPath(locale, href)}
-        className={`text-sm tracking-wide ${active ? "text-ink" : "text-muted hover:text-ink"}`}
+        className={`text-sm tracking-wide ${active ? "text-paper" : "text-muted hover:text-paper"}`}
         onClick={() => setOpen(false)}
       >
         {label}
@@ -56,7 +56,7 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-rule bg-paper/70 backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-rule bg-neutral-950/55 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center gap-5 px-4 py-3">
         <Link
           href={localizedPath(locale, "/")}
@@ -88,7 +88,7 @@ export function Header() {
                 href={localizedPath(code, rest)}
                 hrefLang={code}
                 className={`num text-[11px] uppercase tracking-wider ${
-                  code === locale ? "text-ink" : "text-muted hover:text-ink"
+                  code === locale ? "text-paper" : "text-muted hover:text-paper"
                 }`}
               >
                 {code}
@@ -98,14 +98,14 @@ export function Header() {
 
           <Link
             href={localizedPath(locale, "/account")}
-            className="hidden text-sm text-muted hover:text-ink md:inline"
+            className="hidden text-sm text-muted hover:text-paper md:inline"
           >
             {t.nav.account}
           </Link>
 
           <Link
             href={localizedPath(locale, "/checkout")}
-            className="relative text-ink"
+            className="relative text-paper"
             aria-label={t.nav.cart}
           >
             <ShoppingBag size={18} />
@@ -152,7 +152,7 @@ export function Header() {
                 key={code}
                 href={localizedPath(code, rest)}
                 className={`num text-xs uppercase tracking-wider ${
-                  code === locale ? "text-ink" : "text-muted"
+                  code === locale ? "text-paper" : "text-muted"
                 }`}
                 onClick={() => setOpen(false)}
               >

@@ -13,7 +13,7 @@ export function PricingTable({ locale }: { locale: string }) {
   return (
     <div className="overflow-x-auto border border-rule">
       <table className="w-full text-left">
-        <thead className="bg-paper-2 text-xs uppercase tracking-wider text-muted">
+        <thead className="bg-white/5 text-xs uppercase tracking-wider text-muted">
           <tr>
             <th className="px-4 py-3 font-normal">{t.pricing.colRange}</th>
             <th className="px-4 py-3 font-normal">
