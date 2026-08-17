@@ -4,6 +4,7 @@ import path from "path";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   outputFileTracingRoot: path.join(__dirname),
+  transpilePackages: ["p5"],
 };
 
 export default nextConfig;
