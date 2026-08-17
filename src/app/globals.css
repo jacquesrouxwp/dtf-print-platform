@@ -35,7 +35,7 @@
 
 html,
 body {
-  background: var(--paper);
+  background: transparent;
   color: var(--ink);
 }
 

@@ -118,7 +118,7 @@ export default async function HomePage({
         </div>
       </section>
 
-      <section className="border-y border-rule bg-paper-2">
+      <section className="border-y border-rule bg-paper-2/55 backdrop-blur-[2px]">
         <div className="mx-auto grid max-w-7xl gap-12 px-4 py-20 md:grid-cols-2">
           <div>
             <p className="num text-[11px] uppercase tracking-[0.22em] text-muted">

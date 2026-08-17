@@ -5,6 +5,7 @@ import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { HtmlLang } from "@/components/html-lang";
 import { I18nProvider } from "@/components/providers";
+import { SiteShell } from "@/components/site-shell";
 import { getDict, isLocale } from "@/lib/i18n";
 
 export function generateStaticParams() {
@@ -25,11 +26,13 @@ export default async function LocaleLayout({
   return (
     <I18nProvider locale={locale} t={t}>
       <HtmlLang locale={locale} />
-      <CutoffBar />
-      <Header />
-      <main>{children}</main>
-      <Footer />
-      <CookieBanner />
+      <SiteShell>
+        <CutoffBar />
+        <Header />
+        <main>{children}</main>
+        <Footer />
+        <CookieBanner />
+      </SiteShell>
     </I18nProvider>
   );
 }
