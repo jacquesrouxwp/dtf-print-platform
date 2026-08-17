@@ -74,15 +74,21 @@ export function quoteFilm(lengthMm: number, config: SiteConfig, opts?: {
   };
 }
 
+export function intlTag(locale: string): string {
+  if (locale === "nl") return "nl-NL";
+  if (locale === "ru") return "ru-RU";
+  return "en-NL";
+}
+
 export function money(value: number, locale: string): string {
-  return new Intl.NumberFormat(locale === "nl" ? "nl-NL" : "en-NL", {
+  return new Intl.NumberFormat(intlTag(locale), {
     style: "currency",
     currency: "EUR",
   }).format(value);
 }
 
 export function metersLabel(value: number, locale: string): string {
-  return `${new Intl.NumberFormat(locale === "nl" ? "nl-NL" : "en-NL", {
+  return `${new Intl.NumberFormat(intlTag(locale), {
     minimumFractionDigits: 1,
     maximumFractionDigits: 2,
   }).format(value)} m`;

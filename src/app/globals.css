@@ -24,9 +24,9 @@
   --color-ok: var(--ok);
   --color-warn: var(--warn);
   --color-bad: var(--bad);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-geist-sans), var(--font-cyr);
   --font-mono: var(--font-geist-mono);
-  --font-display: var(--font-display);
+  --font-display: var(--font-display-latin), var(--font-display-cyr);
 }
 
 html,
@@ -36,12 +36,12 @@ body {
 }
 
 body {
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-geist-sans), var(--font-cyr), system-ui, "Segoe UI", sans-serif;
   text-rendering: optimizeLegibility;
 }
 
 .font-display {
-  font-family: var(--font-display), ui-serif, Georgia, serif;
+  font-family: var(--font-display-latin), var(--font-display-cyr), ui-serif, Georgia, "Times New Roman", serif;
 }
 
 .num {

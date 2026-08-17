@@ -8,7 +8,12 @@ export function copyVars(config: SiteConfig, locale: string) {
     width: String(rollWidthCm(config)),
     temp: String(config.pressTempC),
     time: String(config.pressTimeSec),
-    peel: config.peel,
+    peel:
+      locale === "ru"
+        ? config.peel === "cold"
+          ? "холодный пил"
+          : "горячий пил"
+        : config.peel,
     wash: String(config.washCycles),
     line: String(config.minLineMm),
     text: String(config.minTextPt),

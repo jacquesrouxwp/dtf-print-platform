@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Menu, X, ShoppingBag } from "lucide-react";
-import { localizedPath } from "@/lib/i18n-config";
+import { locales, localizedPath } from "@/lib/i18n-config";
 import { useI18n } from "./providers";
 import { useCartStore } from "@/store/useCartStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
@@ -38,8 +38,7 @@ export function Header() {
   const btwInclusive = useSettingsStore((s) => s.btwInclusive);
   const setBtwInclusive = useSettingsStore((s) => s.setBtwInclusive);
 
-  const rest = pathname.replace(/^\/(nl|en)/, "") || "/";
-  const other = locale === "nl" ? "en" : "nl";
+  const rest = pathname.replace(/^\/(nl|en|ru)/, "") || "/";
 
   const NavLink = ({ href, label }: { href: string; label: string }) => {
     const active = rest === href || (href !== "/" && rest.startsWith(href));
@@ -80,13 +79,20 @@ export function Header() {
             {btwInclusive ? t.common.inclBtw : t.common.exclBtw}
           </button>
 
-          <Link
-            href={localizedPath(other, rest)}
-            className="num text-[11px] uppercase tracking-wider text-muted hover:text-ink"
-            hrefLang={other}
-          >
-            {other.toUpperCase()}
-          </Link>
+          <nav className="flex items-center gap-1.5" aria-label={t.nav.language}>
+            {locales.map((code) => (
+              <Link
+                key={code}
+                href={localizedPath(code, rest)}
+                hrefLang={code}
+                className={`num text-[11px] uppercase tracking-wider ${
+                  code === locale ? "text-ink" : "text-muted hover:text-ink"
+                }`}
+              >
+                {code}
+              </Link>
+            ))}
+          </nav>
 
           <Link
             href={localizedPath(locale, "/account")}
@@ -138,6 +144,20 @@ export function Header() {
           >
             {t.nav.account}
           </Link>
+          <div className="flex gap-3 pt-2">
+            {locales.map((code) => (
+              <Link
+                key={code}
+                href={localizedPath(code, rest)}
+                className={`num text-xs uppercase tracking-wider ${
+                  code === locale ? "text-ink" : "text-muted"
+                }`}
+                onClick={() => setOpen(false)}
+              >
+                {code}
+              </Link>
+            ))}
+          </div>
           <button
             type="button"
             onClick={() => setBtwInclusive(!btwInclusive)}

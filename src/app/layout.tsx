@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { Geist, Geist_Mono, Instrument_Serif, Manrope, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,9 +13,20 @@ const geistMono = Geist_Mono({
 });
 
 const display = Instrument_Serif({
-  variable: "--font-display",
+  variable: "--font-display-latin",
   subsets: ["latin"],
   weight: "400",
+});
+
+const displayCyr = Source_Serif_4({
+  variable: "--font-display-cyr",
+  subsets: ["cyrillic"],
+  weight: "400",
+});
+
+const bodyCyr = Manrope({
+  variable: "--font-cyr",
+  subsets: ["cyrillic"],
 });
 
 export const metadata: Metadata = {
@@ -35,7 +46,7 @@ export default function RootLayout({
   return (
     <html lang="nl" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${display.variable} min-h-screen bg-paper text-ink antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${display.variable} ${displayCyr.variable} ${bodyCyr.variable} min-h-screen bg-paper text-ink antialiased`}
       >
         {children}
       </body>

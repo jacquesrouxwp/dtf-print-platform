@@ -3,11 +3,12 @@ import { CookieBanner } from "@/components/cookie-banner";
 import { CutoffBar } from "@/components/cutoff-bar";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
+import { HtmlLang } from "@/components/html-lang";
 import { I18nProvider } from "@/components/providers";
 import { getDict, isLocale } from "@/lib/i18n";
 
 export function generateStaticParams() {
-  return [{ locale: "nl" }, { locale: "en" }];
+  return [{ locale: "nl" }, { locale: "en" }, { locale: "ru" }];
 }
 
 export default async function LocaleLayout({
@@ -23,6 +24,7 @@ export default async function LocaleLayout({
 
   return (
     <I18nProvider locale={locale} t={t}>
+      <HtmlLang locale={locale} />
       <CutoffBar />
       <Header />
       <main>{children}</main>

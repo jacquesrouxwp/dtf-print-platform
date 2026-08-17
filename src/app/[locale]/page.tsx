@@ -188,7 +188,12 @@ function RollDiagram({ locale, label }: { locale: string; label: string }) {
         <rect x="274" y="122" width="60" height="60" fill="#12110e" />
         <line x1="1" y1="230" x2="549" y2="230" stroke="#e22b12" strokeDasharray="6 4" />
         <text x="16" y="258" fill="#e22b12" fontFamily="ui-monospace, monospace" fontSize="16">
-          0.8 m · {locale === "nl" ? "€7,56 excl. btw" : "€7.56 excl. BTW"}
+          0.8 m ·{" "}
+          {locale === "nl"
+            ? "€7,56 excl. btw"
+            : locale === "ru"
+              ? "€7,56 без НДС"
+              : "€7.56 excl. BTW"}
         </text>
         <text x="16" y="286" fill="#6f6b61" fontFamily="ui-monospace, monospace" fontSize="12">
           55 cm

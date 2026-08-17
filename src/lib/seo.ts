@@ -20,6 +20,7 @@ export function pageMetadata(
       languages: {
         nl: `${SITE}${localizedPath("nl", path)}`,
         en: `${SITE}${localizedPath("en", path)}`,
+        ru: `${SITE}${localizedPath("ru", path)}`,
         "x-default": `${SITE}${localizedPath("nl", path)}`,
       },
     },
@@ -27,7 +28,7 @@ export function pageMetadata(
       title: `${title} · HLV`,
       description,
       url,
-      locale: locale === "nl" ? "nl_NL" : "en_GB",
+      locale: locale === "nl" ? "nl_NL" : locale === "ru" ? "ru_RU" : "en_GB",
       siteName: "HLV",
       type: "website",
     },
