@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { HomeHero } from "@/components/home-hero";
 import { getDict, isLocale } from "@/lib/i18n";
 import { localizedPath } from "@/lib/i18n-config";
 import { pageMetadata } from "@/lib/seo";
@@ -53,29 +54,7 @@ export default async function HomePage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <section className="mx-auto max-w-7xl px-4 pb-16 pt-14 md:pb-24 md:pt-20">
-        <p className="num text-[11px] uppercase tracking-[0.22em] text-muted">
-          {t.home.kicker}
-        </p>
-        <h1 className="font-display mt-4 max-w-5xl text-5xl leading-[0.95] tracking-tight md:text-7xl lg:text-8xl">
-          {t.home.headline}
-        </h1>
-        <p className="mt-8 max-w-2xl text-xl text-ink md:text-2xl">{t.home.sub}</p>
-        <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted md:text-lg">
-          {t.home.lede}
-        </p>
-        <div className="mt-10 flex flex-wrap gap-3">
-          <Link href={L("/order")} className="bg-accent px-5 py-3 text-sm text-white">
-            {t.common.startOrder}
-          </Link>
-          <Link href={L("/samples")} className="border border-ink px-5 py-3 text-sm">
-            {t.common.samples}
-          </Link>
-        </div>
-        <p className="num mt-8 text-sm text-muted">
-          {fill(t.home.cutoffLine, c, lang)}
-        </p>
-      </section>
+      <HomeHero cutoffLine={fill(t.home.cutoffLine, c, lang)} />
 
       <section className="border-y border-rule">
         <div className="mx-auto flex max-w-7xl flex-wrap gap-x-8 gap-y-2 px-4 py-4 text-sm text-muted">

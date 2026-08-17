@@ -3,10 +3,14 @@
 :root {
   --paper: #f3efe6;
   --paper-2: #e7e1d3;
+  --paper-dim: #e8e4db;
   --ink: #12110e;
+  --ink-soft: #2a282e;
   --muted: #6f6b61;
+  --grey: #8b8792;
   --rule: #d4cec0;
   --accent: #e22b12;
+  --accent-deep: #d93a0c;
   --accent-soft: #f7d7d1;
   --ok: #1f7a4d;
   --warn: #b58100;
