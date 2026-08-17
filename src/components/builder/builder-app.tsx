@@ -13,6 +13,7 @@ import { useBuilderStore, type Design } from "@/store/useBuilderStore";
 import { useCartStore } from "@/store/useCartStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
 import { useSessionStore } from "@/store/useSessionStore";
+import { Panel } from "../panel";
 import { useI18n } from "../providers";
 
 const BuilderCanvas = dynamic(
@@ -88,6 +89,7 @@ export function BuilderApp() {
 
   return (
     <div className="mx-auto max-w-[1400px] px-3 py-6 md:px-4">
+      <Panel className="px-4 py-5 md:px-6 md:py-6">
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="num text-[11px] uppercase tracking-[0.22em] text-muted">
@@ -203,6 +205,7 @@ export function BuilderApp() {
           )}
         </aside>
       </div>
+      </Panel>
     </div>
   );
 }

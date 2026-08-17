@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { HomeHero } from "@/components/home-hero";
+import { Panel } from "@/components/panel";
 import { getDict, isLocale } from "@/lib/i18n";
 import { localizedPath } from "@/lib/i18n-config";
 import { pageMetadata } from "@/lib/seo";
@@ -56,34 +57,36 @@ export default async function HomePage({
 
       <HomeHero cutoffLine={fill(t.home.cutoffLine, c, lang)} />
 
-      <section className="border-y border-rule">
-        <div className="mx-auto flex max-w-7xl flex-wrap gap-x-8 gap-y-2 px-4 py-4 text-sm text-muted">
+      <section className="mx-auto max-w-7xl px-4 pb-6">
+        <Panel className="flex flex-wrap gap-x-8 gap-y-2 px-6 py-4 text-sm text-muted">
           {t.home.trust.map((item) => (
             <span key={item}>{item}</span>
           ))}
-        </div>
+        </Panel>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-20">
-        <p className="num text-[11px] uppercase tracking-[0.22em] text-muted">
-          {t.home.howKicker}
-        </p>
-        <h2 className="font-display mt-3 text-3xl md:text-5xl">{t.home.howTitle}</h2>
-        <div className="mt-12 grid gap-10 md:grid-cols-3">
-          {t.home.steps.map((step) => (
-            <div key={step.n} className="border-t border-rule pt-6">
-              <p className="num text-xs text-accent">{step.n}</p>
-              <h3 className="mt-3 text-xl">{step.t}</h3>
-              <p className="mt-3 text-sm leading-relaxed text-muted">
-                {fill(step.d, c, lang)}
-              </p>
-            </div>
-          ))}
-        </div>
+      <section className="mx-auto max-w-7xl px-4 py-6">
+        <Panel className="px-6 py-10 md:px-10 md:py-14">
+          <p className="num text-[11px] uppercase tracking-[0.22em] text-muted">
+            {t.home.howKicker}
+          </p>
+          <h2 className="font-display mt-3 text-3xl md:text-5xl">{t.home.howTitle}</h2>
+          <div className="mt-12 grid gap-10 md:grid-cols-3">
+            {t.home.steps.map((step) => (
+              <div key={step.n} className="border-t border-rule pt-6">
+                <p className="num text-xs text-accent">{step.n}</p>
+                <h3 className="mt-3 text-xl">{step.t}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-muted">
+                  {fill(step.d, c, lang)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </Panel>
       </section>
 
-      <section className="bg-ink text-paper">
-        <div className="mx-auto max-w-7xl px-4 py-20">
+      <section className="mx-auto max-w-7xl px-4 py-6">
+        <Panel tone="ink" className="px-6 py-10 md:px-10 md:py-16">
           <p className="num text-[11px] uppercase tracking-[0.22em] text-paper/50">
             {t.home.whyKicker}
           </p>
@@ -100,26 +103,28 @@ export default async function HomePage({
               </div>
             ))}
           </div>
-        </div>
+        </Panel>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-20">
-        <p className="num text-[11px] uppercase tracking-[0.22em] text-muted">
-          {t.home.whoKicker}
-        </p>
-        <h2 className="font-display mt-3 text-3xl md:text-5xl">{t.home.whoTitle}</h2>
-        <div className="mt-10 divide-y divide-rule border-y border-rule">
-          {t.home.who.map((item) => (
-            <div key={item.t} className="grid gap-2 py-6 md:grid-cols-3">
-              <h3 className="text-base">{item.t}</h3>
-              <p className="text-sm text-muted md:col-span-2">{item.d}</p>
-            </div>
-          ))}
-        </div>
+      <section className="mx-auto max-w-7xl px-4 py-6">
+        <Panel className="px-6 py-10 md:px-10 md:py-14">
+          <p className="num text-[11px] uppercase tracking-[0.22em] text-muted">
+            {t.home.whoKicker}
+          </p>
+          <h2 className="font-display mt-3 text-3xl md:text-5xl">{t.home.whoTitle}</h2>
+          <div className="mt-10 divide-y divide-rule border-y border-rule">
+            {t.home.who.map((item) => (
+              <div key={item.t} className="grid gap-2 py-6 md:grid-cols-3">
+                <h3 className="text-base">{item.t}</h3>
+                <p className="text-sm text-muted md:col-span-2">{item.d}</p>
+              </div>
+            ))}
+          </div>
+        </Panel>
       </section>
 
-      <section className="border-y border-rule bg-paper-2/55 backdrop-blur-[2px]">
-        <div className="mx-auto grid max-w-7xl gap-12 px-4 py-20 md:grid-cols-2">
+      <section className="mx-auto max-w-7xl px-4 py-6">
+        <Panel className="grid gap-12 px-6 py-10 md:grid-cols-2 md:px-10 md:py-14">
           <div>
             <p className="num text-[11px] uppercase tracking-[0.22em] text-muted">
               {t.home.specKicker}
@@ -133,18 +138,20 @@ export default async function HomePage({
             </p>
           </div>
           <RollDiagram locale={lang} label={t.home.specExample} />
-        </div>
+        </Panel>
       </section>
 
-      <section className="mx-auto max-w-3xl px-4 py-24 text-center">
-        <h2 className="font-display text-4xl md:text-6xl">{t.home.sampleTitle}</h2>
-        <p className="mx-auto mt-6 max-w-xl text-muted">{t.home.sampleBody}</p>
-        <Link
-          href={L("/samples")}
-          className="mt-8 inline-block bg-ink px-5 py-3 text-sm text-paper"
-        >
-          {t.common.requestSamples}
-        </Link>
+      <section className="mx-auto max-w-3xl px-4 py-10 pb-16">
+        <Panel className="px-6 py-12 text-center md:px-10 md:py-16">
+          <h2 className="font-display text-4xl md:text-6xl">{t.home.sampleTitle}</h2>
+          <p className="mx-auto mt-6 max-w-xl text-muted">{t.home.sampleBody}</p>
+          <Link
+            href={L("/samples")}
+            className="mt-8 inline-block bg-ink px-5 py-3 text-sm text-paper"
+          >
+            {t.common.requestSamples}
+          </Link>
+        </Panel>
       </section>
     </>
   );
@@ -152,7 +159,7 @@ export default async function HomePage({
 
 function RollDiagram({ locale, label }: { locale: string; label: string }) {
   return (
-    <div className="border border-rule bg-paper p-5">
+    <div className="border border-rule bg-paper/50 p-5">
       <p className="num mb-4 text-[11px] uppercase tracking-[0.18em] text-muted">{label}</p>
       <svg viewBox="0 0 550 320" className="w-full" role="img" aria-label="55 cm roll">
         <rect x="1" y="1" width="548" height="318" fill="#f3efe6" stroke="#12110e" />
