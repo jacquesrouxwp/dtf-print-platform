@@ -194,7 +194,7 @@ export default function HeroCarousel({
 
   return (
     <div
-      className="relative select-none"
+      className="relative w-full max-w-[420px] select-none"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}
@@ -204,71 +204,81 @@ export default function HeroCarousel({
       aria-roledescription="carousel"
       aria-label="Products"
     >
-      {/* ── viewport ─────────────────────────────────────────────────────── */}
-      <div className="overflow-hidden rounded-[14px] shadow-[0_1px_2px_rgba(17,16,19,.05),0_18px_46px_-12px_rgba(17,16,19,.20)]">
+      <div className="px-4 py-7 sm:px-6 sm:py-8">
         <div
-          className="flex transition-transform duration-[620ms] ease-[cubic-bezier(.22,.85,.28,1)] motion-reduce:transition-none"
-          style={{ transform: `translateX(-${index * 100}%)` }}
+          className="hero-film relative overflow-hidden shadow-[0_22px_40px_-18px_rgba(18,17,14,.45)]"
+          style={{
+            transform: 'rotate(-5.5deg)',
+            clipPath: 'polygon(8% 0, 100% 0, 92% 100%, 0 100%)',
+          }}
         >
-          {slides.map((s, i) => (
-            <article
-              key={s.id}
-              role="tabpanel"
-              aria-hidden={i !== index}
-              aria-label={`${i + 1} of ${count}: ${s.title}`}
-              className="relative flex min-w-full flex-col justify-end overflow-hidden p-7 text-white aspect-[4/3.5] max-lg:aspect-[4/4.2]"
-            >
-              {/* artwork */}
-              {s.image ? (
-                <Image
-                  src={s.image.src}
-                  alt={s.image.alt}
-                  fill
-                  priority={i === 0}
-                  sizes="(max-width: 980px) 100vw, 45vw"
-                  className="absolute inset-0 z-0 object-cover"
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 z-[3] ring-1 ring-inset ring-white/20"
+          />
+          <div
+            className="flex transition-transform duration-[620ms] ease-[cubic-bezier(.22,.85,.28,1)] motion-reduce:transition-none"
+            style={{ transform: `translateX(-${index * 100}%)` }}
+          >
+            {slides.map((s, i) => (
+              <article
+                key={s.id}
+                role="tabpanel"
+                aria-hidden={i !== index}
+                aria-label={`${i + 1} of ${count}: ${s.title}`}
+                className="relative flex aspect-[16/9] min-w-full flex-col justify-end overflow-hidden px-6 py-5 text-white"
+              >
+                {s.image ? (
+                  <Image
+                    src={s.image.src}
+                    alt={s.image.alt}
+                    fill
+                    priority={i === 0}
+                    sizes="420px"
+                    className="absolute inset-0 z-0 object-cover"
+                  />
+                ) : (
+                  <div className={`absolute inset-0 z-0 ${s.art ?? 'art-f'}`} aria-hidden />
+                )}
+
+                <div
+                  aria-hidden
+                  className="absolute inset-0 z-[1] bg-[linear-gradient(180deg,rgba(10,9,12,0)_28%,rgba(10,9,12,.55)_72%,rgba(10,9,12,.88)_100%)]"
                 />
-              ) : (
-                <div className={`absolute inset-0 z-0 ${s.art ?? 'art-f'}`} aria-hidden />
-              )}
 
-              {/* scrim — keeps text legible over any image */}
-              <div
-                aria-hidden
-                className="absolute inset-0 z-[1] bg-[linear-gradient(180deg,rgba(10,9,12,0)_34%,rgba(10,9,12,.30)_58%,rgba(10,9,12,.86)_100%)]"
-              />
+                <div className="relative z-[2]">
+                  <TagPill variant={s.tagStyle}>{s.tag}</TagPill>
 
-              <div className="relative z-[2]">
-                <TagPill variant={s.tagStyle}>{s.tag}</TagPill>
+                  <h2 className="mb-1.5 font-[family-name:var(--font-display)] text-[21px] leading-[1.08] tracking-[-0.015em] sm:text-[23px]">
+                    {s.title}
+                  </h2>
 
-                <h2 className="mb-2 font-[family-name:var(--font-display)] text-[33px] leading-[1.08] tracking-[-0.015em] max-sm:text-[26px]">
-                  {s.title}
-                </h2>
+                  <p className="mb-3 line-clamp-2 max-w-[36ch] text-[12px] leading-[1.4] text-white/75">
+                    {s.body}
+                  </p>
 
-                <p className="mb-4 max-w-[40ch] text-sm leading-[1.5] text-white/80">{s.body}</p>
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <span className="rounded-md border border-white/20 bg-white/[.13] px-2 py-1 font-mono text-[11px] tabular-nums">
+                      {renderMeta(s)}
+                    </span>
 
-                <div className="flex flex-wrap items-center gap-3.5">
-                  <span className="rounded-lg border border-white/20 bg-white/[.13] px-3 py-1.5 font-mono text-[13px] tabular-nums">
-                    {renderMeta(s)}
-                  </span>
-
-                  <a
-                    href={s.ctaHref}
-                    tabIndex={i === index ? 0 : -1}
-                    className="group inline-flex items-center gap-[7px] text-[13.5px] font-semibold text-white outline-offset-4"
-                  >
-                    {s.ctaLabel}
-                    <Arrow className="transition-transform duration-200 group-hover:translate-x-1" />
-                  </a>
+                    <a
+                      href={s.ctaHref}
+                      tabIndex={i === index ? 0 : -1}
+                      className="group inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-white outline-offset-4"
+                    >
+                      {s.ctaLabel}
+                      <Arrow className="transition-transform duration-200 group-hover:translate-x-1" />
+                    </a>
+                  </div>
                 </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* ── controls ─────────────────────────────────────────────────────── */}
-      <div className="mt-4 flex items-center gap-3.5">
+      <div className="flex items-center gap-3">
         {/* progress dots */}
         <div role="tablist" aria-label="Choose slide" className="flex flex-1 gap-[7px]">
           {slides.map((s, i) => {
@@ -314,6 +324,9 @@ export default function HeroCarousel({
       {/* Delete the .art-* rules once every slide has a real `image`.       */}
       <style>{`
         @keyframes dotFill { from { transform: scaleX(0) } to { transform: scaleX(1) } }
+        @media (prefers-reduced-motion: reduce) {
+          .hero-film { transform: none !important; clip-path: none !important; border-radius: 12px; }
+        }
 
         .art-a{background:
           repeating-linear-gradient(115deg,rgba(255,255,255,.05) 0 2px,transparent 2px 13px),
@@ -360,7 +373,7 @@ function TagPill({
 
   return (
     <span
-      className={`mb-3.5 inline-block rounded-full border px-[11px] py-[5px] text-[10px] font-bold uppercase tracking-[.14em] backdrop-blur-[8px] ${styles}`}
+      className={`mb-2 inline-block rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[.14em] backdrop-blur-[8px] ${styles}`}
     >
       {children}
     </span>
@@ -380,7 +393,7 @@ function ArrowButton({
     <button
       onClick={onClick}
       aria-label={label}
-      className="grid h-[34px] w-[34px] place-items-center rounded-full border-[1.5px] border-[var(--paper-dim)] text-[var(--ink)] transition-all duration-200 hover:border-[var(--ink)] hover:bg-[var(--ink)] hover:text-[var(--paper)]"
+      className="grid h-8 w-8 place-items-center rounded-full border-[1.5px] border-[var(--paper-dim)] text-[var(--ink)] transition-all duration-200 hover:border-[var(--ink)] hover:bg-[var(--ink)] hover:text-[var(--paper)]"
     >
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
         <path d={dir === 'left' ? 'M15 6l-6 6 6 6' : 'M9 6l6 6-6 6'} />

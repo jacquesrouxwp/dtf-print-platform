@@ -19,7 +19,7 @@ export function HomeHero({
   }));
 
   return (
-    <section className="mx-auto grid max-w-7xl items-end gap-12 px-4 pb-16 pt-14 md:pb-24 md:pt-20 lg:grid-cols-[1.08fr_.92fr] lg:gap-14">
+    <section className="mx-auto grid max-w-7xl items-center gap-10 px-4 pb-16 pt-14 md:pb-20 md:pt-16 lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-12">
       <div>
         <p className="num text-[11px] uppercase tracking-[0.22em] text-muted">
           {t.home.kicker}
@@ -41,7 +41,9 @@ export function HomeHero({
         </div>
         <p className="num mt-8 text-sm text-muted">{cutoffLine}</p>
       </div>
-      <HeroCarousel slides={slides} />
+      <div className="mx-auto w-full max-w-[420px] lg:mx-0 lg:justify-self-end">
+        <HeroCarousel slides={slides} />
+      </div>
     </section>
   );
 }
