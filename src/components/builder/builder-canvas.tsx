@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Group, Image as KImage, Layer, Line, Rect, Stage, Text } from "react-konva";
 import { useBuilderStore } from "@/store/useBuilderStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
@@ -16,9 +16,9 @@ function makeAlphaSwatch(cell = 6): HTMLCanvasElement {
   c.height = cell * 2;
   const ctx = c.getContext("2d");
   if (!ctx) return c;
-  ctx.fillStyle = "#ebe6dc";
+  ctx.fillStyle = "#e4ddd0";
   ctx.fillRect(0, 0, cell * 2, cell * 2);
-  ctx.fillStyle = "#d8d2c7";
+  ctx.fillStyle = "#c8c0b2";
   ctx.fillRect(0, 0, cell, cell);
   ctx.fillRect(cell, cell, cell, cell);
   return c;
@@ -35,6 +35,7 @@ export function BuilderCanvas({
   const [boxW, setBoxW] = useState(0);
   const [images, setImages] = useState<Record<string, HTMLImageElement>>({});
   const [finePointer, setFinePointer] = useState(false);
+  const [swatch, setSwatch] = useState<HTMLImageElement | null>(null);
   const config = useSettingsStore((s) => s.config);
   const designs = useBuilderStore((s) => s.designs);
   const placed = useBuilderStore((s) => s.placed);
@@ -55,6 +56,13 @@ export function BuilderCanvas({
     const ro = new ResizeObserver(apply);
     ro.observe(el);
     return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const tile = makeAlphaSwatch(8);
+    const img = new window.Image();
+    img.onload = () => setSwatch(img);
+    img.src = tile.toDataURL("image/png");
   }, []);
 
   useEffect(() => {
@@ -101,7 +109,6 @@ export function BuilderCanvas({
   const stageH = Math.max(200, Math.min(Math.round(viewLength * (stageW / roll)), 1800));
   const drawScale = stageW / roll;
   const canDrag = interactive && finePointer;
-  const swatch = useMemo(() => (typeof window === "undefined" ? undefined : makeAlphaSwatch(6)), []);
 
   return (
     <div ref={wrapRef} className="builder-film relative min-w-0 w-full max-w-full overflow-hidden">
@@ -109,7 +116,19 @@ export function BuilderCanvas({
         {avail > 0 && (
           <Stage width={stageW} height={stageH}>
             <Layer>
-              <Rect x={0} y={0} width={stageW} height={stageH} fill="#efe8db" />
+              {swatch ? (
+                <Rect
+                  x={0}
+                  y={0}
+                  width={stageW}
+                  height={stageH}
+                  fillPatternImage={swatch}
+                  fillPatternRepeat="repeat"
+                  listening={false}
+                />
+              ) : (
+                <Rect x={0} y={0} width={stageW} height={stageH} fill="#efe8db" />
+              )}
               <Rect
                 x={config.edgeMm * drawScale}
                 y={config.edgeMm * drawScale}
@@ -161,7 +180,7 @@ export function BuilderCanvas({
                       <Rect
                         width={boxWm}
                         height={boxHm}
-                        fillPatternImage={swatch as unknown as HTMLImageElement}
+                        fillPatternImage={swatch}
                         fillPatternRepeat="repeat"
                         listening={false}
                       />
