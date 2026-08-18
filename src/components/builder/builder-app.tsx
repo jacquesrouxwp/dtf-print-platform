@@ -61,8 +61,8 @@ export function BuilderApp() {
   const blocking = designs.some(
     (d) =>
       d.uploadError ||
-      d.warnings.some((w) => w.level === "red") ||
-      rejected.includes(d.id)
+      (d.warnings ?? []).some((w) => w.level === "red") ||
+      (rejected ?? []).includes(d.id)
   );
 
   function addToCart() {
@@ -433,7 +433,7 @@ function DesignCard({ design, selected }: { design: Design; selected: boolean })
           {t.builder.remove}
         </button>
       </div>
-      {design.warnings.map((w) => (
+      {(design.warnings ?? []).map((w) => (
         <p
           key={w.code}
           className={`mt-3 text-xs ${
