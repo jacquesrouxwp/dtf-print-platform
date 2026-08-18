@@ -22,9 +22,12 @@ export function BuilderCanvas({ interactive }: { interactive: boolean }) {
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(() => setWidth(el.clientWidth));
+    const ro = new ResizeObserver(() => {
+      const next = el.clientWidth;
+      setWidth((w) => (w === next ? w : next));
+    });
     ro.observe(el);
-    setWidth(el.clientWidth);
+    setWidth((w) => (w === el.clientWidth ? w : el.clientWidth));
     return () => ro.disconnect();
   }, []);
 
