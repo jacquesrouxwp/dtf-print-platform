@@ -12,7 +12,6 @@ import { useSettingsStore } from "@/store/useSettingsStore";
 type NavKey = keyof typeof import("@/messages/en").en.nav;
 
 const primary: { href: string; key: NavKey }[] = [
-  { href: "/order", key: "order" },
   { href: "/pricing", key: "pricing" },
   { href: "/trade", key: "trade" },
 ];
@@ -72,6 +71,13 @@ export function Header() {
         </nav>
 
         <div className="ml-auto flex items-center gap-3 md:gap-4">
+          <Link
+            href={localizedPath(locale, "/order")}
+            className="bg-accent px-3 py-2 text-sm text-white md:px-4"
+            onClick={() => setOpen(false)}
+          >
+            {t.nav.order}
+          </Link>
           <button
             type="button"
             onClick={() => setBtwInclusive(!btwInclusive)}

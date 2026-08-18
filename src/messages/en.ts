@@ -41,7 +41,7 @@ export const en = {
     legalCookies: "Cookies",
   },
   nav: {
-    order: "Order",
+    order: "Builder",
     pricing: "Pricing",
     trade: "Trade",
     account: "Account",
@@ -70,7 +70,7 @@ export const en = {
   common: {
     exclBtw: "excl. BTW",
     inclBtw: "incl. BTW",
-    startOrder: "Start your order",
+    startOrder: "Open the builder",
     samples: "Get a free sample pack",
     requestSamples: "Request samples",
     learn: "Read more",

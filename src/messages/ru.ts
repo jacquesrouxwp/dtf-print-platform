@@ -43,7 +43,7 @@ export const ru: typeof en = {
     legalCookies: "Cookies",
   },
   nav: {
-    order: "Заказать",
+    order: "Раскладчик",
     pricing: "Цены",
     trade: "Опт",
     account: "Аккаунт",
@@ -72,7 +72,7 @@ export const ru: typeof en = {
   common: {
     exclBtw: "без НДС",
     inclBtw: "с НДС",
-    startOrder: "Собрать заказ",
+    startOrder: "Открыть раскладчик",
     samples: "Бесплатные образцы",
     requestSamples: "Запросить образцы",
     learn: "Читать дальше",

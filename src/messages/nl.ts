@@ -43,7 +43,7 @@ export const nl: typeof en = {
     legalCookies: "Cookies",
   },
   nav: {
-    order: "Bestellen",
+    order: "Builder",
     pricing: "Prijzen",
     trade: "Zakelijk",
     account: "Account",
@@ -72,7 +72,7 @@ export const nl: typeof en = {
   common: {
     exclBtw: "excl. btw",
     inclBtw: "incl. btw",
-    startOrder: "Start je bestelling",
+    startOrder: "Open de builder",
     samples: "Gratis samplepakket",
     requestSamples: "Vraag samples aan",
     learn: "Lees verder",
