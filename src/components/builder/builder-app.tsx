@@ -26,25 +26,6 @@ export function BuilderApp() {
   useEffect(() => {
     void useBuilderStore.persist.rehydrate();
   }, []);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const el = e.target as HTMLElement | null;
-      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) {
-        return;
-      }
-      if (e.key !== "Delete" && e.key !== "Backspace") return;
-      const state = useBuilderStore.getState();
-      const id = state.selectedId;
-      if (!id) return;
-      e.preventDefault();
-      const piece = state.placed.find((p) => p.id === id);
-      if (piece) state.removePiece(piece.id, config);
-      else if (state.designs.some((d) => d.id === id)) state.removeDesign(id, config);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [config]);
   const config = useSettingsStore((s) => s.config);
   const incl = useSettingsStore((s) => s.btwInclusive);
   const designs = useBuilderStore((s) => s.designs);
@@ -72,6 +53,25 @@ export function BuilderApp() {
   const [added, setAdded] = useState(false);
   const [trade, setTrade] = useState(false);
   const [zoomPct, setZoomPct] = useState(100);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) {
+        return;
+      }
+      if (e.key !== "Delete" && e.key !== "Backspace") return;
+      const state = useBuilderStore.getState();
+      const id = state.selectedId;
+      if (!id) return;
+      e.preventDefault();
+      const piece = state.placed.find((p) => p.id === id);
+      if (piece) state.removePiece(piece.id, config);
+      else if (state.designs.some((d) => d.id === id)) state.removeDesign(id, config);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [config]);
 
   const quote = useMemo(
     () => quoteFilm(designs.length ? lengthMm : 0, config, { trade, includeShipping: true }),
