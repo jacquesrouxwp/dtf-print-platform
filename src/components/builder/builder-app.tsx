@@ -301,11 +301,11 @@ function DesignCard({ design, selected }: { design: Design; selected: boolean })
   const updateDesign = useBuilderStore((s) => s.updateDesign);
   const removeDesign = useBuilderStore((s) => s.removeDesign);
   const patchCopies = useBuilderStore((s) => s.patchCopies);
-  const placedCopies = useBuilderStore((s) =>
-    s.placed.filter((p) => p.designId === design.id)
-  );
+  const locked = useBuilderStore((s) => {
+    const copies = s.placed.filter((p) => p.designId === design.id);
+    return copies.length > 0 && copies.every((p) => p.locked);
+  });
   const select = useBuilderStore((s) => s.select);
-  const locked = placedCopies.length > 0 && placedCopies.every((p) => p.locked);
   const dpi = Math.round(effectiveDpi(design.pixelW, design.widthMm));
   const [garment, setGarment] = useState<"black" | "white" | "heather">("black");
   const [qtyDraft, setQtyDraft] = useState(String(design.qty));
