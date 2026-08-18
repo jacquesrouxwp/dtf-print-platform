@@ -1,12 +1,27 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Image as KImage, Layer, Line, Rect, Stage, Text } from "react-konva";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Group, Image as KImage, Layer, Line, Rect, Stage, Text } from "react-konva";
 import { useBuilderStore } from "@/store/useBuilderStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
 
 function usableSrc(src?: string) {
   return Boolean(src && !src.startsWith("data:,"));
+}
+
+/** Fine, warm, print-studio alpha grid. Not the Photoshop magenta/grey. */
+function makeAlphaSwatch(cell = 6): HTMLCanvasElement {
+  const c = document.createElement("canvas");
+  c.width = cell * 2;
+  c.height = cell * 2;
+  const ctx = c.getContext("2d");
+  if (!ctx) return c;
+  ctx.fillStyle = "#ebe6dc";
+  ctx.fillRect(0, 0, cell * 2, cell * 2);
+  ctx.fillStyle = "#d8d2c7";
+  ctx.fillRect(0, 0, cell, cell);
+  ctx.fillRect(cell, cell, cell, cell);
+  return c;
 }
 
 export function BuilderCanvas({
@@ -86,20 +101,21 @@ export function BuilderCanvas({
   const stageH = Math.max(200, Math.min(Math.round(viewLength * (stageW / roll)), 1800));
   const drawScale = stageW / roll;
   const canDrag = interactive && finePointer;
+  const swatch = useMemo(() => (typeof window === "undefined" ? undefined : makeAlphaSwatch(6)), []);
 
   return (
     <div ref={wrapRef} className="builder-film relative min-w-0 w-full max-w-full overflow-hidden">
-      <div className="checker max-h-[62vh] w-full max-w-full overflow-auto rounded-xl">
+      <div className="max-h-[62vh] w-full max-w-full overflow-auto rounded-xl bg-[#161412]">
         {avail > 0 && (
           <Stage width={stageW} height={stageH}>
             <Layer>
-              <Rect x={0} y={0} width={stageW} height={stageH} fill="#f7f4ec" />
+              <Rect x={0} y={0} width={stageW} height={stageH} fill="#efe8db" />
               <Rect
                 x={config.edgeMm * drawScale}
                 y={config.edgeMm * drawScale}
                 width={(roll - 2 * config.edgeMm) * drawScale}
                 height={Math.max(lengthMm - 2 * config.edgeMm, 20) * drawScale}
-                stroke="#d4cec0"
+                stroke="#c9c1b3"
                 dash={[4, 4]}
               />
               {placed.map((p) => {
@@ -112,20 +128,17 @@ export function BuilderCanvas({
                 const drawW = rotated ? boxHm : boxWm;
                 const drawH = rotated ? boxWm : boxHm;
                 const flip = Boolean(p.flipX);
+                const ox = p.xMm * drawScale;
+                const oy = p.yMm * drawScale;
                 return (
-                  <KImage
+                  <Group
                     key={p.id}
-                    image={img}
-                    x={p.xMm * drawScale + (rotated ? boxWm : 0) + (flip && !rotated ? drawW : 0)}
-                    y={p.yMm * drawScale}
-                    width={drawW}
-                    height={drawH}
-                    rotation={rotated ? 90 : 0}
-                    scaleX={flip ? -1 : 1}
-                    opacity={usableSrc(design?.src) ? 1 : 0.85}
-                    fill={usableSrc(design?.src) ? undefined : "#12110e"}
-                    stroke={selected ? "#e22b12" : "#12110e"}
-                    strokeWidth={selected ? 2 : 0.5}
+                    x={ox}
+                    y={oy}
+                    clipX={0}
+                    clipY={0}
+                    clipWidth={boxWm}
+                    clipHeight={boxHm}
                     draggable={canDrag && !p.locked}
                     onClick={(e) => {
                       const ev = e.evt;
@@ -141,11 +154,37 @@ export function BuilderCanvas({
                       if (e.evt.ctrlKey || e.evt.metaKey) e.target.stopDrag?.();
                     }}
                     onDragEnd={(e) => {
-                      const node = e.target;
-                      const x = rotated ? node.x() - boxWm : node.x();
-                      movePiece(p.id, x / drawScale, node.y() / drawScale, config);
+                      movePiece(p.id, e.target.x() / drawScale, e.target.y() / drawScale, config);
                     }}
-                  />
+                  >
+                    {swatch && (
+                      <Rect
+                        width={boxWm}
+                        height={boxHm}
+                        fillPatternImage={swatch as unknown as HTMLImageElement}
+                        fillPatternRepeat="repeat"
+                        listening={false}
+                      />
+                    )}
+                    <KImage
+                      image={img}
+                      x={rotated ? boxWm : flip ? drawW : 0}
+                      y={0}
+                      width={drawW}
+                      height={drawH}
+                      rotation={rotated ? 90 : 0}
+                      scaleX={flip ? -1 : 1}
+                      opacity={usableSrc(design?.src) ? 1 : 0.9}
+                      listening={false}
+                    />
+                    <Rect
+                      width={boxWm}
+                      height={boxHm}
+                      stroke={selected ? "#e22b12" : "rgba(30,26,22,0.22)"}
+                      strokeWidth={selected ? 1.5 : 0.6}
+                      listening={false}
+                    />
+                  </Group>
                 );
               })}
               <Line
