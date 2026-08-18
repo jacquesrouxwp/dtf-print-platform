@@ -3,7 +3,7 @@ import type { SiteConfig } from "./site-config";
 const TZ = "Europe/Amsterdam";
 
 function partsInZone(date: Date, timeZone = TZ) {
-  let tz = timeZone && timeZone.trim() ? timeZone : TZ;
+  const tz = timeZone && timeZone.trim() ? timeZone : TZ;
   let fmt: Intl.DateTimeFormat;
   try {
     fmt = new Intl.DateTimeFormat("en-GB", {
