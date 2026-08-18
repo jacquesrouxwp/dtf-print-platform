@@ -47,7 +47,7 @@ export function BuilderCanvas({ interactive }: { interactive: boolean }) {
   const images = useMemo(() => {
     const map = new Map<string, HTMLImageElement>();
     for (const d of designs) {
-      if (!d.src) continue;
+      if (!d.src || d.src === "data:," || d.src.startsWith("data:,")) continue;
       const img = new window.Image();
       img.crossOrigin = "anonymous";
       img.onload = () => setTick((n) => n + 1);
@@ -73,7 +73,8 @@ export function BuilderCanvas({ interactive }: { interactive: boolean }) {
           {fit ? "1:1 width" : "Fit sheet"}
         </button>
       </div>
-      <div ref={wrapRef} className="checker w-full overflow-auto border border-border">
+      <div ref={wrapRef} className="w-full">
+      <div className="checker max-h-[70vh] w-full overflow-auto border border-border">
         <Stage width={width} height={height}>
           <Layer>
             <Rect x={0} y={0} width={width} height={height} fill="#f7f4ec" />
@@ -132,6 +133,7 @@ export function BuilderCanvas({ interactive }: { interactive: boolean }) {
             />
           </Layer>
         </Stage>
+      </div>
       </div>
     </div>
   );

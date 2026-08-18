@@ -78,7 +78,10 @@ function hydrateDesign(raw: unknown): Design | null {
   return {
     id: d.id,
     name: typeof d.name === "string" ? d.name : "artwork",
-    src: typeof d.src === "string" ? d.src : "",
+    src:
+      typeof d.src === "string" && d.src !== "data:," && !d.src.startsWith("data:,")
+        ? d.src
+        : "",
     storageKey: typeof d.storageKey === "string" ? d.storageKey : undefined,
     mime: typeof d.mime === "string" ? d.mime : "image/png",
     pixelW: Number.isFinite(Number(d.pixelW)) ? Number(d.pixelW) : 0,
@@ -371,10 +374,30 @@ export const useBuilderStore = create<BuilderState>()(
     {
       name: "hlv-builder",
       version: PERSIST_VERSION,
-      storage: createJSONStorage(() => safeStorage),
+      storage: createJSONStorage(() => ({
+        getItem(name: string) {
+          const raw = safeStorage.getItem(name);
+          if (!raw) return raw;
+          try {
+            const parsed = JSON.parse(raw) as { version?: unknown; state?: unknown };
+            // Pre-v2 blobs omit `version`; zustand then skips migrate.
+            if (parsed && typeof parsed === "object" && typeof parsed.version !== "number") {
+              parsed.version = 0;
+              return JSON.stringify(parsed);
+            }
+          } catch {
+            /* keep raw */
+          }
+          return raw;
+        },
+        setItem: safeStorage.setItem.bind(safeStorage),
+        removeItem: safeStorage.removeItem.bind(safeStorage),
+      })),
       /** Any older or corrupt blob is discarded rather than rehydrated. */
       migrate: (persisted, version) =>
         version === PERSIST_VERSION ? persisted : undefined,
+      // Blobs written before `version` existed have no version field; zustand
+      // then skips migrate. merge() still sanitizes them.
       merge: (persisted, current) => {
         try {
           const p = persisted as Partial<BuilderState> | undefined;

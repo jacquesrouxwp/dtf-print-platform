@@ -29,13 +29,13 @@ describe("builder store rehydration", () => {
   it("does not crash and yields a warnings array for a stale v1 blob", async () => {
     installStorage(STALE_V1);
     const { useBuilderStore } = await import("./useBuilderStore");
-    const { designs } = useBuilderStore.getState();
-    // The old blob is discarded by migrate; whatever survives must be renderable.
+    const { designs, rejected } = useBuilderStore.getState();
+    expect(designs).toEqual([]);
+    expect(Array.isArray(rejected)).toBe(true);
     for (const d of designs) {
       expect(Array.isArray(d.warnings)).toBe(true);
       expect(() => d.warnings.some((w) => w.level === "red")).not.toThrow();
     }
-    expect(Array.isArray(useBuilderStore.getState().rejected)).toBe(true);
   });
 
   it("survives a corrupt blob", async () => {
