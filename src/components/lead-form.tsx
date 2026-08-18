@@ -79,7 +79,7 @@ export function LeadForm({
       <button
         type="submit"
         disabled={status === "sending"}
-        className="bg-accent px-5 py-3 text-sm text-white"
+        className="btn btn-primary"
       >
         {status === "sending" ? t.common.sending : submitLabel}
       </button>

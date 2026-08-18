@@ -17,7 +17,7 @@ import { useI18n } from "../providers";
 
 const BuilderCanvas = dynamic(
   () => import("./builder-canvas").then((m) => m.BuilderCanvas),
-  { ssr: false, loading: () => <div className="h-[420px] border border-border bg-surface" /> }
+  { ssr: false, loading: () => <div className="h-[420px] rounded-2xl border border-white/12 bg-white/5" /> }
 );
 
 export function BuilderApp() {
@@ -109,8 +109,10 @@ export function BuilderApp() {
 
   const priceBlock = (
     <>
-      <p className="num text-xs uppercase tracking-[0.2em] text-muted">{t.builder.priceLive}</p>
-      <p className="num mt-3 text-3xl text-accent">{money(displayTotal, locale)}</p>
+      <p className="num text-center text-xs uppercase tracking-[0.2em] text-muted">
+        {t.builder.priceLive}
+      </p>
+      <p className="num mt-3 text-center text-3xl text-accent">{money(displayTotal, locale)}</p>
       <dl className="mt-6 grid gap-3 text-sm">
         <Row k={t.builder.metersUsed} v={(lengthMm / 1000).toFixed(3) + " m"} />
         <Row k={t.builder.billed} v={metersLabel(quote.billedMeters, locale)} />
@@ -125,7 +127,7 @@ export function BuilderApp() {
         <Row k={t.builder.shipping} v={money(shipRow, locale)} />
         <Row k={t.builder.total} v={money(displayTotal, locale)} />
       </dl>
-      <label className="mt-3 flex items-center gap-2 text-xs text-muted">
+      <label className="mt-4 flex items-center justify-center gap-2 text-xs text-muted">
         <input type="checkbox" checked={trade} onChange={(e) => setTrade(e.target.checked)} />
         {t.checkout.trade}
       </label>
@@ -133,20 +135,17 @@ export function BuilderApp() {
         type="button"
         disabled={!designs.length || added || blocking}
         onClick={addToCart}
-        className="mt-3 w-full bg-accent py-3 text-sm text-white disabled:opacity-40"
+        className="btn btn-primary mt-4 w-full"
       >
         {added ? t.builder.added : t.builder.addCart}
       </button>
       {blocking && (
-        <p className="mt-3 text-xs text-bad">
+        <p className="mt-3 text-center text-xs text-bad">
           Resolve red warnings or rejected files before checkout.
         </p>
       )}
       {added && (
-        <Link
-          href={localizedPath(locale, "/checkout")}
-          className="mt-3 block w-full border border-border py-3 text-center text-sm"
-        >
+        <Link href={localizedPath(locale, "/checkout")} className="btn btn-ghost mt-3 w-full">
           {t.builder.checkout}
         </Link>
       )}
@@ -166,7 +165,7 @@ export function BuilderApp() {
       </div>
 
       {rejected.length > 0 && (
-        <p className="mb-6 border border-bad/40 bg-bad/10 px-3 py-3 text-sm text-bad">
+        <p className="mb-6 rounded-2xl border border-bad/40 bg-bad/10 px-4 py-3 text-sm text-bad">
           {rejected.length} design{rejected.length === 1 ? "" : "s"} will not fit the roll and
           cannot be checked out.
         </p>
@@ -174,12 +173,12 @@ export function BuilderApp() {
 
       <p className="mb-6 text-sm text-muted md:hidden">{t.builder.mobileNote}</p>
 
-      <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)_280px]">
+      <div className="grid gap-5 lg:grid-cols-[300px_minmax(0,1fr)_280px]">
         <aside className="grid gap-3 self-start">
-          <label className="grid cursor-pointer place-items-center border border-dashed border-border px-4 py-8 text-center text-sm">
+          <label className="glass grid cursor-pointer place-items-center rounded-2xl px-4 py-8 text-center text-sm">
             <span>{t.builder.drop}</span>
             <span className="mt-3 text-xs text-muted">{t.builder.or}</span>
-            <span className="mt-3 bg-accent px-3 py-2 text-sm text-white">{t.builder.browse}</span>
+            <span className="btn btn-primary mt-4">{t.builder.browse}</span>
             <input
               type="file"
               multiple
@@ -190,7 +189,7 @@ export function BuilderApp() {
           </label>
           <button
             type="button"
-            className="border border-border px-3 py-2 text-sm"
+            className="btn btn-ghost w-full"
             onClick={async () => {
               const demos = makeDemoDesigns();
               const files: File[] = [];
@@ -207,9 +206,11 @@ export function BuilderApp() {
           >
             {t.builder.demo}
           </button>
-          {adding && <p className="text-xs text-muted">{t.common.sending}</p>}
+          {adding && <p className="text-center text-xs text-muted">{t.common.sending}</p>}
           {designs.length === 0 && (
-            <p className="text-sm text-muted">{fill(t.builder.empty, config, locale)}</p>
+            <p className="px-1 text-sm leading-relaxed text-muted">
+              {fill(t.builder.empty, config, locale)}
+            </p>
           )}
           <ul className="grid gap-3">
             {designs.map((d) => (
@@ -219,6 +220,7 @@ export function BuilderApp() {
         </aside>
 
         <section
+          className="glass rounded-[24px] p-3 md:p-4"
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
@@ -228,27 +230,23 @@ export function BuilderApp() {
           <CanvasGuard>
             <BuilderCanvas interactive />
           </CanvasGuard>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="bg-accent px-3 py-2 text-sm text-white"
-              onClick={() => autoArrange(config)}
-            >
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            <button type="button" className="btn btn-primary" onClick={() => autoArrange(config)}>
               {t.builder.auto}
             </button>
-            <button type="button" className="border border-border px-3 py-2 text-sm" onClick={onSave}>
+            <button type="button" className="btn btn-ghost" onClick={onSave}>
               {saved ? t.builder.saved : t.builder.save}
             </button>
           </div>
         </section>
 
-        <aside className="hidden self-start border border-border p-4 lg:sticky lg:top-28 lg:block">
+        <aside className="glass hidden self-start rounded-[24px] p-5 lg:sticky lg:top-28 lg:block">
           {priceBlock}
         </aside>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background p-3 lg:hidden">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-3">
+      <div className="fixed inset-x-3 bottom-3 z-30 lg:hidden">
+        <div className="glass mx-auto flex max-w-[1400px] items-center justify-between gap-3 rounded-2xl p-3">
           <div>
             <p className="num text-lg text-accent">{money(displayTotal, locale)}</p>
             <p className="num text-xs text-muted">{metersLabel(quote.billedMeters, locale)}</p>
@@ -257,7 +255,7 @@ export function BuilderApp() {
             type="button"
             disabled={!designs.length || added || blocking}
             onClick={addToCart}
-            className="bg-accent px-4 py-3 text-sm text-white disabled:opacity-40"
+            className="btn btn-primary"
           >
             {added ? t.builder.added : t.builder.addCart}
           </button>
@@ -275,7 +273,7 @@ class CanvasGuard extends Component<{ children: ReactNode }, { failed: boolean }
   render() {
     if (this.state.failed) {
       return (
-        <div className="grid h-[420px] place-items-center border border-border bg-surface text-sm text-muted">
+        <div className="grid h-[420px] place-items-center rounded-2xl border border-white/12 bg-white/5 text-center text-sm text-muted">
           Canvas failed to render. Reload the page.
         </div>
       );
@@ -327,20 +325,12 @@ function DesignCard({ design, selected }: { design: Design; selected: boolean })
 
   return (
     <li
-      className={`border p-3 ${selected ? "border-accent" : "border-border"}`}
+      className={`glass rounded-2xl p-3 ${selected ? "ring-1 ring-accent" : ""}`}
       onClick={() => select(design.id)}
     >
       <div className="flex gap-3">
-        <div className="checker h-14 w-14 overflow-hidden">
-          {design.src ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={design.src} alt="" className="h-full w-full object-contain" />
-          ) : (
-            <div className="grid h-full place-items-center text-xs">—</div>
-          )}
-        </div>
         <div
-          className="h-14 w-14 overflow-hidden"
+          className="checker h-16 w-16 shrink-0 overflow-hidden rounded-xl"
           style={{
             background:
               garment === "black" ? "#1a1a1a" : garment === "white" ? "#f4f4f4" : "#8a8680",
@@ -349,41 +339,42 @@ function DesignCard({ design, selected }: { design: Design; selected: boolean })
           {design.src ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={design.src} alt="" className="h-full w-full object-contain" />
-          ) : null}
+          ) : (
+            <div className="grid h-full place-items-center text-xs text-muted">—</div>
+          )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-xs">{design.name}</p>
+          <p className="truncate text-sm">{design.name}</p>
           {design.uploadError && <p className="text-xs text-bad">{design.uploadError}</p>}
-          <p className="num text-xs text-muted">
+          <p className="num mt-1 text-xs text-muted">
             {t.builder.dpi} {dpi}
           </p>
         </div>
       </div>
       <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-        <label>
-          {t.builder.width}
+        <label className="grid gap-1">
+          <span className="text-muted">{t.builder.width}</span>
           <input
             type="number"
             min={1}
             step={0.1}
             value={wDraft}
-            className="num mt-1 w-full border border-border bg-surface px-1 py-1"
+            className="field num"
             onChange={(e) => {
               setWDraft(e.target.value);
               const n = Number(e.target.value);
               if (n > 0) updateDesign(design.id, { widthMm: n * 10 }, config);
             }}
           />
-          <span className="text-muted"> {t.builder.cm}</span>
         </label>
-        <label>
-          {t.builder.height}
+        <label className="grid gap-1">
+          <span className="text-muted">{t.builder.height}</span>
           <input
             type="number"
             min={1}
             step={0.1}
             value={hDraft}
-            className="num mt-1 w-full border border-border bg-surface px-1 py-1"
+            className="field num"
             onChange={(e) => {
               setHDraft(e.target.value);
               const n = Number(e.target.value);
@@ -391,13 +382,13 @@ function DesignCard({ design, selected }: { design: Design; selected: boolean })
             }}
           />
         </label>
-        <label>
-          {t.builder.qty}
+        <label className="grid gap-1">
+          <span className="text-muted">{t.builder.qty}</span>
           <input
             type="number"
             min={1}
             value={qtyDraft}
-            className="num mt-1 w-full border border-border bg-surface px-1 py-1"
+            className="field num"
             onChange={(e) => {
               const raw = e.target.value;
               setQtyDraft(raw);
@@ -410,31 +401,34 @@ function DesignCard({ design, selected }: { design: Design; selected: boolean })
           />
         </label>
       </div>
-      <div className="mt-3 flex flex-wrap gap-1">
+      <div className="mt-3 flex flex-wrap gap-1.5">
         {PRESETS_CM.map((cm) => (
           <button
             key={cm}
             type="button"
-            className="num border border-border px-1.5 py-0.5 text-xs"
+            className="btn-soft num"
             onClick={() => updateDesign(design.id, { widthMm: cm * 10 }, config)}
           >
-            {cm}
+            {cm} cm
           </button>
         ))}
+      </div>
+      <div className="mt-2 flex gap-1.5">
         {(["black", "white", "heather"] as const).map((g) => (
           <button
             key={g}
             type="button"
-            className={`px-1.5 py-0.5 text-xs ${garment === g ? "text-accent" : "text-muted"}`}
+            className={`btn-soft capitalize ${garment === g ? "ring-1 ring-accent" : "text-muted"}`}
             onClick={() => setGarment(g)}
           >
             {g}
           </button>
         ))}
       </div>
-      <div className="mt-3 flex flex-wrap gap-2 text-xs">
+      <div className="mt-3 grid grid-cols-2 gap-2">
         <button
           type="button"
+          className="btn-soft"
           onClick={() =>
             updateDesign(
               design.id,
@@ -450,16 +444,21 @@ function DesignCard({ design, selected }: { design: Design; selected: boolean })
         >
           {t.builder.rotate}
         </button>
-        <button type="button" onClick={() => patchCopies(design.id, { locked: !locked }, config)}>
+        <button
+          type="button"
+          className="btn-soft"
+          onClick={() => patchCopies(design.id, { locked: !locked }, config)}
+        >
           {locked ? t.builder.unlock : t.builder.lock}
         </button>
         <button
           type="button"
+          className="btn-soft"
           onClick={() => updateDesign(design.id, { qty: design.qty + 1 }, config)}
         >
           {t.builder.duplicate}
         </button>
-        <button type="button" onClick={() => removeDesign(design.id, config)}>
+        <button type="button" className="btn-soft text-bad" onClick={() => removeDesign(design.id, config)}>
           {t.builder.remove}
         </button>
       </div>

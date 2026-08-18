@@ -59,7 +59,7 @@ export function AdminClient() {
             placeholder={t.admin.password}
             className="border border-rule bg-paper px-3 py-2"
           />
-          <button className="bg-accent px-4 py-3 text-sm text-white">{t.admin.unlock}</button>
+          <button className="btn btn-primary">{t.admin.unlock}</button>
         </form>
       </PageShell>
     );
@@ -124,7 +124,7 @@ export function AdminClient() {
           />
         ))}
         <div className="md:col-span-2 flex gap-3">
-          <button className="bg-accent px-5 py-3 text-sm text-white">{t.admin.save}</button>
+          <button className="btn btn-primary">{t.admin.save}</button>
           <button
             type="button"
             className="border border-rule px-5 py-3 text-sm"

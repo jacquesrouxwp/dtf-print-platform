@@ -47,7 +47,7 @@ export default async function FilesPage({
       </ul>
       <Link
         href={localizedPath(lang, "/order")}
-        className="mt-10 inline-block bg-accent px-5 py-3 text-sm text-white"
+        className="btn btn-primary mt-10"
       >
         {t.files.cta}
       </Link>

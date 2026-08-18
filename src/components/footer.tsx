@@ -12,7 +12,7 @@ export function Footer() {
   const L = (path: string) => localizedPath(locale, path);
 
   return (
-    <footer className="border-t border-border bg-background">
+    <footer className="border-t border-white/10 bg-neutral-950/45 backdrop-blur-md">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 md:grid-cols-4">
         <div className="md:col-span-2">
           <p className="font-display text-3xl">HLV</p>

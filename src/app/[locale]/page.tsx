@@ -70,27 +70,25 @@ export default async function HomePage({
 
       <HomeHero cutoffLine={fill(t.home.cutoffLine, c, lang)} />
 
-      <section className="border-t border-border">
-        <div className="mx-auto max-w-7xl px-4 py-24 md:py-32">
-          <ProductGrid products={products} />
-        </div>
+      <section className="mx-auto max-w-7xl px-4 pb-8">
+        <ProductGrid products={products} />
       </section>
 
-      <section className="border-t border-border">
-        <div className="mx-auto flex max-w-7xl flex-wrap gap-x-8 gap-y-3 px-4 py-10 text-sm text-muted">
+      <section className="mx-auto max-w-7xl px-4 py-6">
+        <div className="glass flex flex-wrap items-center justify-center gap-x-8 gap-y-3 rounded-full px-6 py-4 text-center text-sm text-muted">
           {t.home.trust.map((item) => (
             <span key={item}>{item}</span>
           ))}
         </div>
       </section>
 
-      <section className="border-t border-border">
-        <div className="mx-auto max-w-7xl px-4 py-24 md:py-32">
+      <section className="mx-auto max-w-7xl px-4 py-8">
+        <div className="glass rounded-[28px] px-6 py-12 md:px-12 md:py-16">
           <p className="num text-xs uppercase tracking-[0.2em] text-muted">{t.home.howKicker}</p>
-          <h2 className="font-display mt-6 text-3xl md:text-4xl">{t.home.howTitle}</h2>
-          <div className="mt-12 grid gap-10 md:grid-cols-3">
+          <h2 className="font-display mt-5 text-3xl md:text-4xl">{t.home.howTitle}</h2>
+          <div className="mt-10 grid gap-8 md:grid-cols-3">
             {t.home.steps.map((step) => (
-              <div key={step.n} className="border-t border-border pt-6">
+              <div key={step.n} className="rounded-2xl border border-white/10 bg-white/4 p-5">
                 <p className="num text-xs text-accent">{step.n}</p>
                 <h3 className="mt-3 text-xl">{step.t}</h3>
                 <p className="mt-3 text-sm leading-relaxed text-muted">{fill(step.d, c, lang)}</p>
@@ -100,13 +98,13 @@ export default async function HomePage({
         </div>
       </section>
 
-      <section className="border-t border-border">
-        <div className="mx-auto max-w-7xl px-4 py-24 md:py-32">
+      <section className="mx-auto max-w-7xl px-4 py-8">
+        <div className="glass rounded-[28px] px-6 py-12 md:px-12 md:py-16">
           <p className="num text-xs uppercase tracking-[0.2em] text-muted">{t.home.whyKicker}</p>
-          <h2 className="font-display mt-6 max-w-3xl text-3xl md:text-4xl">{t.home.whyTitle}</h2>
-          <div className="mt-12 grid gap-10 md:grid-cols-2">
+          <h2 className="font-display mt-5 max-w-3xl text-3xl md:text-4xl">{t.home.whyTitle}</h2>
+          <div className="mt-10 grid gap-8 md:grid-cols-2">
             {t.home.why.map((item) => (
-              <div key={item.t}>
+              <div key={item.t} className="rounded-2xl border border-white/10 p-5">
                 <h3 className="text-xl">{item.t}</h3>
                 <p className="mt-3 text-sm leading-relaxed text-muted">{fill(item.d, c, lang)}</p>
               </div>
@@ -115,13 +113,13 @@ export default async function HomePage({
         </div>
       </section>
 
-      <section className="border-t border-border">
-        <div className="mx-auto max-w-7xl px-4 py-24 md:py-32">
+      <section className="mx-auto max-w-7xl px-4 py-8">
+        <div className="glass rounded-[28px] px-6 py-12 md:px-12 md:py-16">
           <p className="num text-xs uppercase tracking-[0.2em] text-muted">{t.home.whoKicker}</p>
-          <h2 className="font-display mt-6 text-3xl md:text-4xl">{t.home.whoTitle}</h2>
-          <div className="mt-10 divide-y divide-border border-y border-border">
+          <h2 className="font-display mt-5 text-3xl md:text-4xl">{t.home.whoTitle}</h2>
+          <div className="mt-8 divide-y divide-white/10">
             {t.home.who.map((item) => (
-              <div key={item.t} className="grid gap-2 py-6 md:grid-cols-3">
+              <div key={item.t} className="grid gap-2 py-5 md:grid-cols-3">
                 <h3 className="text-base">{item.t}</h3>
                 <p className="text-sm text-muted md:col-span-2">{item.d}</p>
               </div>
@@ -130,11 +128,11 @@ export default async function HomePage({
         </div>
       </section>
 
-      <section className="border-t border-border">
-        <div className="mx-auto grid max-w-7xl gap-12 px-4 py-24 md:grid-cols-2 md:py-32">
+      <section className="mx-auto max-w-7xl px-4 py-8">
+        <div className="glass grid gap-10 rounded-[28px] px-6 py-12 md:grid-cols-2 md:px-12 md:py-16">
           <div>
             <p className="num text-xs uppercase tracking-[0.2em] text-muted">{t.home.specKicker}</p>
-            <h2 className="font-display mt-6 text-3xl md:text-4xl">{t.home.specTitle}</h2>
+            <h2 className="font-display mt-5 text-3xl md:text-4xl">{t.home.specTitle}</h2>
             <p className="mt-6 text-sm leading-relaxed text-muted">{fill(t.home.specBody, c, lang)}</p>
             <p className="num mt-6 text-sm">
               {width} cm · {cutoff} · {money(c.priceTiers[0].pricePerMeter, lang)} / m
@@ -144,14 +142,11 @@ export default async function HomePage({
         </div>
       </section>
 
-      <section className="border-t border-border">
-        <div className="mx-auto max-w-3xl px-4 py-24 text-center md:py-32">
+      <section className="mx-auto max-w-3xl px-4 py-10 pb-20">
+        <div className="glass rounded-[28px] px-6 py-14 text-center md:px-12">
           <h2 className="font-display text-3xl md:text-4xl">{t.home.sampleTitle}</h2>
           <p className="mx-auto mt-6 max-w-xl text-muted">{t.home.sampleBody}</p>
-          <Link
-            href={L("/samples")}
-            className="mt-6 inline-block bg-accent px-5 py-3 text-sm text-white"
-          >
+          <Link href={L("/samples")} className="btn btn-primary mt-8">
             {t.common.requestSamples}
           </Link>
         </div>
@@ -162,7 +157,7 @@ export default async function HomePage({
 
 function RollDiagram({ locale, label }: { locale: string; label: string }) {
   return (
-    <div className="border border-border p-5">
+    <div className="overflow-hidden rounded-2xl border border-white/12 bg-white/5 p-5">
       <p className="num mb-4 text-xs uppercase tracking-[0.18em] text-muted">{label}</p>
       <svg viewBox="0 0 550 320" className="w-full" role="img" aria-label="55 cm roll">
         <rect x="1" y="1" width="548" height="318" fill="#f3efe6" stroke="#12110e" />

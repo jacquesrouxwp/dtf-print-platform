@@ -30,7 +30,7 @@ export default async function UvPage({
       <p className="num mt-6 text-sm">{t.uv.rate}</p>
       <Link
         href={localizedPath(lang, "/contact")}
-        className="mt-10 inline-block bg-accent px-5 py-3 text-sm text-white"
+        className="btn btn-primary mt-10"
       >
         {t.uv.cta}
       </Link>

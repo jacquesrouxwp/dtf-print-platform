@@ -46,7 +46,9 @@ export function Header() {
     return (
       <Link
         href={localizedPath(locale, href)}
-        className={`text-sm tracking-wide ${active ? "text-foreground" : "text-muted hover:text-foreground"}`}
+        className={`rounded-full px-2 py-1 text-sm tracking-wide ${
+          active ? "text-foreground" : "text-muted hover:text-foreground"
+        }`}
         onClick={() => setOpen(false)}
       >
         {label}
@@ -55,7 +57,7 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background">
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-neutral-950/55 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center gap-5 px-4 py-3">
         <Link
           href={localizedPath(locale, "/")}
@@ -64,16 +66,16 @@ export function Header() {
           HLV
         </Link>
 
-        <nav className="hidden items-center gap-6 md:flex">
+        <nav className="hidden items-center gap-4 md:flex">
           {primary.map((item) => (
             <NavLink key={item.href} href={item.href} label={t.nav[item.key]} />
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-3 md:gap-4">
+        <div className="ml-auto flex items-center gap-2 md:gap-3">
           <Link
             href={localizedPath(locale, "/order")}
-            className="bg-accent px-3 py-2 text-sm text-white md:px-4"
+            className="btn btn-primary"
             onClick={() => setOpen(false)}
           >
             {t.nav.order}
@@ -81,20 +83,20 @@ export function Header() {
           <button
             type="button"
             onClick={() => setBtwInclusive(!btwInclusive)}
-            className="hidden num text-xs uppercase tracking-wider text-muted md:inline"
+            className="btn-soft hidden num uppercase tracking-wider text-muted md:inline-flex"
             aria-pressed={btwInclusive}
           >
             {btwInclusive ? t.common.inclBtw : t.common.exclBtw}
           </button>
 
-          <nav className="flex items-center gap-1.5" aria-label={t.nav.language}>
+          <nav className="hidden items-center rounded-full border border-white/12 p-0.5 md:flex" aria-label={t.nav.language}>
             {locales.map((code) => (
               <Link
                 key={code}
                 href={localizedPath(code, rest)}
                 hrefLang={code}
-                className={`num text-xs uppercase tracking-wider ${
-                  code === locale ? "text-foreground" : "text-muted hover:text-foreground"
+                className={`num rounded-full px-2.5 py-1 text-xs uppercase tracking-wider ${
+                  code === locale ? "bg-white/12 text-foreground" : "text-muted hover:text-foreground"
                 }`}
               >
                 {code}
@@ -104,19 +106,19 @@ export function Header() {
 
           <Link
             href={localizedPath(locale, "/account")}
-            className="hidden text-sm text-muted hover:text-foreground md:inline"
+            className="hidden rounded-full px-2 py-1 text-sm text-muted hover:text-foreground md:inline"
           >
             {t.nav.account}
           </Link>
 
           <Link
             href={localizedPath(locale, "/checkout")}
-            className="relative text-foreground"
+            className="relative grid h-10 w-10 place-items-center rounded-full border border-white/12 text-foreground"
             aria-label={t.nav.cart}
           >
             <ShoppingBag size={18} />
             {cartCount > 0 && (
-              <span className="num absolute -right-2 -top-2 bg-accent px-1 text-[10px] text-white">
+              <span className="num absolute -right-1 -top-1 min-w-4 rounded-full bg-accent px-1 text-center text-[10px] leading-4 text-white">
                 {cartCount}
               </span>
             )}
@@ -124,7 +126,7 @@ export function Header() {
 
           <button
             type="button"
-            className="md:hidden"
+            className="grid h-10 w-10 place-items-center rounded-full border border-white/12 md:hidden"
             onClick={() => setOpen((v) => !v)}
             aria-label={t.nav.menu}
           >
@@ -133,8 +135,8 @@ export function Header() {
         </div>
       </div>
 
-      <div className="hidden border-t border-border md:block">
-        <nav className="mx-auto flex max-w-7xl gap-5 overflow-x-auto px-4 py-2 text-xs text-muted">
+      <div className="hidden border-t border-white/10 md:block">
+        <nav className="mx-auto flex max-w-7xl items-center gap-4 overflow-x-auto px-4 py-2 text-xs text-muted">
           {more.map((item) => (
             <NavLink key={item.href} href={item.href} label={t.nav[item.key]} />
           ))}
@@ -142,23 +144,24 @@ export function Header() {
       </div>
 
       {open && (
-        <nav className="grid gap-3 border-t border-border px-4 py-4 md:hidden">
+        <nav className="grid gap-2 border-t border-white/10 px-4 py-4 md:hidden">
           {primary.concat(more).map((item) => (
             <NavLink key={item.href} href={item.href} label={t.nav[item.key]} />
           ))}
           <Link
             href={localizedPath(locale, "/account")}
+            className="rounded-full px-2 py-1"
             onClick={() => setOpen(false)}
           >
             {t.nav.account}
           </Link>
-          <div className="flex gap-3 pt-2">
+          <div className="flex flex-wrap gap-2 pt-2">
             {locales.map((code) => (
               <Link
                 key={code}
                 href={localizedPath(code, rest)}
-                className={`num text-xs uppercase tracking-wider ${
-                  code === locale ? "text-foreground" : "text-muted"
+                className={`num rounded-full px-3 py-1.5 text-xs uppercase tracking-wider ${
+                  code === locale ? "bg-white/12 text-foreground" : "text-muted"
                 }`}
                 onClick={() => setOpen(false)}
               >
@@ -169,7 +172,7 @@ export function Header() {
           <button
             type="button"
             onClick={() => setBtwInclusive(!btwInclusive)}
-            className="num text-left text-xs uppercase tracking-wider text-muted"
+            className="btn-soft num w-fit uppercase tracking-wider text-muted"
           >
             {btwInclusive ? t.common.inclBtw : t.common.exclBtw}
           </button>

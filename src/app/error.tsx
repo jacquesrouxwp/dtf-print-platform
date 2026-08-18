@@ -14,7 +14,7 @@ export default function ErrorPage({
       </p>
       <button
         type="button"
-        className="mt-6 bg-accent px-5 py-3 text-sm text-white"
+        className="btn btn-primary mt-6"
         onClick={() => {
           try {
             window.localStorage.removeItem("hlv-site-config");

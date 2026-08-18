@@ -146,7 +146,7 @@ export function CheckoutClient() {
         <a
           href={blob}
           download={`${done.id}.json`}
-          className="mt-6 inline-block bg-accent px-5 py-3 text-sm text-white"
+          className="btn btn-primary mt-6"
         >
           {t.checkout.manifest}
         </a>
@@ -182,10 +182,10 @@ export function CheckoutClient() {
       </ul>
 
       <form onSubmit={onSubmit} className="grid gap-4">
-        <input name="name" required placeholder={t.common.name} className="border border-rule px-3 py-2" />
-        <input name="email" type="email" required placeholder={t.common.email} className="border border-rule px-3 py-2" />
-        <input name="company" placeholder={t.common.company} className="border border-rule px-3 py-2" />
-        <input name="address" required={!pickup} placeholder={t.common.address} className="border border-rule px-3 py-2" />
+        <input name="name" required placeholder={t.common.name} className="field" />
+        <input name="email" type="email" required placeholder={t.common.email} className="field" />
+        <input name="company" placeholder={t.common.company} className="field" />
+        <input name="address" required={!pickup} placeholder={t.common.address} className="field" />
         <div className="grid grid-cols-2 gap-3">
           <input name="postcode" placeholder={t.common.postcode} className="border border-rule px-3 py-2" />
           <input name="city" placeholder={t.common.city} className="border border-rule px-3 py-2" />
@@ -233,12 +233,12 @@ export function CheckoutClient() {
             type="button"
             disabled={sending}
             onClick={() => submit(true)}
-            className="bg-accent px-5 py-3 text-sm text-white"
+            className="btn btn-primary"
           >
             Confirm {money(confirmNeeded.totalIncl, locale)}
           </button>
         ) : (
-          <button type="submit" disabled={sending || !display} className="bg-accent px-5 py-3 text-sm text-white">
+          <button type="submit" disabled={sending || !display} className="btn btn-primary">
             {mollie ? t.checkout.payIdeal : t.checkout.payDemo}
           </button>
         )}

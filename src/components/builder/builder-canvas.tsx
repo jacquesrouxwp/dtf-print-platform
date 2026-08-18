@@ -88,7 +88,7 @@ export function BuilderCanvas({ interactive }: { interactive: boolean }) {
         </button>
       </div>
       <div ref={wrapRef} className="w-full">
-        <div className="checker max-h-[70vh] w-full overflow-auto border border-border">
+        <div className="checker max-h-[70vh] w-full overflow-auto rounded-xl border border-black/10">
           <Stage width={width} height={height}>
             <Layer>
               <Rect x={0} y={0} width={width} height={height} fill="#f7f4ec" />
