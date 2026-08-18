@@ -9,12 +9,17 @@ function usableSrc(src?: string) {
   return Boolean(src && !src.startsWith("data:,"));
 }
 
-export function BuilderCanvas({ interactive }: { interactive: boolean }) {
+export function BuilderCanvas({
+  interactive,
+  zoomPct,
+}: {
+  interactive: boolean;
+  zoomPct: number;
+}) {
   const wrapRef = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(480);
+  const [boxW, setBoxW] = useState(0);
   const [images, setImages] = useState<Record<string, HTMLImageElement>>({});
   const [finePointer, setFinePointer] = useState(false);
-  const [fit, setFit] = useState(true);
   const config = useSettingsStore((s) => s.config);
   const designs = useBuilderStore((s) => s.designs);
   const placed = useBuilderStore((s) => s.placed);
@@ -27,8 +32,8 @@ export function BuilderCanvas({ interactive }: { interactive: boolean }) {
     const el = wrapRef.current;
     if (!el) return;
     const apply = () => {
-      const next = Math.max(120, Math.floor(el.clientWidth));
-      setWidth((w) => (w === next ? w : next));
+      const next = Math.max(80, Math.floor(el.clientWidth));
+      setBoxW((w) => (w === next ? w : next));
     };
     apply();
     const ro = new ResizeObserver(apply);
@@ -74,24 +79,19 @@ export function BuilderCanvas({ interactive }: { interactive: boolean }) {
 
   const roll = Math.max(1, config.rollWidthMm);
   const viewLength = Math.max(lengthMm + 40, 280);
-  const fitScale = Math.min(width / roll, 560 / viewLength);
-  const scale = fit ? Math.max(0.02, fitScale) : width / roll;
-  const height = Math.max(200, Math.min(viewLength * scale, 1600));
+  const base = boxW > 0 ? boxW / roll : 0;
+  const scale = base * Math.max(0.4, zoomPct / 100);
+  const stageW = Math.max(1, Math.round(roll * scale));
+  const stageH = Math.max(200, Math.min(Math.round(viewLength * scale), 2400));
   const canDrag = interactive && finePointer;
 
   return (
-    <div>
-      <div className="mb-2 flex items-center justify-between text-xs text-muted">
-        <span className="num">{Math.round(scale * roll)} px wide</span>
-        <button type="button" className="underline" onClick={() => setFit((v) => !v)}>
-          {fit ? "1:1 width" : "Fit sheet"}
-        </button>
-      </div>
-      <div ref={wrapRef} className="w-full">
-        <div className="checker max-h-[70vh] w-full overflow-auto rounded-xl border border-black/10">
-          <Stage width={width} height={height}>
+    <div ref={wrapRef} className="min-w-0 w-full overflow-hidden">
+      <div className="checker max-h-[68vh] w-full overflow-auto rounded-xl">
+        {boxW > 0 && (
+          <Stage width={stageW} height={stageH}>
             <Layer>
-              <Rect x={0} y={0} width={width} height={height} fill="#f7f4ec" />
+              <Rect x={0} y={0} width={stageW} height={stageH} fill="#f7f4ec" />
               <Rect
                 x={config.edgeMm * scale}
                 y={config.edgeMm * scale}
@@ -105,36 +105,38 @@ export function BuilderCanvas({ interactive }: { interactive: boolean }) {
                 const img = images[p.designId];
                 const selected = selectedId === p.designId || selectedId === p.id;
                 const rotated = p.rotation === 90;
-                const boxW = Math.max(1, p.widthMm * scale);
-                const boxH = Math.max(1, p.heightMm * scale);
-                const drawW = rotated ? boxH : boxW;
-                const drawH = rotated ? boxW : boxH;
+                const boxWm = Math.max(1, p.widthMm * scale);
+                const boxHm = Math.max(1, p.heightMm * scale);
+                const drawW = rotated ? boxHm : boxWm;
+                const drawH = rotated ? boxWm : boxHm;
+                const flip = Boolean(p.flipX);
                 return (
                   <KImage
                     key={p.id}
                     image={img}
-                    x={p.xMm * scale + (rotated ? boxW : 0)}
+                    x={p.xMm * scale + (rotated ? boxWm : 0) + (flip && !rotated ? drawW : 0)}
                     y={p.yMm * scale}
                     width={drawW}
                     height={drawH}
                     rotation={rotated ? 90 : 0}
+                    scaleX={flip ? -1 : 1}
                     opacity={usableSrc(design?.src) ? 1 : 0.85}
                     fill={usableSrc(design?.src) ? undefined : "#12110e"}
                     stroke={selected ? "#e22b12" : "#12110e"}
                     strokeWidth={selected ? 2 : 0.5}
                     draggable={canDrag && !p.locked}
-                    onClick={() => select(p.designId)}
-                    onTap={() => select(p.designId)}
+                    onClick={() => select(p.id)}
+                    onTap={() => select(p.id)}
                     onDragEnd={(e) => {
                       const node = e.target;
-                      const x = rotated ? node.x() - boxW : node.x();
+                      const x = rotated ? node.x() - boxWm : node.x();
                       movePiece(p.id, x / scale, node.y() / scale, config);
                     }}
                   />
                 );
               })}
               <Line
-                points={[0, lengthMm * scale, width, lengthMm * scale]}
+                points={[0, lengthMm * scale, stageW, lengthMm * scale]}
                 stroke="#e22b12"
                 dash={[8, 6]}
               />
@@ -148,7 +150,7 @@ export function BuilderCanvas({ interactive }: { interactive: boolean }) {
               />
             </Layer>
           </Stage>
-        </div>
+        )}
       </div>
     </div>
   );

@@ -31,6 +31,7 @@ export type PlacedItem = {
   yMm: number;
   rotation: 0 | 90;
   locked: boolean;
+  flipX?: boolean;
 };
 
 export type PlacedPiece = PlacedItem;

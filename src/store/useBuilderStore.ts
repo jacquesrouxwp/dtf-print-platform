@@ -33,6 +33,13 @@ export type Design = {
   uploadError?: string;
 };
 
+type BuilderSnap = {
+  designs: Design[];
+  placed: PlacedPiece[];
+  lengthMm: number;
+  rejected: string[];
+};
+
 type BuilderState = {
   designs: Design[];
   placed: PlacedPiece[];
@@ -40,6 +47,8 @@ type BuilderState = {
   rejected: string[];
   selectedId: string | null;
   adding: boolean;
+  history: BuilderSnap[];
+  future: BuilderSnap[];
   addFiles: (files: File[], config: SiteConfig) => Promise<void>;
   addDesigns: (designs: Design[], config: SiteConfig) => void;
   updateDesign: (
@@ -59,7 +68,24 @@ type BuilderState = {
   loadSnapshot: (json: string, config: SiteConfig) => void;
   snapshot: () => string;
   reset: () => void;
+  undo: () => void;
+  redo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  patchPiece: (id: string, patch: Partial<PlacedPiece>, config: SiteConfig) => void;
+  flipPiece: (id: string) => void;
+  rotatePiece: (id: string) => void;
+  removePiece: (id: string, config: SiteConfig) => void;
 };
+
+function snapOf(s: { designs: Design[]; placed: PlacedPiece[]; lengthMm: number; rejected: string[] }): BuilderSnap {
+  return {
+    designs: s.designs,
+    placed: s.placed,
+    lengthMm: s.lengthMm,
+    rejected: s.rejected,
+  };
+}
 
 /** Bump this whenever the persisted Design/PlacedPiece shape changes. */
 const PERSIST_VERSION = 2;
@@ -193,6 +219,10 @@ export const useBuilderStore = create<BuilderState>()(
       rejected: [],
       selectedId: null,
       adding: false,
+      canUndo: false,
+      canRedo: false,
+      history: [] as BuilderSnap[],
+      future: [] as BuilderSnap[],
 
       addFiles: async (files, config) => {
         set({ adding: true });
@@ -270,10 +300,15 @@ export const useBuilderStore = create<BuilderState>()(
           }
         }
         const designs = [...get().designs, ...created];
+        const prev = snapOf(get());
         set({
           ...applyPack(designs, get().placed, config),
           adding: false,
           selectedId: created[0]?.id ?? get().selectedId,
+          history: [...get().history, prev].slice(-40),
+          future: [],
+          canUndo: true,
+          canRedo: false,
         });
         } catch (err) {
           console.error("addFiles", err);
@@ -379,7 +414,97 @@ export const useBuilderStore = create<BuilderState>()(
           rejected: [],
           selectedId: null,
           adding: false,
+          history: [],
+          future: [],
+          canUndo: false,
+          canRedo: false,
         }),
+
+      undo: () => {
+        const { history, future } = get();
+        if (!history.length) return;
+        const prev = history[history.length - 1];
+        set({
+          ...prev,
+          history: history.slice(0, -1),
+          future: [snapOf(get()), ...future].slice(0, 40),
+          canUndo: history.length > 1,
+          canRedo: true,
+        });
+      },
+
+      redo: () => {
+        const { future, history } = get();
+        if (!future.length) return;
+        const next = future[0];
+        set({
+          ...next,
+          future: future.slice(1),
+          history: [...history, snapOf(get())].slice(-40),
+          canUndo: true,
+          canRedo: future.length > 1,
+        });
+      },
+
+      patchPiece: (id, patch, config) => {
+        const prev = snapOf(get());
+        const placed = get().placed.map((p) => (p.id === id ? { ...p, ...patch } : p));
+        const lengthMm =
+          placed.length === 0
+            ? 0
+            : Math.max(...placed.map((p) => p.yMm + p.heightMm)) + config.edgeMm;
+        set({
+          placed,
+          lengthMm,
+          history: [...get().history, prev].slice(-40),
+          future: [],
+          canUndo: true,
+          canRedo: false,
+        });
+      },
+
+      flipPiece: (id) => {
+        const prev = snapOf(get());
+        set({
+          placed: get().placed.map((p) => (p.id === id ? { ...p, flipX: !p.flipX } : p)),
+          history: [...get().history, prev].slice(-40),
+          future: [],
+          canUndo: true,
+          canRedo: false,
+        });
+      },
+
+      rotatePiece: (id) => {
+        const prev = snapOf(get());
+        set({
+          placed: get().placed.map((p) =>
+            p.id === id
+              ? {
+                  ...p,
+                  rotation: p.rotation === 90 ? 0 : 90,
+                  widthMm: p.heightMm,
+                  heightMm: p.widthMm,
+                  locked: true,
+                }
+              : p
+          ),
+          history: [...get().history, prev].slice(-40),
+          future: [],
+          canUndo: true,
+          canRedo: false,
+        });
+      },
+
+      removePiece: (id, config) => {
+        const piece = get().placed.find((p) => p.id === id);
+        if (!piece) return;
+        const copies = get().placed.filter((p) => p.designId === piece.designId).length;
+        if (copies <= 1) {
+          get().removeDesign(piece.designId, config);
+          return;
+        }
+        get().updateDesign(piece.designId, { qty: copies - 1 }, config);
+      },
     }),
     {
       name: "hlv-builder",
@@ -427,6 +552,10 @@ export const useBuilderStore = create<BuilderState>()(
             rejected: Array.isArray(p.rejected) ? p.rejected.filter((x) => typeof x === "string") : [],
             selectedId: null,
             adding: false,
+            history: [],
+            future: [],
+            canUndo: false,
+            canRedo: false,
           };
         } catch {
           return current;

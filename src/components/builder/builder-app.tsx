@@ -8,6 +8,7 @@ import { makeDemoDesigns } from "@/lib/demo-art";
 import { localizedPath } from "@/lib/i18n-config";
 import { interpolate } from "@/lib/interpolate";
 import { metersLabel, money, quoteFilm } from "@/lib/pricing";
+import { layoutAlerts } from "@/lib/layout-alerts";
 import { fill } from "@/lib/tokens";
 import { useBuilderStore, type Design } from "@/store/useBuilderStore";
 import { useCartStore } from "@/store/useCartStore";
@@ -33,14 +34,25 @@ export function BuilderApp() {
   const selectedId = useBuilderStore((s) => s.selectedId);
   const adding = useBuilderStore((s) => s.adding);
   const addFiles = useBuilderStore((s) => s.addFiles);
+  const updateDesign = useBuilderStore((s) => s.updateDesign);
+  const removeDesign = useBuilderStore((s) => s.removeDesign);
   const autoArrange = useBuilderStore((s) => s.autoArrange);
   const snapshot = useBuilderStore((s) => s.snapshot);
+  const undo = useBuilderStore((s) => s.undo);
+  const redo = useBuilderStore((s) => s.redo);
+  const canUndo = useBuilderStore((s) => s.canUndo);
+  const canRedo = useBuilderStore((s) => s.canRedo);
+  const rotatePiece = useBuilderStore((s) => s.rotatePiece);
+  const flipPiece = useBuilderStore((s) => s.flipPiece);
+  const removePiece = useBuilderStore((s) => s.removePiece);
+  const patchPiece = useBuilderStore((s) => s.patchPiece);
   const addLine = useCartStore((s) => s.addLine);
   const saveDraft = useCartStore((s) => s.saveDraft);
   const email = useSessionStore((s) => s.email);
   const [saved, setSaved] = useState(false);
   const [added, setAdded] = useState(false);
   const [trade, setTrade] = useState(false);
+  const [zoomPct, setZoomPct] = useState(100);
 
   const quote = useMemo(
     () => quoteFilm(designs.length ? lengthMm : 0, config, { trade, includeShipping: true }),
@@ -106,6 +118,15 @@ export function BuilderApp() {
     });
     setSaved(true);
   }
+
+  const selectedPiece =
+    placed.find((p) => p.id === selectedId) ??
+    placed.find((p) => p.designId === selectedId) ??
+    null;
+  const selectedDesign = selectedPiece
+    ? designs.find((d) => d.id === selectedPiece.designId)
+    : designs.find((d) => d.id === selectedId);
+  const alerts = layoutAlerts(placed, config.rollWidthMm, config.edgeMm);
 
   const priceBlock = (
     <>
@@ -173,12 +194,12 @@ export function BuilderApp() {
 
       <p className="mb-6 text-sm text-muted md:hidden">{t.builder.mobileNote}</p>
 
-      <div className="grid gap-5 lg:grid-cols-[300px_minmax(0,1fr)_280px]">
-        <aside className="grid gap-3 self-start">
-          <label className="glass grid cursor-pointer place-items-center rounded-2xl px-4 py-8 text-center text-sm">
+      <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[240px_minmax(0,1fr)_280px]">
+        <aside className="grid min-w-0 gap-3 self-start">
+          <label className="glass grid cursor-pointer place-items-center rounded-2xl px-4 py-6 text-center text-sm">
             <span>{t.builder.drop}</span>
-            <span className="mt-3 text-xs text-muted">{t.builder.or}</span>
-            <span className="btn btn-primary mt-4">{t.builder.browse}</span>
+            <span className="mt-2 text-xs text-muted">{t.builder.or}</span>
+            <span className="btn btn-primary mt-3">{t.builder.browse}</span>
             <input
               type="file"
               multiple
@@ -212,36 +233,106 @@ export function BuilderApp() {
               {fill(t.builder.empty, config, locale)}
             </p>
           )}
-          <ul className="grid gap-3">
+          <ul className="grid gap-2">
             {designs.map((d) => (
-              <DesignCard key={d.id} design={d} selected={selectedId === d.id} />
+              <LibraryItem key={d.id} design={d} selected={selectedId === d.id || selectedDesign?.id === d.id} />
             ))}
           </ul>
         </aside>
 
         <section
-          className="glass rounded-[24px] p-3 md:p-4"
+          className="glass min-w-0 overflow-hidden rounded-[24px] p-3 md:p-4"
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
             onFiles(e.dataTransfer.files);
           }}
         >
-          <CanvasGuard>
-            <BuilderCanvas interactive />
-          </CanvasGuard>
-          <div className="mt-4 flex flex-wrap justify-center gap-2">
-            <button type="button" className="btn btn-primary" onClick={() => autoArrange(config)}>
-              {t.builder.auto}
+          <div className="mb-3 flex flex-wrap items-center gap-1.5">
+            <button type="button" className="btn-soft" disabled={!canUndo} onClick={undo}>
+              {t.builder.undo}
             </button>
-            <button type="button" className="btn btn-ghost" onClick={onSave}>
+            <button type="button" className="btn-soft" disabled={!canRedo} onClick={redo}>
+              {t.builder.redo}
+            </button>
+            <button type="button" className="btn-soft" onClick={() => autoArrange(config)}>
+              {t.builder.nest}
+            </button>
+            <button
+              type="button"
+              className="btn-soft"
+              disabled={!selectedPiece}
+              onClick={() => selectedPiece && rotatePiece(selectedPiece.id)}
+            >
+              {t.builder.rotate}
+            </button>
+            <button
+              type="button"
+              className="btn-soft"
+              disabled={!selectedPiece}
+              onClick={() => selectedPiece && flipPiece(selectedPiece.id)}
+            >
+              {t.builder.flip}
+            </button>
+            <button
+              type="button"
+              className="btn-soft"
+              disabled={!selectedDesign}
+              onClick={() =>
+                selectedDesign && updateDesign(selectedDesign.id, { qty: selectedDesign.qty + 1 }, config)
+              }
+            >
+              {t.builder.copy}
+            </button>
+            <button
+              type="button"
+              className="btn-soft text-bad"
+              disabled={!selectedPiece && !selectedDesign}
+              onClick={() => {
+                if (selectedPiece) removePiece(selectedPiece.id, config);
+                else if (selectedDesign) removeDesign(selectedDesign.id, config);
+              }}
+            >
+              {t.builder.remove}
+            </button>
+            <button type="button" className="btn-soft ml-auto" onClick={onSave}>
               {saved ? t.builder.saved : t.builder.save}
             </button>
+            <label className="ml-1 flex items-center gap-2 text-xs text-muted">
+              {t.builder.zoom}
+              <input
+                type="range"
+                min={50}
+                max={160}
+                value={zoomPct}
+                className="w-24"
+                onChange={(e) => setZoomPct(Number(e.target.value))}
+              />
+              <span className="num w-10">{zoomPct}%</span>
+            </label>
           </div>
+          {alerts.overlap && (
+            <p className="mb-2 rounded-xl bg-bad/15 px-3 py-2 text-sm text-bad">{t.builder.overlap}</p>
+          )}
+          {alerts.overflow && (
+            <p className="mb-2 rounded-xl bg-warn/20 px-3 py-2 text-sm text-warn">{t.builder.overflow}</p>
+          )}
+          <CanvasGuard>
+            <BuilderCanvas interactive zoomPct={zoomPct} />
+          </CanvasGuard>
         </section>
 
-        <aside className="glass hidden self-start rounded-[24px] p-5 lg:sticky lg:top-28 lg:block">
-          {priceBlock}
+        <aside className="grid min-w-0 gap-3 self-start lg:sticky lg:top-28">
+          {selectedDesign && (
+            <div className="glass hidden rounded-[24px] p-4 lg:block">
+              <PropertiesPanel
+                design={selectedDesign}
+                piece={selectedPiece}
+                onMove={(x, y) => selectedPiece && patchPiece(selectedPiece.id, { xMm: x, yMm: y, locked: true }, config)}
+              />
+            </div>
+          )}
+          <div className="glass hidden rounded-[24px] p-5 lg:block">{priceBlock}</div>
         </aside>
       </div>
 
@@ -293,22 +384,53 @@ function Row({ k, v }: { k: string; v: string }) {
 
 const PRESETS_CM = [10, 15, 20, 25, 30];
 
-function DesignCard({ design, selected }: { design: Design; selected: boolean }) {
+function LibraryItem({ design, selected }: { design: Design; selected: boolean }) {
+  const select = useBuilderStore((s) => s.select);
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => select(design.id)}
+        className={`glass flex w-full items-center gap-3 rounded-2xl p-2 text-left ${
+          selected ? "ring-1 ring-accent" : ""
+        }`}
+      >
+        <div className="checker h-12 w-12 shrink-0 overflow-hidden rounded-xl">
+          {design.src ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={design.src} alt="" className="h-full w-full object-contain" />
+          ) : (
+            <span className="grid h-full place-items-center text-xs text-muted">—</span>
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm">{design.name}</p>
+          <p className="num text-xs text-muted">
+            {(design.widthMm / 10).toFixed(1)} × {(design.heightMm / 10).toFixed(1)} cm
+          </p>
+        </div>
+        <span className="num rounded-full bg-white/10 px-2 py-0.5 text-xs">{design.qty}</span>
+      </button>
+    </li>
+  );
+}
+
+function PropertiesPanel({
+  design,
+  piece,
+  onMove,
+}: {
+  design: Design;
+  piece: ReturnType<typeof useBuilderStore.getState>["placed"][number] | null;
+  onMove: (x: number, y: number) => void;
+}) {
   const { t } = useI18n();
   const config = useSettingsStore((s) => s.config);
   const updateDesign = useBuilderStore((s) => s.updateDesign);
-  const removeDesign = useBuilderStore((s) => s.removeDesign);
-  const patchCopies = useBuilderStore((s) => s.patchCopies);
-  const locked = useBuilderStore((s) => {
-    const copies = s.placed.filter((p) => p.designId === design.id);
-    return copies.length > 0 && copies.every((p) => p.locked);
-  });
-  const select = useBuilderStore((s) => s.select);
   const dpi = Math.round(effectiveDpi(design.pixelW, design.widthMm));
-  const [garment, setGarment] = useState<"black" | "white" | "heather">("black");
-  const [qtyDraft, setQtyDraft] = useState(String(design.qty));
   const [wDraft, setWDraft] = useState(String(Number((design.widthMm / 10).toFixed(1))));
   const [hDraft, setHDraft] = useState(String(Number((design.heightMm / 10).toFixed(1))));
+  const [qtyDraft, setQtyDraft] = useState(String(design.qty));
   const qtyTimer = useRef<number | null>(null);
 
   useEffect(() => {
@@ -317,41 +439,15 @@ function DesignCard({ design, selected }: { design: Design; selected: boolean })
     setHDraft(String(Number((design.heightMm / 10).toFixed(1))));
   }, [design.qty, design.widthMm, design.heightMm]);
 
-  useEffect(() => {
-    return () => {
-      if (qtyTimer.current) window.clearTimeout(qtyTimer.current);
-    };
-  }, []);
-
   return (
-    <li
-      className={`glass rounded-2xl p-3 ${selected ? "ring-1 ring-accent" : ""}`}
-      onClick={() => select(design.id)}
-    >
-      <div className="flex gap-3">
-        <div
-          className="checker h-16 w-16 shrink-0 overflow-hidden rounded-xl"
-          style={{
-            background:
-              garment === "black" ? "#1a1a1a" : garment === "white" ? "#f4f4f4" : "#8a8680",
-          }}
-        >
-          {design.src ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={design.src} alt="" className="h-full w-full object-contain" />
-          ) : (
-            <div className="grid h-full place-items-center text-xs text-muted">—</div>
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm">{design.name}</p>
-          {design.uploadError && <p className="text-xs text-bad">{design.uploadError}</p>}
-          <p className="num mt-1 text-xs text-muted">
-            {t.builder.dpi} {dpi}
-          </p>
-        </div>
-      </div>
-      <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+    <div>
+      <p className="num text-xs uppercase tracking-[0.18em] text-muted">{t.builder.properties}</p>
+      <p className="mt-2 truncate text-sm">{design.name}</p>
+      <p className={`num mt-1 text-xs ${dpi < 150 ? "text-bad" : dpi < 200 ? "text-warn" : "text-muted"}`}>
+        {t.builder.dpi} {dpi}
+        {dpi < 150 ? " BAD" : ""}
+      </p>
+      <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
         <label className="grid gap-1">
           <span className="text-muted">{t.builder.width}</span>
           <input
@@ -394,12 +490,33 @@ function DesignCard({ design, selected }: { design: Design; selected: boolean })
               setQtyDraft(raw);
               if (qtyTimer.current) window.clearTimeout(qtyTimer.current);
               qtyTimer.current = window.setTimeout(() => {
-                const n = Math.max(1, Math.floor(Number(raw)) || 1);
-                updateDesign(design.id, { qty: n }, config);
+                updateDesign(design.id, { qty: Math.max(1, Math.floor(Number(raw)) || 1) }, config);
               }, 350);
             }}
           />
         </label>
+        {piece && (
+          <>
+            <label className="grid gap-1">
+              <span className="text-muted">{t.builder.xpos}</span>
+              <input
+                type="number"
+                className="field num"
+                value={Number(piece.xMm.toFixed(1))}
+                onChange={(e) => onMove(Number(e.target.value), piece.yMm)}
+              />
+            </label>
+            <label className="grid gap-1">
+              <span className="text-muted">{t.builder.ypos}</span>
+              <input
+                type="number"
+                className="field num"
+                value={Number(piece.yMm.toFixed(1))}
+                onChange={(e) => onMove(piece.xMm, Number(e.target.value))}
+              />
+            </label>
+          </>
+        )}
       </div>
       <div className="mt-3 flex flex-wrap gap-1.5">
         {PRESETS_CM.map((cm) => (
@@ -413,55 +530,6 @@ function DesignCard({ design, selected }: { design: Design; selected: boolean })
           </button>
         ))}
       </div>
-      <div className="mt-2 flex gap-1.5">
-        {(["black", "white", "heather"] as const).map((g) => (
-          <button
-            key={g}
-            type="button"
-            className={`btn-soft capitalize ${garment === g ? "ring-1 ring-accent" : "text-muted"}`}
-            onClick={() => setGarment(g)}
-          >
-            {g}
-          </button>
-        ))}
-      </div>
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          className="btn-soft"
-          onClick={() =>
-            updateDesign(
-              design.id,
-              {
-                widthMm: design.heightMm,
-                heightMm: design.widthMm,
-                aspectRatio: 1 / design.aspectRatio,
-                allowRotate: false,
-              },
-              config
-            )
-          }
-        >
-          {t.builder.rotate}
-        </button>
-        <button
-          type="button"
-          className="btn-soft"
-          onClick={() => patchCopies(design.id, { locked: !locked }, config)}
-        >
-          {locked ? t.builder.unlock : t.builder.lock}
-        </button>
-        <button
-          type="button"
-          className="btn-soft"
-          onClick={() => updateDesign(design.id, { qty: design.qty + 1 }, config)}
-        >
-          {t.builder.duplicate}
-        </button>
-        <button type="button" className="btn-soft text-bad" onClick={() => removeDesign(design.id, config)}>
-          {t.builder.remove}
-        </button>
-      </div>
       {(design.warnings ?? []).map((w) => (
         <p
           key={w.code}
@@ -472,6 +540,6 @@ function DesignCard({ design, selected }: { design: Design; selected: boolean })
           {t.builder[w.messageKey.replace("builder.", "") as keyof typeof t.builder] as string}
         </p>
       ))}
-    </li>
+    </div>
   );
 }

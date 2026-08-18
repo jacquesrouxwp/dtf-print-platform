@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { remainingToCutoff } from "./cutoff";
+import { layoutAlerts } from "./layout-alerts";
 import { defaultConfig, sanitizeConfig } from "./site-config";
 import { billedLengthMm, mmToPx, roundUp } from "./units";
 
@@ -31,6 +32,18 @@ describe("geometry", () => {
 });
 
 describe("stale config", () => {
+  it("detects overlapping placed items", () => {
+    const hit = layoutAlerts(
+      [
+        { id: "a", designId: "a", widthMm: 50, heightMm: 50, xMm: 10, yMm: 10, rotation: 0, locked: false },
+        { id: "b", designId: "b", widthMm: 50, heightMm: 50, xMm: 40, yMm: 20, rotation: 0, locked: false },
+      ],
+      550,
+      10
+    );
+    expect(hit.overlap).toBe(true);
+  });
+
   it("empty timezone falls back to Amsterdam and does not throw", () => {
     const config = sanitizeConfig({ timezone: "", rollWidthMm: 600 });
     expect(config.timezone).toBe("Europe/Amsterdam");
