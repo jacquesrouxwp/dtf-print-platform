@@ -42,3 +42,12 @@ export const useSettingsStore = create<SettingsState>()(
     }
   )
 );
+
+if (typeof window !== "undefined") {
+  fetch("/api/config")
+    .then((r) => r.json())
+    .then((d) => {
+      if (d.config) useSettingsStore.getState().setConfig(d.config);
+    })
+    .catch(() => undefined);
+}

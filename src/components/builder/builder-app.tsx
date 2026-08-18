@@ -31,7 +31,6 @@ export function BuilderApp() {
   const selectedId = useBuilderStore((s) => s.selectedId);
   const adding = useBuilderStore((s) => s.adding);
   const addFiles = useBuilderStore((s) => s.addFiles);
-  const addDesigns = useBuilderStore((s) => s.addDesigns);
   const autoArrange = useBuilderStore((s) => s.autoArrange);
   const snapshot = useBuilderStore((s) => s.snapshot);
   const addLine = useCartStore((s) => s.addLine);
@@ -54,8 +53,17 @@ export function BuilderApp() {
     await addFiles(Array.from(list), config);
   }
 
+  const rejected = useBuilderStore((s) => s.rejected);
+  const blocking = designs.some(
+    (d) =>
+      d.uploadError ||
+      d.warnings.some((w) => w.level === "red") ||
+      rejected.includes(d.id)
+  );
+
   function addToCart() {
-    if (!designs.length) return;
+    if (!designs.length || added || blocking) return;
+    if (designs.some((d) => !d.storageKey)) return;
     addLine({
       id: crypto.randomUUID(),
       lengthMm,
@@ -65,13 +73,14 @@ export function BuilderApp() {
       trade,
       rush: false,
       designs: designs.map((d) => ({
+        id: d.id,
         name: d.name,
+        storageKey: d.storageKey,
         qty: d.qty,
         widthMm: d.widthMm,
         heightMm: d.heightMm,
       })),
       placed,
-      preview: designs[0]?.src,
       createdAt: new Date().toISOString(),
     });
     setAdded(true);
@@ -111,7 +120,7 @@ export function BuilderApp() {
             <input
               type="file"
               multiple
-              accept=".png,.jpg,.jpeg,.tif,.tiff,.pdf,.webp"
+              accept=".png,.jpg,.jpeg,.tif,.tiff,.webp"
               className="hidden"
               onChange={(e) => onFiles(e.target.files)}
             />
@@ -119,7 +128,15 @@ export function BuilderApp() {
           <button
             type="button"
             className="border border-rule px-3 py-2 text-sm"
-            onClick={() => addDesigns(makeDemoDesigns(), config)}
+            onClick={async () => {
+              const demos = makeDemoDesigns();
+              const files: File[] = [];
+              for (const d of demos) {
+                const blob = await (await fetch(d.src)).blob();
+                files.push(new File([blob], d.name, { type: "image/png" }));
+              }
+              await addFiles(files, config);
+            }}
           >
             {t.builder.demo}
           </button>
@@ -189,12 +206,17 @@ export function BuilderApp() {
           </label>
           <button
             type="button"
-            disabled={!designs.length}
+            disabled={!designs.length || added || blocking}
             onClick={addToCart}
             className="mt-4 w-full bg-accent py-3 text-sm text-white disabled:opacity-40"
           >
             {added ? t.builder.added : t.builder.addCart}
           </button>
+          {blocking && (
+            <p className="mt-2 text-[11px] text-bad">
+              Resolve red warnings or rejected files before checkout.
+            </p>
+          )}
           {added && (
             <Link
               href={localizedPath(locale, "/checkout")}
@@ -226,7 +248,12 @@ function DesignCard({ design, selected }: { design: Design; selected: boolean })
   const config = useSettingsStore((s) => s.config);
   const updateDesign = useBuilderStore((s) => s.updateDesign);
   const removeDesign = useBuilderStore((s) => s.removeDesign);
+  const patchCopies = useBuilderStore((s) => s.patchCopies);
+  const placedCopies = useBuilderStore((s) =>
+    s.placed.filter((p) => p.designId === design.id)
+  );
   const select = useBuilderStore((s) => s.select);
+  const locked = placedCopies.length > 0 && placedCopies.every((p) => p.locked);
   const dpi = Math.round(effectiveDpi(design.pixelW, design.widthMm));
   const [garment, setGarment] = useState<"black" | "white" | "heather">("black");
 
@@ -262,6 +289,9 @@ function DesignCard({ design, selected }: { design: Design; selected: boolean })
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-xs">{design.name}</p>
+          {design.uploadError && (
+            <p className="text-[10px] text-bad">{design.uploadError}</p>
+          )}
           <p className="num text-[10px] text-muted">
             {t.builder.dpi} {dpi}
           </p>
@@ -336,7 +366,7 @@ function DesignCard({ design, selected }: { design: Design; selected: boolean })
           onClick={() =>
             updateDesign(
               design.id,
-              { rotation: design.rotation === 90 ? 0 : 90 },
+              { widthMm: design.heightMm, heightMm: design.widthMm, aspectRatio: 1 / design.aspectRatio },
               config
             )
           }
@@ -345,9 +375,9 @@ function DesignCard({ design, selected }: { design: Design; selected: boolean })
         </button>
         <button
           type="button"
-          onClick={() => updateDesign(design.id, { locked: !design.locked }, config)}
+          onClick={() => patchCopies(design.id, { locked: !locked }, config)}
         >
-          {design.locked ? t.builder.unlock : t.builder.lock}
+          {locked ? t.builder.unlock : t.builder.lock}
         </button>
         <button
           type="button"

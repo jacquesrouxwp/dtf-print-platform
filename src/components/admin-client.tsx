@@ -20,16 +20,31 @@ export function AdminClient() {
 
   function unlock(e: FormEvent) {
     e.preventDefault();
-    const expected = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || ADMIN_FALLBACK;
-    if (password === expected) {
-      setAuthed(true);
-      setDraft(config);
-    }
+    setAuthed(true);
+    fetch("/api/config")
+      .then((r) => r.json())
+      .then((d) => {
+        setDraft(d.config);
+        setConfig(d.config);
+      });
   }
 
-  function save(e: FormEvent) {
+  async function save(e: FormEvent) {
     e.preventDefault();
-    setConfig(draft);
+    const res = await fetch("/api/config", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-password": password || ADMIN_FALLBACK,
+      },
+      body: JSON.stringify(draft),
+    });
+    if (!res.ok) {
+      setAuthed(false);
+      return;
+    }
+    const data = await res.json();
+    setConfig(data.config);
     setSaved(true);
   }
 

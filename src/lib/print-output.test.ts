@@ -30,4 +30,32 @@ describe("print output", () => {
   it("item at x=12 mm is composited at 142 px", async () => {
     expect(mmToPx(12, 300)).toBe(142);
   });
+
+  it("composited artwork produces non-transparent pixels", async () => {
+    const roll = rollFromSite(defaultConfig);
+    const red = await sharp({
+      create: { width: 40, height: 40, channels: 4, background: { r: 220, g: 30, b: 20, alpha: 1 } },
+    })
+      .png()
+      .toBuffer();
+    const layout = nest(
+      [{ designId: "mark", widthMm: 40, heightMm: 40, qty: 1 }],
+      roll
+    );
+    const buf = await renderPrintPng(
+      roll,
+      layout.billedLengthMm,
+      layout.items,
+      new Map([["mark", red]])
+    );
+    const { data } = await sharp(buf)
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    let opaque = 0;
+    for (let i = 3; i < data.length; i += 4) {
+      if (data[i] > 10) opaque += 1;
+    }
+    expect(opaque).toBeGreaterThan(100);
+  });
 });

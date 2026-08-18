@@ -13,13 +13,14 @@ export type CartLine = {
   trade: boolean;
   rush: boolean;
   designs: {
+    id: string;
     name: string;
+    storageKey?: string;
     qty: number;
     widthMm: number;
     heightMm: number;
   }[];
   placed: PlacedPiece[];
-  preview?: string;
   createdAt: string;
 };
 
@@ -45,7 +46,15 @@ export const useCartStore = create<CartState>()(
     (set) => ({
       lines: [],
       drafts: [],
-      addLine: (line) => set((s) => ({ lines: [...s.lines, line] })),
+      addLine: (line) =>
+        set((s) => {
+          const slim = {
+            ...line,
+            preview: undefined,
+            designs: line.designs.map((d) => ({ ...d })),
+          };
+          return { lines: [...s.lines, slim] };
+        }),
       removeLine: (id) =>
         set((s) => ({ lines: s.lines.filter((l) => l.id !== id) })),
       clear: () => set({ lines: [] }),

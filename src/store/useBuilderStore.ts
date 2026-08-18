@@ -1,42 +1,41 @@
 "use client";
 
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import {
   dpiWarnings,
   effectiveDpi,
-  inspectImageTransparency,
-  isLikelyCmykPdf,
-  MAX_FILE_BYTES,
-  previewDataUrl,
   type ArtworkWarning,
 } from "@/lib/artwork";
 import { nest, type PlacedPiece } from "@/lib/nesting";
 import { rollFromSite } from "@/lib/roll";
+import { usableWidthMm } from "@/lib/units";
 import type { SiteConfig } from "@/lib/site-config";
 
 export type Design = {
   id: string;
   name: string;
   src: string;
+  storageKey?: string;
   mime: string;
   pixelW: number;
   pixelH: number;
   widthMm: number;
   heightMm: number;
+  aspectRatio: number;
   qty: number;
-  locked: boolean;
-  xMm?: number;
-  yMm?: number;
-  rotation: 0 | 90;
   warnings: ArtworkWarning[];
   hasAlpha: boolean;
+  hasSemiTransparency: boolean;
   whiteBackground: boolean;
+  uploadError?: string;
 };
 
 type BuilderState = {
   designs: Design[];
   placed: PlacedPiece[];
   lengthMm: number;
+  rejected: string[];
   selectedId: string | null;
   adding: boolean;
   addFiles: (files: File[], config: SiteConfig) => Promise<void>;
@@ -50,14 +49,18 @@ type BuilderState = {
   select: (id: string | null) => void;
   autoArrange: (config: SiteConfig) => void;
   movePiece: (id: string, xMm: number, yMm: number, config: SiteConfig) => void;
+  patchCopies: (
+    designId: string,
+    patch: Partial<PlacedPiece>,
+    config: SiteConfig
+  ) => void;
   loadSnapshot: (json: string, config: SiteConfig) => void;
   snapshot: () => string;
   reset: () => void;
 };
 
 function recomputeWarnings(d: Design, config: SiteConfig): ArtworkWarning[] {
-  const printW = d.rotation === 90 ? d.heightMm : d.widthMm;
-  const dpi = effectiveDpi(d.pixelW, printW);
+  const dpi = effectiveDpi(d.pixelW, d.widthMm);
   const warnings = [...dpiWarnings(dpi)];
   if (d.mime === "image/jpeg" || /\.jpe?g$/i.test(d.name)) {
     warnings.push({ level: "amber", code: "jpeg", messageKey: "builder.warnJpeg" });
@@ -69,204 +72,263 @@ function recomputeWarnings(d: Design, config: SiteConfig): ArtworkWarning[] {
       messageKey: "builder.warnWhite",
     });
   }
-  if (d.mime === "application/pdf") {
-    warnings.push({ level: "info", code: "cmyk", messageKey: "builder.warnCmyk" });
+  if (d.hasSemiTransparency) {
+    warnings.push({
+      level: "amber",
+      code: "jpeg",
+      messageKey: "builder.warnWhite",
+    });
   }
-  const usable = config.rollWidthMm - 2 * config.edgeMm;
+  const usable = usableWidthMm(config.rollWidthMm, config.edgeMm);
   if (d.widthMm > usable && d.heightMm > usable) {
     warnings.push({ level: "red", code: "too_wide", messageKey: "builder.warnWide" });
   }
   return warnings;
 }
 
-function pack(designs: Design[], config: SiteConfig) {
-  return nest(
+function syncPlaced(designs: Design[], existing: PlacedPiece[]): PlacedPiece[] {
+  const next: PlacedPiece[] = [];
+  for (const d of designs) {
+    const copies = existing.filter((p) => p.designId === d.id);
+    const qty = Math.max(1, d.qty);
+    for (let i = 0; i < qty; i++) {
+      const prev = copies[i];
+      next.push({
+        id: prev?.id ?? `${d.id}:${i}`,
+        designId: d.id,
+        widthMm: d.widthMm,
+        heightMm: d.heightMm,
+        xMm: prev?.xMm ?? 0,
+        yMm: prev?.yMm ?? 0,
+        rotation: prev?.rotation ?? 0,
+        locked: prev?.locked ?? false,
+      });
+    }
+  }
+  return next;
+}
+
+function applyPack(
+  designs: Design[],
+  existing: PlacedPiece[],
+  config: SiteConfig
+) {
+  const seeded = syncPlaced(designs, existing);
+  const result = nest(
     designs.map((d) => ({
       designId: d.id,
       widthMm: d.widthMm,
       heightMm: d.heightMm,
       qty: d.qty,
-      allowRotate: !d.locked,
-      locked: d.locked,
-      xMm: d.xMm,
-      yMm: d.yMm,
-      rotation: d.rotation,
+      allowRotate: true,
+      instances: seeded
+        .filter((p) => p.designId === d.id)
+        .map((p) => ({
+          id: p.id,
+          locked: p.locked,
+          xMm: p.xMm,
+          yMm: p.yMm,
+          rotation: p.rotation,
+        })),
     })),
     rollFromSite(config)
   );
+  return {
+    designs: designs.map((d) => ({ ...d, warnings: recomputeWarnings(d, config) })),
+    placed: result.items,
+    lengthMm: result.usedLengthMm,
+    rejected: result.rejected,
+  };
 }
 
-function applyPack(designs: Design[], config: SiteConfig) {
-  const result = pack(designs, config);
-  const next = designs.map((d) => {
-    const piece = result.items.find((p) => p.designId === d.id);
-    return {
-      ...d,
-      warnings: recomputeWarnings(d, config),
-      xMm: piece?.xMm ?? d.xMm,
-      yMm: piece?.yMm ?? d.yMm,
-      rotation: piece?.rotation ?? d.rotation,
-    };
-  });
-  return { designs: next, placed: result.items, lengthMm: result.usedLengthMm };
-}
+export const useBuilderStore = create<BuilderState>()(
+  persist(
+    (set, get) => ({
+      designs: [],
+      placed: [],
+      lengthMm: 0,
+      rejected: [],
+      selectedId: null,
+      adding: false,
 
-export const useBuilderStore = create<BuilderState>((set, get) => ({
-  designs: [],
-  placed: [],
-  lengthMm: 0,
-  selectedId: null,
-  adding: false,
-
-  addFiles: async (files, config) => {
-    set({ adding: true });
-    const created: Design[] = [];
-    for (const file of files) {
-      try {
-        const huge = file.size > MAX_FILE_BYTES;
-        const pdf = isLikelyCmykPdf(file);
-        if (pdf) {
-          const id = crypto.randomUUID();
-          created.push({
-            id,
-            name: file.name,
-            src: "",
-            mime: file.type || "application/pdf",
-            pixelW: 3508,
-            pixelH: 2480,
-            widthMm: 210,
-            heightMm: 148,
-            qty: 1,
-            locked: false,
-            rotation: 0,
-            warnings: [],
-            hasAlpha: false,
-            whiteBackground: false,
-          });
-          continue;
+      addFiles: async (files, config) => {
+        set({ adding: true });
+        const created: Design[] = [];
+        for (const file of files) {
+          try {
+            const form = new FormData();
+            form.append("file", file);
+            const res = await fetch("/api/upload", { method: "POST", body: form });
+            const data = await res.json();
+            if (!res.ok) {
+              created.push({
+                id: crypto.randomUUID(),
+                name: file.name,
+                src: "",
+                mime: file.type,
+                pixelW: 0,
+                pixelH: 0,
+                widthMm: 100,
+                heightMm: 100,
+                aspectRatio: 1,
+                qty: 1,
+                warnings: [],
+                hasAlpha: false,
+                hasSemiTransparency: false,
+                whiteBackground: false,
+                uploadError: data.error || "upload failed",
+              });
+              continue;
+            }
+            created.push({
+              id: data.id,
+              name: data.name,
+              src: data.previewUrl,
+              storageKey: data.storageKey,
+              mime: data.mime,
+              pixelW: data.pixelW,
+              pixelH: data.pixelH,
+              widthMm: data.widthMm,
+              heightMm: data.heightMm,
+              aspectRatio: data.aspectRatio || data.pixelW / data.pixelH,
+              qty: 1,
+              warnings: [],
+              hasAlpha: data.hasAlpha,
+              hasSemiTransparency: data.hasSemiTransparency,
+              whiteBackground: data.whiteBackground,
+            });
+          } catch {
+            created.push({
+              id: crypto.randomUUID(),
+              name: file.name,
+              src: "",
+              mime: file.type,
+              pixelW: 0,
+              pixelH: 0,
+              widthMm: 100,
+              heightMm: 100,
+              aspectRatio: 1,
+              qty: 1,
+              warnings: [],
+              hasAlpha: false,
+              hasSemiTransparency: false,
+              whiteBackground: false,
+              uploadError: "upload failed",
+            });
+          }
         }
-        const preview = await previewDataUrl(file);
-        const inspect = await inspectImageTransparency(file);
-        const defaultWidth = Math.min(
-          config.rollWidthMm - 2 * config.edgeMm,
-          Math.round((inspect.width / 300) * 25.4)
+        const designs = [...get().designs, ...created];
+        set({
+          ...applyPack(designs, get().placed, config),
+          adding: false,
+          selectedId: created[0]?.id ?? get().selectedId,
+        });
+      },
+
+      addDesigns: (incoming, config) => {
+        const designs = [...get().designs, ...incoming];
+        set({
+          ...applyPack(designs, get().placed, config),
+          selectedId: incoming[0]?.id ?? get().selectedId,
+        });
+      },
+
+      updateDesign: (id, patch, config) => {
+        const designs = get().designs.map((d) => {
+          if (d.id !== id) return d;
+          const next = { ...d, ...patch };
+          const ratio = d.aspectRatio > 0 ? d.aspectRatio : d.widthMm / Math.max(1, d.heightMm);
+          next.aspectRatio = ratio;
+          if (patch.widthMm !== undefined && patch.heightMm === undefined && patch.widthMm > 0) {
+            next.heightMm = Number((patch.widthMm / ratio).toFixed(1));
+          }
+          if (patch.heightMm !== undefined && patch.widthMm === undefined && patch.heightMm > 0) {
+            next.widthMm = Number((patch.heightMm * ratio).toFixed(1));
+          }
+          return next;
+        });
+        const shouldRepack =
+          patch.widthMm !== undefined ||
+          patch.heightMm !== undefined ||
+          patch.qty !== undefined;
+        if (shouldRepack) set(applyPack(designs, get().placed, config));
+        else
+          set({
+            designs: designs.map((d) => ({ ...d, warnings: recomputeWarnings(d, config) })),
+          });
+      },
+
+      removeDesign: (id, config) => {
+        const designs = get().designs.filter((d) => d.id !== id);
+        set({
+          ...applyPack(designs, get().placed, config),
+          selectedId: get().selectedId === id ? null : get().selectedId,
+        });
+      },
+
+      select: (id) => set({ selectedId: id }),
+
+      autoArrange: (config) => {
+        const unlocked = get().placed.map((p) => ({ ...p, locked: false }));
+        set(applyPack(get().designs, unlocked, config));
+      },
+
+      patchCopies: (designId, patch, config) => {
+        const placed = get().placed.map((p) =>
+          p.designId === designId ? { ...p, ...patch } : p
         );
-        const ratio = inspect.height / inspect.width || 1;
-        const widthMm = Math.max(10, defaultWidth);
-        const heightMm = Math.max(10, Math.round(widthMm * ratio));
-        const id = crypto.randomUUID();
-        const design: Design = {
-          id,
-          name: file.name,
-          src: preview,
-          mime: file.type || "image/png",
-          pixelW: inspect.width,
-          pixelH: inspect.height,
-          widthMm,
-          heightMm,
-          qty: 1,
-          locked: false,
-          rotation: 0,
-          warnings: huge
-            ? [
-                {
-                  level: "red",
-                  code: "file_huge",
-                  messageKey: "builder.warnHuge",
-                },
-              ]
-            : [],
-          hasAlpha: inspect.hasAlpha,
-          whiteBackground: inspect.whiteBackground,
-        };
-        created.push(design);
-      } catch {
-        /* skip unreadable file */
-      }
-    }
-    const designs = [...get().designs, ...created];
-    set({ ...applyPack(designs, config), adding: false, selectedId: created[0]?.id ?? get().selectedId });
-  },
+        set(applyPack(get().designs, placed, config));
+      },
 
-  addDesigns: (incoming, config) => {
-    const designs = [...get().designs, ...incoming];
-    set({ ...applyPack(designs, config), selectedId: incoming[0]?.id ?? get().selectedId });
-  },
+      movePiece: (id, xMm, yMm, config) => {
+        const placed = get().placed.map((p) =>
+          p.id === id ? { ...p, xMm, yMm, locked: true } : p
+        );
+        const lengthMm =
+          placed.length === 0
+            ? 0
+            : Math.max(...placed.map((p) => p.yMm + p.heightMm)) + config.edgeMm;
+        set({ placed, lengthMm });
+      },
 
-  updateDesign: (id, patch, config) => {
-    const designs = get().designs.map((d) => {
-      if (d.id !== id) return d;
-      const next = { ...d, ...patch };
-      if (patch.widthMm && !patch.heightMm && d.widthMm > 0) {
-        const ratio = d.heightMm / d.widthMm;
-        next.heightMm = Number((patch.widthMm * ratio).toFixed(1));
-      }
-      if (patch.heightMm && !patch.widthMm && d.heightMm > 0) {
-        const ratio = d.widthMm / d.heightMm;
-        next.widthMm = Number((patch.heightMm * ratio).toFixed(1));
-      }
-      return next;
-    });
-    const shouldRepack =
-      patch.widthMm !== undefined ||
-      patch.heightMm !== undefined ||
-      patch.qty !== undefined ||
-      patch.rotation !== undefined ||
-      patch.locked !== undefined;
-    if (shouldRepack) set(applyPack(designs, config));
-    else set({ designs: designs.map((d) => ({ ...d, warnings: recomputeWarnings(d, config) })) });
-  },
+      loadSnapshot: (json, config) => {
+        try {
+          const parsed = JSON.parse(json) as { designs: Design[]; placed?: PlacedPiece[] };
+          if (!Array.isArray(parsed.designs)) return;
+          set(applyPack(parsed.designs, parsed.placed ?? [], config));
+        } catch {
+          /* ignore */
+        }
+      },
 
-  removeDesign: (id, config) => {
-    const designs = get().designs.filter((d) => d.id !== id);
-    set({
-      ...applyPack(designs, config),
-      selectedId: get().selectedId === id ? null : get().selectedId,
-    });
-  },
+      snapshot: () =>
+        JSON.stringify({
+          designs: get().designs.map((d) => ({ ...d, src: d.src.startsWith("data:") ? "" : d.src })),
+          placed: get().placed,
+          lengthMm: get().lengthMm,
+        }),
 
-  select: (id) => set({ selectedId: id }),
-
-  autoArrange: (config) => {
-    const unlocked = get().designs.map((d) =>
-      d.locked ? d : { ...d, xMm: undefined, yMm: undefined }
-    );
-    set(applyPack(unlocked, config));
-  },
-
-  movePiece: (id, xMm, yMm, config) => {
-    const placed = get().placed.map((p) =>
-      p.id === id || p.designId === id ? { ...p, xMm, yMm } : p
-    );
-    const lengthMm =
-      placed.length === 0
-        ? 0
-        : Math.max(...placed.map((p) => p.yMm + p.heightMm)) + config.edgeMm;
-    const designs = get().designs.map((d) =>
-      d.id === id || placed.some((p) => p.id === id && p.designId === d.id)
-        ? { ...d, xMm, yMm, locked: true }
-        : d
-    );
-    set({ placed, lengthMm, designs });
-  },
-
-  loadSnapshot: (json, config) => {
-    try {
-      const parsed = JSON.parse(json) as { designs: Design[] };
-      if (!Array.isArray(parsed.designs)) return;
-      set(applyPack(parsed.designs, config));
-    } catch {
-      /* ignore */
-    }
-  },
-
-  snapshot: () =>
-    JSON.stringify({
-      designs: get().designs,
-      placed: get().placed,
-      lengthMm: get().lengthMm,
+      reset: () =>
+        set({
+          designs: [],
+          placed: [],
+          lengthMm: 0,
+          rejected: [],
+          selectedId: null,
+          adding: false,
+        }),
     }),
-
-  reset: () =>
-    set({ designs: [], placed: [], lengthMm: 0, selectedId: null, adding: false }),
-}));
+    {
+      name: "hlv-builder",
+      partialize: (s) => ({
+        designs: s.designs.map((d) => ({
+          ...d,
+          src: d.src.startsWith("data:") ? "" : d.src,
+        })),
+        placed: s.placed,
+        lengthMm: s.lengthMm,
+        rejected: s.rejected,
+      }),
+    }
+  )
+);

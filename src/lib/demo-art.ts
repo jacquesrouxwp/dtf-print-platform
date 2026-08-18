@@ -86,11 +86,11 @@ export function makeDemoDesigns(): Design[] {
   return specs.map((s) => ({
     id: crypto.randomUUID(),
     mime: "image/png",
-    locked: false,
-    rotation: 0 as const,
     warnings: [],
     hasAlpha: true,
+    hasSemiTransparency: false,
     whiteBackground: false,
+    aspectRatio: s.widthMm / s.heightMm,
     ...s,
   }));
 }

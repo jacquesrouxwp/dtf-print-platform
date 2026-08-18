@@ -69,6 +69,25 @@ describe("nesting", () => {
     }
   });
 
+  it("locked copies keep distinct positions", () => {
+    const layout = nest(
+      [
+        {
+          designId: "a",
+          widthMm: 50,
+          heightMm: 50,
+          qty: 2,
+          instances: [
+            { id: "a:0", locked: true, xMm: 10, yMm: 10, rotation: 0 },
+            { id: "a:1", locked: true, xMm: 80, yMm: 10, rotation: 0 },
+          ],
+        },
+      ],
+      roll
+    );
+    expect(layout.items.map((i) => i.xMm).sort((a, b) => a - b)).toEqual([10, 80]);
+  });
+
   it("rejects an item wider than the usable width", () => {
     const layout = nest(
       [{ designId: "wide", widthMm: 900, heightMm: 900, qty: 1 }],

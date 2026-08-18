@@ -1,6 +1,14 @@
 import type { RollConfig } from "./roll";
 import { billedLengthMm, usableWidthMm } from "./units";
 
+export type NestInstance = {
+  id: string;
+  locked?: boolean;
+  xMm?: number;
+  yMm?: number;
+  rotation?: 0 | 90;
+};
+
 export type NestSource = {
   designId: string;
   widthMm: number;
@@ -11,6 +19,7 @@ export type NestSource = {
   xMm?: number;
   yMm?: number;
   rotation?: 0 | 90;
+  instances?: NestInstance[];
 };
 
 export type PlacedItem = {
@@ -258,31 +267,39 @@ export function nest(sources: NestSource[], config: RollConfig): Layout {
   }[] = [];
 
   sources.forEach((src) => {
-    const qty = Math.max(1, Math.floor(src.qty));
-    for (let i = 0; i < qty; i++) {
-      const tooWide = src.widthMm > usable + EPS && src.heightMm > usable + EPS;
-      if (tooWide) {
-        rejected.push(src.designId);
-        continue;
-      }
-      if (src.locked) {
-        const rotation = src.rotation ?? 0;
-        const widthMm = rotation === 90 ? src.heightMm : src.widthMm;
-        const heightMm = rotation === 90 ? src.widthMm : src.heightMm;
+    const tooWide = src.widthMm > usable + EPS && src.heightMm > usable + EPS;
+    if (tooWide) {
+      rejected.push(src.designId);
+      return;
+    }
+    const instances =
+      src.instances && src.instances.length > 0
+        ? src.instances
+        : Array.from({ length: Math.max(1, Math.floor(src.qty)) }, (_, i) => ({
+            id: `${src.designId}:${i}`,
+            locked: src.locked,
+            xMm: src.xMm,
+            yMm: src.yMm,
+            rotation: src.rotation,
+          }));
+
+    for (const inst of instances) {
+      if (inst.locked) {
+        const rotation = inst.rotation ?? 0;
         lockedItems.push({
-          id: `${src.designId}:${i}`,
+          id: inst.id,
           designId: src.designId,
-          widthMm,
-          heightMm,
-          xMm: src.xMm ?? edge,
-          yMm: src.yMm ?? edge,
+          widthMm: src.widthMm,
+          heightMm: src.heightMm,
+          xMm: inst.xMm ?? edge,
+          yMm: inst.yMm ?? edge,
           rotation,
           locked: true,
         });
         continue;
       }
       unlocked.push({
-        id: `${src.designId}:${i}`,
+        id: inst.id,
         designId: src.designId,
         w: src.widthMm + gap,
         h: src.heightMm + gap,
