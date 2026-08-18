@@ -2,7 +2,11 @@ import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { defaultConfig, type SiteConfig } from "./site-config";
 
-const FILE = path.join(process.cwd(), ".data", "config.json");
+const FILE = path.join(
+  process.env.VERCEL ? "/tmp" : process.cwd(),
+  ".data",
+  "config.json"
+);
 
 export function adminPassword() {
   return process.env.ADMIN_PASSWORD || "hlv-admin";

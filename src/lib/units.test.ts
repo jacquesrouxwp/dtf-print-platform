@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { remainingToCutoff } from "./cutoff";
+import { defaultConfig, sanitizeConfig } from "./site-config";
 import { billedLengthMm, mmToPx, roundUp } from "./units";
 
 describe("geometry", () => {
@@ -25,5 +27,14 @@ describe("geometry", () => {
 
   it("empty film bills zero, not the minimum", () => {
     expect(billedLengthMm(0, 100, 500)).toBe(0);
+  });
+});
+
+describe("stale config", () => {
+  it("empty timezone falls back to Amsterdam and does not throw", () => {
+    const config = sanitizeConfig({ timezone: "", rollWidthMm: 600 });
+    expect(config.timezone).toBe("Europe/Amsterdam");
+    expect(config.rollWidthMm).toBe(600);
+    expect(() => remainingToCutoff({ ...defaultConfig, timezone: "" })).not.toThrow();
   });
 });

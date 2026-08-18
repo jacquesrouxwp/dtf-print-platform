@@ -93,6 +93,26 @@ export const defaultConfig: SiteConfig = {
 
 export const CONFIG_STORAGE_KEY = "hlv-site-config";
 
+/** Merge a partial/stale persisted config onto defaults. Empty strings must not win. */
+export function sanitizeConfig(partial?: Partial<SiteConfig> | null): SiteConfig {
+  const next: SiteConfig = { ...defaultConfig, ...(partial ?? {}) };
+  (Object.keys(defaultConfig) as (keyof SiteConfig)[]).forEach((key) => {
+    const value = next[key];
+    if (value === "" || value === undefined || value === null) {
+      (next as Record<string, unknown>)[key as string] = defaultConfig[key];
+    }
+  });
+  if (!Number.isFinite(next.rollWidthMm) || next.rollWidthMm <= 0) {
+    next.rollWidthMm = defaultConfig.rollWidthMm;
+  }
+  if (!Number.isFinite(next.cutoffHour)) next.cutoffHour = defaultConfig.cutoffHour;
+  if (!Number.isFinite(next.cutoffMinute)) next.cutoffMinute = defaultConfig.cutoffMinute;
+  if (!Array.isArray(next.priceTiers) || next.priceTiers.length === 0) {
+    next.priceTiers = defaultConfig.priceTiers;
+  }
+  return next;
+}
+
 export function formatCutoff(config: SiteConfig, locale: string): string {
   const h = String(config.cutoffHour).padStart(2, "0");
   const m = String(config.cutoffMinute).padStart(2, "0");

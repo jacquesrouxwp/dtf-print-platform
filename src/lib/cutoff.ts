@@ -3,17 +3,33 @@ import type { SiteConfig } from "./site-config";
 const TZ = "Europe/Amsterdam";
 
 function partsInZone(date: Date, timeZone = TZ) {
-  const fmt = new Intl.DateTimeFormat("en-GB", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    weekday: "short",
-    hourCycle: "h23",
-  });
+  let tz = timeZone && timeZone.trim() ? timeZone : TZ;
+  let fmt: Intl.DateTimeFormat;
+  try {
+    fmt = new Intl.DateTimeFormat("en-GB", {
+      timeZone: tz,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      weekday: "short",
+      hourCycle: "h23",
+    });
+  } catch {
+    fmt = new Intl.DateTimeFormat("en-GB", {
+      timeZone: TZ,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      weekday: "short",
+      hourCycle: "h23",
+    });
+  }
   const map: Record<string, string> = {};
   for (const p of fmt.formatToParts(date)) {
     if (p.type !== "literal") map[p.type] = p.value;

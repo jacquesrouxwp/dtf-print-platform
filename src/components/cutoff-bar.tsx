@@ -14,16 +14,20 @@ export function CutoffBar() {
 
   useEffect(() => {
     const tick = () => {
-      const r = remainingToCutoff(config);
-      const time = formatRemaining(r.hours, r.minutes, locale);
-      const cutoff = formatCutoff(config, locale);
-      const weekend = !r.sameDay && r.hours >= 24;
-      const text = weekend
-        ? interpolate(t.cutoff.weekend, { time: cutoff })
-        : r.sameDay
-          ? interpolate(t.cutoff.within, { time })
-          : interpolate(t.cutoff.next, { time: cutoff });
-      setLabel(text);
+      try {
+        const r = remainingToCutoff(config);
+        const time = formatRemaining(r.hours, r.minutes, locale);
+        const cutoff = formatCutoff(config, locale);
+        const weekend = !r.sameDay && r.hours >= 24;
+        const text = weekend
+          ? interpolate(t.cutoff.weekend, { time: cutoff })
+          : r.sameDay
+            ? interpolate(t.cutoff.within, { time })
+            : interpolate(t.cutoff.next, { time: cutoff });
+        setLabel(text);
+      } catch {
+        setLabel("");
+      }
     };
     tick();
     const id = window.setInterval(tick, 30000);

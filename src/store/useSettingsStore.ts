@@ -6,6 +6,7 @@ import { safeStorage } from "@/lib/safe-storage";
 import {
   CONFIG_STORAGE_KEY,
   defaultConfig,
+  sanitizeConfig,
   type SiteConfig,
 } from "@/lib/site-config";
 
@@ -23,22 +24,22 @@ export const useSettingsStore = create<SettingsState>()(
     (set) => ({
       config: defaultConfig,
       btwInclusive: false,
-      setConfig: (config) => set({ config: { ...defaultConfig, ...config } }),
+      setConfig: (config) => set({ config: sanitizeConfig(config) }),
       patchConfig: (patch) =>
-        set((s) => ({ config: { ...s.config, ...patch } })),
+        set((s) => ({ config: sanitizeConfig({ ...s.config, ...patch }) })),
       setBtwInclusive: (btwInclusive) => set({ btwInclusive }),
       reset: () => set({ config: defaultConfig }),
     }),
     {
       name: CONFIG_STORAGE_KEY,
       storage: createJSONStorage(() => safeStorage),
-      partialize: (s) => ({ config: s.config, btwInclusive: s.btwInclusive }),
+      partialize: (s) => ({ btwInclusive: s.btwInclusive }),
       merge: (persisted, current) => {
         const p = persisted as Partial<SettingsState> | undefined;
         return {
           ...current,
-          ...p,
-          config: { ...defaultConfig, ...(p?.config ?? {}) },
+          btwInclusive: Boolean(p?.btwInclusive),
+          config: sanitizeConfig(p?.config),
         };
       },
     }

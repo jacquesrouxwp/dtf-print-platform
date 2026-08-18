@@ -312,7 +312,10 @@ export const useBuilderStore = create<BuilderState>()(
 
       snapshot: () =>
         JSON.stringify({
-          designs: get().designs.map((d) => ({ ...d, src: d.src.startsWith("data:") ? "" : d.src })),
+          designs: get().designs.map((d) => ({
+            ...d,
+            src: typeof d.src === "string" && d.src.startsWith("data:") ? "" : d.src || "",
+          })),
           placed: get().placed,
           lengthMm: get().lengthMm,
         }),
@@ -345,7 +348,7 @@ export const useBuilderStore = create<BuilderState>()(
       partialize: (s) => ({
         designs: s.designs.map((d) => ({
           ...d,
-          src: d.src.startsWith("data:") ? "" : d.src,
+          src: typeof d.src === "string" && d.src.startsWith("data:") ? "" : d.src || "",
         })),
         placed: s.placed,
         lengthMm: s.lengthMm,

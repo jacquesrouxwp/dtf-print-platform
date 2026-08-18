@@ -1,7 +1,11 @@
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 
-const DIR = path.join(process.cwd(), ".data", "uploads");
+const DIR = path.join(
+  process.env.VERCEL ? "/tmp" : process.cwd(),
+  ".data",
+  "uploads"
+);
 
 export async function putObject(key: string, data: Buffer): Promise<string> {
   const token = process.env.BLOB_READ_WRITE_TOKEN;
