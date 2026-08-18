@@ -1,7 +1,8 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
+import { safeStorage } from "@/lib/safe-storage";
 import {
   CONFIG_STORAGE_KEY,
   defaultConfig,
@@ -30,6 +31,7 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: CONFIG_STORAGE_KEY,
+      storage: createJSONStorage(() => safeStorage),
       partialize: (s) => ({ config: s.config, btwInclusive: s.btwInclusive }),
       merge: (persisted, current) => {
         const p = persisted as Partial<SettingsState> | undefined;

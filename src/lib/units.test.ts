@@ -22,4 +22,8 @@ describe("geometry", () => {
   it("below minOrder bills at minOrder", () => {
     expect(billedLengthMm(120, 100, 500)).toBe(500);
   });
+
+  it("empty film bills zero, not the minimum", () => {
+    expect(billedLengthMm(0, 100, 500)).toBe(0);
+  });
 });

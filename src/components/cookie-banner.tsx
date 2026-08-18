@@ -21,20 +21,20 @@ export function CookieBanner() {
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-rule bg-neutral-950/80 p-4 backdrop-blur-md">
+    <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background p-4">
       <div className="mx-auto flex max-w-7xl flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <p className="max-w-2xl text-sm text-muted">{t.cookies.body}</p>
         <div className="flex gap-2">
           <button
             type="button"
-            className="border border-rule px-3 py-2 text-sm"
+            className="border border-border px-3 py-2 text-sm"
             onClick={() => choose("necessary")}
           >
             {t.cookies.reject}
           </button>
           <button
             type="button"
-            className="bg-ink px-3 py-2 text-sm text-paper"
+            className="bg-accent px-3 py-2 text-sm text-white"
             onClick={() => choose("all")}
           >
             {t.cookies.accept}

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Instrument_Serif, Manrope, Source_Serif_4 } from "next/font/google";
+import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,21 +12,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const display = Instrument_Serif({
-  variable: "--font-display-latin",
-  subsets: ["latin"],
-  weight: "400",
-});
-
-const displayCyr = Source_Serif_4({
-  variable: "--font-display-cyr",
-  subsets: ["cyrillic"],
-  weight: "400",
-});
-
-const bodyCyr = Manrope({
-  variable: "--font-cyr",
-  subsets: ["cyrillic"],
+const display = Playfair_Display({
+  variable: "--font-display",
+  subsets: ["latin", "cyrillic"],
+  weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
@@ -38,7 +27,7 @@ export const metadata: Metadata = {
   description:
     "DTF transfers printed in Hilversum. Ordered today, on your press tomorrow. Pay per meter. No minimums.",
   icons: { icon: "/favicon.svg" },
-}
+};
 
 export default function RootLayout({
   children,
@@ -46,7 +35,7 @@ export default function RootLayout({
   return (
     <html lang="nl" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${display.variable} ${displayCyr.variable} ${bodyCyr.variable} min-h-screen bg-neutral-950 text-paper antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${display.variable} min-h-screen bg-background text-foreground antialiased`}
       >
         {children}
       </body>

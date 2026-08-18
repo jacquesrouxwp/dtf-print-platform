@@ -9,9 +9,22 @@ describe("validation", () => {
     expect(dpiWarnings(dpi).map((w) => w.code)).toContain("dpi_fail");
   });
 
-  it("usable width rejects 900 mm on a 550 mm roll", () => {
+  it("DPI does not swap axes when the piece is rotated", () => {
+    const dpi = effectiveDpi(1970, 254);
+    expect(dpi).toBeCloseTo(197, 0);
+    expect(dpiWarnings(dpi).map((w) => w.code)).toContain("dpi_low");
+  });
+
+  it("usable width rejects a piece too wide on both axes", () => {
     const usable = usableWidthMm(550, 10);
     expect(usable).toBe(530);
-    expect(900 > usable && 900 > usable).toBe(true);
+    const tooWide = 900 > usable && 900 > usable;
+    expect(tooWide).toBe(true);
+  });
+
+  it("200 dpi is a warning, 300 dpi is clean", () => {
+    expect(dpiWarnings(199).map((w) => w.code)).toContain("dpi_low");
+    expect(dpiWarnings(200)).toEqual([]);
+    expect(dpiWarnings(149).map((w) => w.code)).toContain("dpi_fail");
   });
 });

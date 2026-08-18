@@ -90,6 +90,7 @@ export function makeDemoDesigns(): Design[] {
     hasAlpha: true,
     hasSemiTransparency: false,
     whiteBackground: false,
+    allowRotate: true,
     aspectRatio: s.widthMm / s.heightMm,
     ...s,
   }));

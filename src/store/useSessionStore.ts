@@ -1,7 +1,8 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
+import { safeStorage } from "@/lib/safe-storage";
 
 export type LocalOrder = {
   id: string;
@@ -30,6 +31,6 @@ export const useSessionStore = create<SessionState>()(
       addOrder: (order) =>
         set((s) => ({ orders: [order, ...s.orders].slice(0, 40) })),
     }),
-    { name: "hlv-session" }
+    { name: "hlv-session", storage: createJSONStorage(() => safeStorage) }
   )
 );

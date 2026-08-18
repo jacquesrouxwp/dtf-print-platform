@@ -29,10 +29,10 @@ export default async function VsPage({
     <PageShell kicker={t.vs.kicker} title={t.vs.title} lede={t.vs.lede} wide>
       <div className="overflow-x-auto border border-rule">
         <table className="w-full min-w-[720px] text-left text-sm">
-          <thead className="bg-paper-2">
+          <thead className="bg-surface">
             <tr>
               {t.vs.headers.map((h) => (
-                <th key={h || "k"} className="px-3 py-3 font-normal">
+                <th key={h || "k"} className="px-3 py-3 font-normal text-foreground">
                   {h}
                 </th>
               ))}
@@ -40,9 +40,9 @@ export default async function VsPage({
           </thead>
           <tbody>
             {t.vs.rows.map((row) => (
-              <tr key={row[0]} className="border-t border-rule align-top">
+              <tr key={row[0]} className="border-t border-border align-top">
                 {row.map((cell, i) => (
-                  <td key={i} className={`px-3 py-4 ${i === 1 ? "text-ink" : "text-muted"}`}>
+                  <td key={i} className={`px-3 py-4 ${i === 1 ? "text-foreground" : "text-muted"}`}>
                     {fill(cell, c, lang)}
                   </td>
                 ))}

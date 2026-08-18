@@ -39,7 +39,7 @@ export function AccountClient() {
             placeholder={t.common.email}
             className="border border-rule bg-paper px-3 py-2"
           />
-          <button type="submit" className="bg-ink px-4 py-3 text-sm text-paper">
+          <button type="submit" className="bg-accent px-4 py-3 text-sm text-white">
             {t.account.login}
           </button>
         </form>

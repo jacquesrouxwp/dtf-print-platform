@@ -26,7 +26,8 @@ export function billedLengthMm(
   incrementMm: number,
   minOrderMm: number
 ): number {
-  const rounded = roundUp(Math.max(0, usedLengthMm), incrementMm);
+  if (usedLengthMm <= 0) return 0;
+  const rounded = roundUp(usedLengthMm, incrementMm);
   return Math.max(minOrderMm, rounded);
 }
 

@@ -37,7 +37,7 @@ export default async function SpecialtyPage({
       <p className="mt-10 text-muted">{t.specialty.close}</p>
       <Link
         href={localizedPath(lang, "/contact")}
-        className="mt-8 inline-block bg-ink px-5 py-3 text-sm text-paper"
+        className="mt-8 inline-block bg-accent px-5 py-3 text-sm text-white"
       >
         {t.specialty.cta}
       </Link>

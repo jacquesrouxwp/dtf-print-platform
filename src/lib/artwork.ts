@@ -118,5 +118,4 @@ export const ACCEPTED_TYPES = [
   "image/jpeg",
   "image/tiff",
   "image/webp",
-  "application/pdf",
 ];

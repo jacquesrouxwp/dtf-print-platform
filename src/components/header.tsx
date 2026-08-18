@@ -46,7 +46,7 @@ export function Header() {
     return (
       <Link
         href={localizedPath(locale, href)}
-        className={`text-sm tracking-wide ${active ? "text-paper" : "text-muted hover:text-paper"}`}
+        className={`text-sm tracking-wide ${active ? "text-foreground" : "text-muted hover:text-foreground"}`}
         onClick={() => setOpen(false)}
       >
         {label}
@@ -55,7 +55,7 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-rule bg-neutral-950/55 backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-border bg-background">
       <div className="mx-auto flex max-w-7xl items-center gap-5 px-4 py-3">
         <Link
           href={localizedPath(locale, "/")}
@@ -81,7 +81,7 @@ export function Header() {
           <button
             type="button"
             onClick={() => setBtwInclusive(!btwInclusive)}
-            className="hidden num text-[11px] uppercase tracking-wider text-muted md:inline"
+            className="hidden num text-xs uppercase tracking-wider text-muted md:inline"
             aria-pressed={btwInclusive}
           >
             {btwInclusive ? t.common.inclBtw : t.common.exclBtw}
@@ -93,8 +93,8 @@ export function Header() {
                 key={code}
                 href={localizedPath(code, rest)}
                 hrefLang={code}
-                className={`num text-[11px] uppercase tracking-wider ${
-                  code === locale ? "text-paper" : "text-muted hover:text-paper"
+                className={`num text-xs uppercase tracking-wider ${
+                  code === locale ? "text-foreground" : "text-muted hover:text-foreground"
                 }`}
               >
                 {code}
@@ -104,14 +104,14 @@ export function Header() {
 
           <Link
             href={localizedPath(locale, "/account")}
-            className="hidden text-sm text-muted hover:text-paper md:inline"
+            className="hidden text-sm text-muted hover:text-foreground md:inline"
           >
             {t.nav.account}
           </Link>
 
           <Link
             href={localizedPath(locale, "/checkout")}
-            className="relative text-paper"
+            className="relative text-foreground"
             aria-label={t.nav.cart}
           >
             <ShoppingBag size={18} />
@@ -133,7 +133,7 @@ export function Header() {
         </div>
       </div>
 
-      <div className="hidden border-t border-rule md:block">
+      <div className="hidden border-t border-border md:block">
         <nav className="mx-auto flex max-w-7xl gap-5 overflow-x-auto px-4 py-2 text-xs text-muted">
           {more.map((item) => (
             <NavLink key={item.href} href={item.href} label={t.nav[item.key]} />
@@ -142,7 +142,7 @@ export function Header() {
       </div>
 
       {open && (
-        <nav className="grid gap-3 border-t border-rule px-4 py-4 md:hidden">
+        <nav className="grid gap-3 border-t border-border px-4 py-4 md:hidden">
           {primary.concat(more).map((item) => (
             <NavLink key={item.href} href={item.href} label={t.nav[item.key]} />
           ))}
@@ -158,7 +158,7 @@ export function Header() {
                 key={code}
                 href={localizedPath(code, rest)}
                 className={`num text-xs uppercase tracking-wider ${
-                  code === locale ? "text-paper" : "text-muted"
+                  code === locale ? "text-foreground" : "text-muted"
                 }`}
                 onClick={() => setOpen(false)}
               >

@@ -1,7 +1,8 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
+import { safeStorage } from "@/lib/safe-storage";
 import {
   dpiWarnings,
   effectiveDpi,
@@ -28,6 +29,7 @@ export type Design = {
   hasAlpha: boolean;
   hasSemiTransparency: boolean;
   whiteBackground: boolean;
+  allowRotate: boolean;
   uploadError?: string;
 };
 
@@ -120,7 +122,7 @@ function applyPack(
       widthMm: d.widthMm,
       heightMm: d.heightMm,
       qty: d.qty,
-      allowRotate: true,
+      allowRotate: d.allowRotate !== false,
       instances: seeded
         .filter((p) => p.designId === d.id)
         .map((p) => ({
@@ -176,6 +178,7 @@ export const useBuilderStore = create<BuilderState>()(
                 hasAlpha: false,
                 hasSemiTransparency: false,
                 whiteBackground: false,
+                allowRotate: true,
                 uploadError: data.error || "upload failed",
               });
               continue;
@@ -196,6 +199,7 @@ export const useBuilderStore = create<BuilderState>()(
               hasAlpha: data.hasAlpha,
               hasSemiTransparency: data.hasSemiTransparency,
               whiteBackground: data.whiteBackground,
+              allowRotate: true,
             });
           } catch {
             created.push({
@@ -213,6 +217,7 @@ export const useBuilderStore = create<BuilderState>()(
               hasAlpha: false,
               hasSemiTransparency: false,
               whiteBackground: false,
+              allowRotate: true,
               uploadError: "upload failed",
             });
           }
@@ -236,14 +241,18 @@ export const useBuilderStore = create<BuilderState>()(
       updateDesign: (id, patch, config) => {
         const designs = get().designs.map((d) => {
           if (d.id !== id) return d;
-          const next = { ...d, ...patch };
+          const safe: Partial<Design> = { ...patch };
+          if (safe.widthMm !== undefined && !(safe.widthMm > 0)) delete safe.widthMm;
+          if (safe.heightMm !== undefined && !(safe.heightMm > 0)) delete safe.heightMm;
+          if (safe.qty !== undefined) safe.qty = Math.max(1, Math.floor(Number(safe.qty)) || 1);
+          const next = { ...d, ...safe };
           const ratio = d.aspectRatio > 0 ? d.aspectRatio : d.widthMm / Math.max(1, d.heightMm);
-          next.aspectRatio = ratio;
-          if (patch.widthMm !== undefined && patch.heightMm === undefined && patch.widthMm > 0) {
-            next.heightMm = Number((patch.widthMm / ratio).toFixed(1));
+          if (safe.aspectRatio === undefined) next.aspectRatio = ratio;
+          if (safe.widthMm !== undefined && safe.heightMm === undefined && safe.widthMm > 0) {
+            next.heightMm = Number((safe.widthMm / next.aspectRatio).toFixed(1));
           }
-          if (patch.heightMm !== undefined && patch.widthMm === undefined && patch.heightMm > 0) {
-            next.widthMm = Number((patch.heightMm * ratio).toFixed(1));
+          if (safe.heightMm !== undefined && safe.widthMm === undefined && safe.heightMm > 0) {
+            next.widthMm = Number((safe.heightMm * next.aspectRatio).toFixed(1));
           }
           return next;
         });
@@ -320,6 +329,19 @@ export const useBuilderStore = create<BuilderState>()(
     }),
     {
       name: "hlv-builder",
+      storage: createJSONStorage(() => safeStorage),
+      merge: (persisted, current) => {
+        const p = persisted as Partial<BuilderState> | undefined;
+        return {
+          ...current,
+          ...p,
+          designs: (p?.designs ?? current.designs).map((d) => ({
+            ...d,
+            allowRotate: d.allowRotate !== false,
+            aspectRatio: d.aspectRatio || d.widthMm / Math.max(1, d.heightMm),
+          })),
+        };
+      },
       partialize: (s) => ({
         designs: s.designs.map((d) => ({
           ...d,

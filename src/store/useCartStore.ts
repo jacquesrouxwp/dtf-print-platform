@@ -1,7 +1,8 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
+import { safeStorage } from "@/lib/safe-storage";
 import type { PlacedPiece } from "@/lib/nesting";
 
 export type CartLine = {
@@ -41,6 +42,25 @@ type CartState = {
   removeDraft: (id: string) => void;
 };
 
+function slimPayload(payload: string): string {
+  try {
+    const parsed = JSON.parse(payload) as {
+      designs?: { src?: string }[];
+      placed?: unknown;
+      lengthMm?: number;
+    };
+    return JSON.stringify({
+      ...parsed,
+      designs: (parsed.designs ?? []).map((d) => ({
+        ...d,
+        src: typeof d.src === "string" && d.src.startsWith("data:") ? "" : d.src,
+      })),
+    });
+  } catch {
+    return payload.slice(0, 8000);
+  }
+}
+
 export const useCartStore = create<CartState>()(
   persist(
     (set) => ({
@@ -48,26 +68,42 @@ export const useCartStore = create<CartState>()(
       drafts: [],
       addLine: (line) =>
         set((s) => {
-          const slim = {
-            ...line,
-            preview: undefined,
-            designs: line.designs.map((d) => ({ ...d })),
+          const last = s.lines[s.lines.length - 1];
+          if (
+            last &&
+            last.lengthMm === line.lengthMm &&
+            last.designs.length === line.designs.length &&
+            last.designs.every((d, i) => d.id === line.designs[i]?.id && d.qty === line.designs[i]?.qty) &&
+            Date.now() - Date.parse(last.createdAt) < 1500
+          ) {
+            return s;
+          }
+          return {
+            lines: [
+              ...s.lines,
+              {
+                ...line,
+                designs: line.designs.map((d) => ({ ...d })),
+              },
+            ],
           };
-          return { lines: [...s.lines, slim] };
         }),
       removeLine: (id) =>
         set((s) => ({ lines: s.lines.filter((l) => l.id !== id) })),
       clear: () => set({ lines: [] }),
       saveDraft: (draft) =>
         set((s) => ({
-          drafts: [draft, ...s.drafts.filter((d) => d.id !== draft.id)].slice(
-            0,
-            20
-          ),
+          drafts: [
+            { ...draft, payload: slimPayload(draft.payload) },
+            ...s.drafts.filter((d) => d.id !== draft.id),
+          ].slice(0, 5),
         })),
       removeDraft: (id) =>
         set((s) => ({ drafts: s.drafts.filter((d) => d.id !== id) })),
     }),
-    { name: "hlv-cart" }
+    {
+      name: "hlv-cart",
+      storage: createJSONStorage(() => safeStorage),
+    }
   )
 );
