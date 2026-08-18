@@ -194,8 +194,8 @@ export function BuilderApp() {
 
       <p className="mb-6 text-sm text-muted md:hidden">{t.builder.mobileNote}</p>
 
-      <div className="flex min-w-0 flex-col items-stretch gap-4 xl:flex-row xl:items-start">
-        <aside className="w-full shrink-0 xl:w-[220px] xl:max-w-[220px]">
+      <div className="flex w-full min-w-0 flex-col items-stretch gap-4 xl:flex-row xl:items-start">
+        <aside className="relative z-10 w-full shrink-0 xl:w-[220px] xl:flex-none xl:max-w-[220px]">
           <div className="glass flex flex-col gap-3 overflow-hidden rounded-[24px] p-3">
             <label className="grid cursor-pointer place-items-center rounded-2xl border border-dashed border-white/20 bg-white/5 px-3 py-6 text-center text-sm">
               <span className="text-sm leading-snug">{t.builder.drop}</span>
@@ -247,7 +247,7 @@ export function BuilderApp() {
         </aside>
 
         <section
-          className="min-w-0 w-full flex-1 overflow-hidden"
+          className="relative z-0 min-w-0 flex-1 overflow-hidden xl:max-w-[calc(100%-500px)]"
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
@@ -330,7 +330,7 @@ export function BuilderApp() {
         </div>
         </section>
 
-        <aside className="hidden w-full shrink-0 xl:block xl:w-[260px] xl:max-w-[260px]">
+        <aside className="relative z-10 hidden w-full shrink-0 xl:block xl:w-[260px] xl:flex-none xl:max-w-[260px]">
           <div className="sticky top-28 grid gap-3">
             {selectedDesign && (
               <div className="glass overflow-hidden rounded-[24px] p-4">
