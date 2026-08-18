@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "vitest run"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -15,9 +16,11 @@
     "motion": "^13.1.0",
     "next": "^15.5.10",
     "p5": "^2.3.2",
+    "pdf-lib": "^1.17.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-konva": "^19.2.5",
+    "sharp": "^0.35.3",
     "tailwind-merge": "^3.6.0",
     "zustand": "^5.0.15"
   },
@@ -31,6 +34,7 @@
     "eslint": "^9",
     "eslint-config-next": "^15.5.10",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   }
 }

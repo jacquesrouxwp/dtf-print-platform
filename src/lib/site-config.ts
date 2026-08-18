@@ -23,6 +23,9 @@ export type SiteConfig = {
   btwRate: number;
   minOrderM: number;
   roundingM: number;
+  minOrderMm: number;
+  lengthIncrementMm: number;
+  outputDpi: number;
   gapMm: number;
   edgeMm: number;
   pressTempC: number;
@@ -66,9 +69,12 @@ export const defaultConfig: SiteConfig = {
     { upToMeters: null, pricePerMeter: 6.95 },
   ],
   btwRate: 0.21,
-  minOrderM: 0.3,
+  minOrderM: 0.5,
   roundingM: 0.1,
-  gapMm: 5,
+  minOrderMm: 500,
+  lengthIncrementMm: 100,
+  outputDpi: 300,
+  gapMm: 4,
   edgeMm: 10,
   pressTempC: 150,
   pressTimeSec: 15,

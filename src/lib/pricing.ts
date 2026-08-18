@@ -1,4 +1,5 @@
 import type { SiteConfig } from "./site-config";
+import { billedLengthMm } from "./units";
 
 export type PriceBreakdown = {
   lengthMm: number;
@@ -14,10 +15,16 @@ export type PriceBreakdown = {
 };
 
 export function metersFromLength(lengthMm: number, config: SiteConfig): number {
-  const rawM = Math.max(0, lengthMm) / 1000;
-  const increment = config.roundingM > 0 ? config.roundingM : 0.1;
-  const rounded = Math.ceil(rawM / increment - 1e-9) * increment;
-  return Math.max(config.minOrderM, Number(rounded.toFixed(3)));
+  const billed = billedLengthMm(
+    lengthMm,
+    config.lengthIncrementMm,
+    config.minOrderMm
+  );
+  return Number((billed / 1000).toFixed(3));
+}
+
+export function lookupTier(meters: number, config: SiteConfig) {
+  return rateForMeters(meters, config);
 }
 
 export function rateForMeters(meters: number, config: SiteConfig): {

@@ -1,3 +1,6 @@
+import type { RollConfig } from "./roll";
+import { billedLengthMm, usableWidthMm } from "./units";
+
 export type NestSource = {
   designId: string;
   widthMm: number;
@@ -10,15 +13,24 @@ export type NestSource = {
   rotation?: 0 | 90;
 };
 
-export type PlacedPiece = {
+export type PlacedItem = {
   id: string;
   designId: string;
-  xMm: number;
-  yMm: number;
   widthMm: number;
   heightMm: number;
+  xMm: number;
+  yMm: number;
   rotation: 0 | 90;
   locked: boolean;
+};
+
+export type PlacedPiece = PlacedItem;
+
+export type Layout = {
+  items: PlacedItem[];
+  usedLengthMm: number;
+  billedLengthMm: number;
+  rejected: string[];
 };
 
 export type NestResult = {
@@ -27,70 +39,306 @@ export type NestResult = {
   overflow: string[];
 };
 
-type Box = {
+type Rect = { x: number; y: number; w: number; h: number };
+
+const EPS = 1e-6;
+const TALL = 1_000_000;
+
+function intersects(a: Rect, b: Rect): boolean {
+  return !(
+    a.x + a.w <= b.x + EPS ||
+    b.x + b.w <= a.x + EPS ||
+    a.y + a.h <= b.y + EPS ||
+    b.y + b.h <= a.y + EPS
+  );
+}
+
+function contains(outer: Rect, inner: Rect): boolean {
+  return (
+    outer.x <= inner.x + EPS &&
+    outer.y <= inner.y + EPS &&
+    outer.x + outer.w >= inner.x + inner.w - EPS &&
+    outer.y + outer.h >= inner.y + inner.h - EPS
+  );
+}
+
+function splitByPlaced(fr: Rect, used: Rect): Rect[] {
+  if (!intersects(fr, used)) return [fr];
+  const next: Rect[] = [];
+  if (used.x > fr.x + EPS) {
+    next.push({ x: fr.x, y: fr.y, w: used.x - fr.x, h: fr.h });
+  }
+  if (used.x + used.w < fr.x + fr.w - EPS) {
+    next.push({
+      x: used.x + used.w,
+      y: fr.y,
+      w: fr.x + fr.w - (used.x + used.w),
+      h: fr.h,
+    });
+  }
+  if (used.y > fr.y + EPS) {
+    next.push({ x: fr.x, y: fr.y, w: fr.w, h: used.y - fr.y });
+  }
+  if (used.y + used.h < fr.y + fr.h - EPS) {
+    next.push({
+      x: fr.x,
+      y: used.y + used.h,
+      w: fr.w,
+      h: fr.y + fr.h - (used.y + used.h),
+    });
+  }
+  return next.filter((r) => r.w > EPS && r.h > EPS);
+}
+
+function prune(rects: Rect[]): Rect[] {
+  const kept: Rect[] = [];
+  for (let i = 0; i < rects.length; i++) {
+    let swallowed = false;
+    for (let j = 0; j < rects.length; j++) {
+      if (i === j) continue;
+      if (contains(rects[j], rects[i])) {
+        swallowed = true;
+        break;
+      }
+    }
+    if (!swallowed) kept.push(rects[i]);
+  }
+  return kept;
+}
+
+type Candidate = {
   x: number;
   y: number;
   w: number;
   h: number;
+  rot: 0 | 90;
+  short: number;
+  long: number;
 };
 
-function overlaps(a: Box, b: Box, gap: number): boolean {
-  return !(
-    a.x + a.w + gap <= b.x ||
-    b.x + b.w + gap <= a.x ||
-    a.y + a.h + gap <= b.y ||
-    b.y + b.h + gap <= a.y
-  );
-}
-
-function uniqueSorted(values: number[]): number[] {
-  return [...new Set(values.map((v) => Number(v.toFixed(3))))].sort((a, b) => a - b);
-}
-
-function findSlot(
+function bestFit(
+  free: Rect[],
   w: number,
   h: number,
-  occupied: Box[],
-  rollWidthMm: number,
-  edgeMm: number,
-  gapMm: number
-): { x: number; y: number } | null {
-  const maxX = rollWidthMm - edgeMm - w;
-  if (maxX < edgeMm - 0.01) return null;
-
-  const xs = uniqueSorted([
-    edgeMm,
-    ...occupied.flatMap((o) => [o.x, o.x + o.w + gapMm]),
-  ]).filter((x) => x <= maxX + 0.01);
-
-  const ys = uniqueSorted([
-    edgeMm,
-    ...occupied.flatMap((o) => [o.y, o.y + o.h + gapMm]),
-  ]);
-
-  let best: { x: number; y: number } | null = null;
-  for (const y of ys) {
-    for (const x of xs) {
-      if (x > maxX + 0.01) continue;
-      const cand: Box = { x, y, w, h };
-      const hit = occupied.some((o) => overlaps(cand, o, gapMm));
-      if (hit) continue;
+  allowRotate: boolean
+): Candidate | null {
+  let best: Candidate | null = null;
+  const orients: { w: number; h: number; rot: 0 | 90 }[] = [
+    { w, h, rot: 0 },
+  ];
+  if (allowRotate && Math.abs(w - h) > EPS) {
+    orients.push({ w: h, h: w, rot: 90 });
+  }
+  for (const fr of free) {
+    for (const o of orients) {
+      if (o.w > fr.w + EPS || o.h > fr.h + EPS) continue;
+      const leftoverW = fr.w - o.w;
+      const leftoverH = fr.h - o.h;
+      const short = Math.min(leftoverW, leftoverH);
+      const long = Math.max(leftoverW, leftoverH);
       if (
         !best ||
-        y < best.y - 0.01 ||
-        (Math.abs(y - best.y) < 0.01 && x < best.x)
+        short < best.short - EPS ||
+        (Math.abs(short - best.short) < EPS && long < best.long - EPS) ||
+        (Math.abs(short - best.short) < EPS &&
+          Math.abs(long - best.long) < EPS &&
+          (fr.y < best.y - EPS ||
+            (Math.abs(fr.y - best.y) < EPS && fr.x < best.x)))
       ) {
-        best = { x, y };
+        best = {
+          x: fr.x,
+          y: fr.y,
+          w: o.w,
+          h: o.h,
+          rot: o.rot,
+          short,
+          long,
+        };
       }
     }
   }
   return best;
 }
 
-function usedLength(placed: PlacedPiece[], edgeMm: number): number {
-  if (placed.length === 0) return 0;
-  const maxY = Math.max(...placed.map((p) => p.yMm + p.heightMm));
+function packMaxRects(
+  pieces: { id: string; designId: string; w: number; h: number; allowRotate: boolean }[],
+  binW: number,
+  occupied: Rect[]
+): { placed: { id: string; designId: string; x: number; y: number; w: number; h: number; rot: 0 | 90 }[]; rejected: string[] } {
+  let free: Rect[] = [{ x: 0, y: 0, w: binW, h: TALL }];
+  const placed: {
+    id: string;
+    designId: string;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    rot: 0 | 90;
+  }[] = [];
+  const rejected: string[] = [];
+
+  for (const occ of occupied) {
+    const next: Rect[] = [];
+    for (const fr of free) next.push(...splitByPlaced(fr, occ));
+    free = prune(next);
+  }
+
+  for (const piece of pieces) {
+    const fit = bestFit(free, piece.w, piece.h, piece.allowRotate);
+    if (!fit) {
+      rejected.push(piece.designId);
+      continue;
+    }
+    const used: Rect = { x: fit.x, y: fit.y, w: fit.w, h: fit.h };
+    placed.push({
+      id: piece.id,
+      designId: piece.designId,
+      x: fit.x,
+      y: fit.y,
+      w: fit.w,
+      h: fit.h,
+      rot: fit.rot,
+    });
+    const next: Rect[] = [];
+    for (const fr of free) next.push(...splitByPlaced(fr, used));
+    free = prune(next);
+  }
+
+  return { placed, rejected };
+}
+
+type SortKey = "area" | "long" | "height";
+
+function sortPieces<T extends { w: number; h: number; id: string }>(
+  pieces: T[],
+  key: SortKey
+): T[] {
+  return [...pieces].sort((a, b) => {
+    const va =
+      key === "area"
+        ? a.w * a.h
+        : key === "long"
+          ? Math.max(a.w, a.h)
+          : a.h;
+    const vb =
+      key === "area"
+        ? b.w * b.h
+        : key === "long"
+          ? Math.max(b.w, b.h)
+          : b.h;
+    if (vb !== va) return vb - va;
+    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+  });
+}
+
+function usedFromItems(items: PlacedItem[], edgeMm: number): number {
+  if (items.length === 0) return 0;
+  const maxY = Math.max(...items.map((p) => p.yMm + p.heightMm));
   return Number((maxY + edgeMm).toFixed(3));
+}
+
+/**
+ * Pure strip packer. Same input → same layout. No Math.random, no DOM.
+ * Origin of x/y is the top-left of the usable area, then offset by edge margin
+ * for roll coordinates.
+ */
+export function nest(sources: NestSource[], config: RollConfig): Layout {
+  const usable = usableWidthMm(config.widthMm, config.edgeMarginMm);
+  const gap = config.itemGapMm;
+  const edge = config.edgeMarginMm;
+  const rejected: string[] = [];
+
+  const lockedItems: PlacedItem[] = [];
+  const unlocked: {
+    id: string;
+    designId: string;
+    w: number;
+    h: number;
+    allowRotate: boolean;
+  }[] = [];
+
+  sources.forEach((src) => {
+    const qty = Math.max(1, Math.floor(src.qty));
+    for (let i = 0; i < qty; i++) {
+      const tooWide = src.widthMm > usable + EPS && src.heightMm > usable + EPS;
+      if (tooWide) {
+        rejected.push(src.designId);
+        continue;
+      }
+      if (src.locked) {
+        const rotation = src.rotation ?? 0;
+        const widthMm = rotation === 90 ? src.heightMm : src.widthMm;
+        const heightMm = rotation === 90 ? src.widthMm : src.heightMm;
+        lockedItems.push({
+          id: `${src.designId}:${i}`,
+          designId: src.designId,
+          widthMm,
+          heightMm,
+          xMm: src.xMm ?? edge,
+          yMm: src.yMm ?? edge,
+          rotation,
+          locked: true,
+        });
+        continue;
+      }
+      unlocked.push({
+        id: `${src.designId}:${i}`,
+        designId: src.designId,
+        w: src.widthMm + gap,
+        h: src.heightMm + gap,
+        allowRotate: src.allowRotate !== false,
+      });
+    }
+  });
+
+  const occupied: Rect[] = lockedItems.map((p) => ({
+    x: p.xMm - edge,
+    y: p.yMm - edge,
+    w: p.widthMm + gap,
+    h: p.heightMm + gap,
+  }));
+
+  let bestItems: PlacedItem[] = [...lockedItems];
+  let bestUsed = Number.POSITIVE_INFINITY;
+  let bestRejected = [...rejected];
+
+  for (const key of ["area", "long", "height"] as SortKey[]) {
+    const packed = packMaxRects(sortPieces(unlocked, key), usable, occupied);
+    const items: PlacedItem[] = [
+      ...lockedItems,
+      ...packed.placed.map((p) => ({
+        id: p.id,
+        designId: p.designId,
+        widthMm: p.w - gap,
+        heightMm: p.h - gap,
+        xMm: p.x + edge,
+        yMm: p.y + edge,
+        rotation: p.rot,
+        locked: false,
+      })),
+    ];
+    const used = usedFromItems(items, edge);
+    if (
+      used < bestUsed - EPS ||
+      (Math.abs(used - bestUsed) < EPS && items.length > bestItems.length)
+    ) {
+      bestUsed = used;
+      bestItems = items;
+      bestRejected = [...rejected, ...packed.rejected];
+    }
+  }
+
+  const usedLengthMm = Number.isFinite(bestUsed) ? bestUsed : 0;
+  return {
+    items: bestItems,
+    usedLengthMm,
+    billedLengthMm: billedLengthMm(
+      usedLengthMm,
+      config.lengthIncrementMm,
+      config.minOrderMm
+    ),
+    rejected: [...new Set(bestRejected)],
+  };
 }
 
 export function nestDesigns(
@@ -99,116 +347,21 @@ export function nestDesigns(
   gapMm: number,
   edgeMm: number
 ): NestResult {
-  const placed: PlacedPiece[] = [];
-  const overflow: string[] = [];
-  const usable = rollWidthMm - 2 * edgeMm;
-
-  sources.forEach((src, srcIndex) => {
-    if (!src.locked) return;
-    const rotation = src.rotation ?? 0;
-    const widthMm = rotation === 90 ? src.heightMm : src.widthMm;
-    const heightMm = rotation === 90 ? src.widthMm : src.heightMm;
-    for (let i = 0; i < src.qty; i++) {
-      placed.push({
-        id: `${src.designId}-lock-${srcIndex}-${i}`,
-        designId: src.designId,
-        xMm: src.xMm ?? edgeMm,
-        yMm: src.yMm ?? edgeMm,
-        widthMm,
-        heightMm,
-        rotation,
-        locked: true,
-      });
-    }
+  const layout = nest(sources, {
+    widthMm: rollWidthMm,
+    edgeMarginMm: edgeMm,
+    itemGapMm: gapMm,
+    lengthIncrementMm: 100,
+    minOrderMm: 0,
+    outputDpi: 300,
   });
-
-  const unlocked = sources
-    .filter((s) => !s.locked)
-    .flatMap((src) =>
-      Array.from({ length: Math.max(1, src.qty) }, (_, i) => ({ src, i }))
-    )
-    .sort((a, b) => {
-      const aa = Math.max(a.src.widthMm, a.src.heightMm);
-      const bb = Math.max(b.src.widthMm, b.src.heightMm);
-      return bb - aa;
-    });
-
-  unlocked.forEach(({ src, i }) => {
-    const allowRotate = src.allowRotate !== false;
-    const orients: { w: number; h: number; rot: 0 | 90 }[] = [
-      { w: src.widthMm, h: src.heightMm, rot: 0 },
-    ];
-    if (allowRotate && src.widthMm !== src.heightMm) {
-      orients.push({ w: src.heightMm, h: src.widthMm, rot: 90 });
-    }
-
-    const viable = orients.filter((o) => o.w <= usable + 0.01);
-    if (viable.length === 0) {
-      overflow.push(src.designId);
-      placed.push({
-        id: `${src.designId}-${i}`,
-        designId: src.designId,
-        xMm: edgeMm,
-        yMm: usedLength(placed, edgeMm) || edgeMm,
-        widthMm: usable,
-        heightMm: src.heightMm * (usable / src.widthMm),
-        rotation: 0,
-        locked: false,
-      });
-      return;
-    }
-
-    const occupied: Box[] = placed.map((p) => ({
-      x: p.xMm,
-      y: p.yMm,
-      w: p.widthMm,
-      h: p.heightMm,
-    }));
-
-    let chosen: { x: number; y: number; w: number; h: number; rot: 0 | 90 } | null =
-      null;
-    for (const o of viable) {
-      const slot = findSlot(o.w, o.h, occupied, rollWidthMm, edgeMm, gapMm);
-      if (!slot) continue;
-      if (
-        !chosen ||
-        slot.y < chosen.y - 0.01 ||
-        (Math.abs(slot.y - chosen.y) < 0.01 && slot.x < chosen.x)
-      ) {
-        chosen = { ...slot, w: o.w, h: o.h, rot: o.rot };
-      }
-    }
-
-    if (!chosen) {
-      const o = viable[0];
-      chosen = {
-        x: edgeMm,
-        y: (usedLength(placed, 0) || edgeMm) + (placed.length ? gapMm : 0),
-        w: o.w,
-        h: o.h,
-        rot: o.rot,
-      };
-    }
-
-    placed.push({
-      id: `${src.designId}-${i}`,
-      designId: src.designId,
-      xMm: chosen.x,
-      yMm: chosen.y,
-      widthMm: chosen.w,
-      heightMm: chosen.h,
-      rotation: chosen.rot,
-      locked: false,
-    });
-  });
-
   return {
-    placed,
-    lengthMm: usedLength(placed, edgeMm),
-    overflow: [...new Set(overflow)],
+    placed: layout.items,
+    lengthMm: layout.usedLengthMm,
+    overflow: layout.rejected,
   };
 }
 
 export function lengthFromPlaced(placed: PlacedPiece[], edgeMm: number): number {
-  return usedLength(placed, edgeMm);
+  return usedFromItems(placed, edgeMm);
 }

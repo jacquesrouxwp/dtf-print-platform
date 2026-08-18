@@ -39,43 +39,49 @@ export function CheckoutClient() {
     setSending(true);
     const form = Object.fromEntries(new FormData(e.currentTarget).entries());
     const orderId = `HLV-${Date.now().toString(36).toUpperCase()}`;
-    const manifest = JSON.stringify(
-      {
-        orderId,
-        customer: form,
-        payment: method,
-        pickup,
-        rush,
-        trade,
-        quote: totals,
-        lines,
-        rollWidthMm: config.rollWidthMm,
-        producedAt: new Date().toISOString(),
-      },
-      null,
-      2
+    const items = lines.flatMap((line) =>
+      line.designs.map((d) => ({
+        designId: d.name,
+        widthMm: d.widthMm,
+        heightMm: d.heightMm,
+        qty: d.qty,
+      }))
     );
-
     const res = await fetch("/api/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderId, manifest, amount: totals.totalIncl, method }),
+      body: JSON.stringify({
+        orderId,
+        amount: totals.totalIncl,
+        method,
+        trade,
+        rush,
+        pickup,
+        items,
+        customer: { name: form.name, email: form.email },
+      }),
     });
     const data = await res.json();
     if (data.redirectUrl) {
       window.location.href = data.redirectUrl as string;
       return;
     }
+    const charged = data.quote?.totalIncl ?? totals.totalIncl;
+    const manifest = JSON.stringify(
+      { orderId: data.orderId ?? orderId, quote: data.quote, items, files: data.files },
+      null,
+      2
+    );
     addOrder({
-      id: orderId,
+      id: data.orderId ?? orderId,
       email: String(form.email || ""),
       createdAt: new Date().toISOString(),
-      totalIncl: totals.totalIncl,
-      billedMeters: totals.billedMeters,
+      totalIncl: charged,
+      billedMeters: data.quote?.billedMeters ?? totals.billedMeters,
       manifest,
     });
     clear();
-    setDone({ id: orderId, manifest });
+    setDone({ id: data.orderId ?? orderId, manifest });
     setSending(false);
   }
 

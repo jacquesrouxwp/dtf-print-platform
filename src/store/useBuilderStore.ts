@@ -10,7 +10,8 @@ import {
   previewDataUrl,
   type ArtworkWarning,
 } from "@/lib/artwork";
-import { nestDesigns, type PlacedPiece } from "@/lib/nesting";
+import { nest, type PlacedPiece } from "@/lib/nesting";
+import { rollFromSite } from "@/lib/roll";
 import type { SiteConfig } from "@/lib/site-config";
 
 export type Design = {
@@ -79,7 +80,7 @@ function recomputeWarnings(d: Design, config: SiteConfig): ArtworkWarning[] {
 }
 
 function pack(designs: Design[], config: SiteConfig) {
-  const result = nestDesigns(
+  return nest(
     designs.map((d) => ({
       designId: d.id,
       widthMm: d.widthMm,
@@ -91,17 +92,14 @@ function pack(designs: Design[], config: SiteConfig) {
       yMm: d.yMm,
       rotation: d.rotation,
     })),
-    config.rollWidthMm,
-    config.gapMm,
-    config.edgeMm
+    rollFromSite(config)
   );
-  return result;
 }
 
 function applyPack(designs: Design[], config: SiteConfig) {
   const result = pack(designs, config);
   const next = designs.map((d) => {
-    const piece = result.placed.find((p) => p.designId === d.id);
+    const piece = result.items.find((p) => p.designId === d.id);
     return {
       ...d,
       warnings: recomputeWarnings(d, config),
@@ -110,7 +108,7 @@ function applyPack(designs: Design[], config: SiteConfig) {
       rotation: piece?.rotation ?? d.rotation,
     };
   });
-  return { designs: next, placed: result.placed, lengthMm: result.lengthMm };
+  return { designs: next, placed: result.items, lengthMm: result.usedLengthMm };
 }
 
 export const useBuilderStore = create<BuilderState>((set, get) => ({

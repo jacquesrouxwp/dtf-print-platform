@@ -219,6 +219,8 @@ function Row({ k, v }: { k: string; v: string }) {
   );
 }
 
+const PRESETS_CM = [10, 15, 20, 25, 30];
+
 function DesignCard({ design, selected }: { design: Design; selected: boolean }) {
   const { t } = useI18n();
   const config = useSettingsStore((s) => s.config);
@@ -226,6 +228,7 @@ function DesignCard({ design, selected }: { design: Design; selected: boolean })
   const removeDesign = useBuilderStore((s) => s.removeDesign);
   const select = useBuilderStore((s) => s.select);
   const dpi = Math.round(effectiveDpi(design.pixelW, design.widthMm));
+  const [garment, setGarment] = useState<"black" | "white" | "heather">("black");
 
   return (
     <li
@@ -240,6 +243,22 @@ function DesignCard({ design, selected }: { design: Design; selected: boolean })
           ) : (
             <div className="grid h-full place-items-center text-[10px]">PDF</div>
           )}
+        </div>
+        <div
+          className="h-14 w-14 overflow-hidden"
+          style={{
+            background:
+              garment === "black"
+                ? "#1a1a1a"
+                : garment === "white"
+                  ? "#f4f4f4"
+                  : "#8a8680",
+          }}
+        >
+          {design.src ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={design.src} alt="" className="h-full w-full object-contain" />
+          ) : null}
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-xs">{design.name}</p>
@@ -288,6 +307,28 @@ function DesignCard({ design, selected }: { design: Design; selected: boolean })
             }
           />
         </label>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1">
+        {PRESETS_CM.map((cm) => (
+          <button
+            key={cm}
+            type="button"
+            className="num border border-rule px-1.5 py-0.5 text-[10px]"
+            onClick={() => updateDesign(design.id, { widthMm: cm * 10 }, config)}
+          >
+            {cm}
+          </button>
+        ))}
+        {(["black", "white", "heather"] as const).map((g) => (
+          <button
+            key={g}
+            type="button"
+            className={`px-1.5 py-0.5 text-[10px] ${garment === g ? "text-accent" : "text-muted"}`}
+            onClick={() => setGarment(g)}
+          >
+            {g}
+          </button>
+        ))}
       </div>
       <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
         <button

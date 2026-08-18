@@ -79,6 +79,13 @@ export function AdminClient() {
         <Num label="cutoffMinute" value={draft.cutoffMinute} onChange={(v) => set("cutoffMinute", v)} />
         <Num label="minOrderM" value={draft.minOrderM} step={0.1} onChange={(v) => set("minOrderM", v)} />
         <Num label="roundingM" value={draft.roundingM} step={0.1} onChange={(v) => set("roundingM", v)} />
+        <Num label="minOrderMm" value={draft.minOrderMm} onChange={(v) => set("minOrderMm", v)} />
+        <Num
+          label="lengthIncrementMm"
+          value={draft.lengthIncrementMm}
+          onChange={(v) => set("lengthIncrementMm", v)}
+        />
+        <Num label="outputDpi" value={draft.outputDpi} onChange={(v) => set("outputDpi", v)} />
         <Num label="gapMm" value={draft.gapMm} onChange={(v) => set("gapMm", v)} />
         <Num label="edgeMm" value={draft.edgeMm} onChange={(v) => set("edgeMm", v)} />
         <Num label="pressTempC" value={draft.pressTempC} onChange={(v) => set("pressTempC", v)} />

@@ -22,7 +22,7 @@ export const useSettingsStore = create<SettingsState>()(
     (set) => ({
       config: defaultConfig,
       btwInclusive: false,
-      setConfig: (config) => set({ config }),
+      setConfig: (config) => set({ config: { ...defaultConfig, ...config } }),
       patchConfig: (patch) =>
         set((s) => ({ config: { ...s.config, ...patch } })),
       setBtwInclusive: (btwInclusive) => set({ btwInclusive }),
@@ -31,6 +31,14 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: CONFIG_STORAGE_KEY,
       partialize: (s) => ({ config: s.config, btwInclusive: s.btwInclusive }),
+      merge: (persisted, current) => {
+        const p = persisted as Partial<SettingsState> | undefined;
+        return {
+          ...current,
+          ...p,
+          config: { ...defaultConfig, ...(p?.config ?? {}) },
+        };
+      },
     }
   )
 );
