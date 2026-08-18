@@ -197,6 +197,7 @@ export const useBuilderStore = create<BuilderState>()(
       addFiles: async (files, config) => {
         set({ adding: true });
         const created: Design[] = [];
+        try {
         for (const file of files) {
           try {
             const form = new FormData();
@@ -227,14 +228,19 @@ export const useBuilderStore = create<BuilderState>()(
             created.push({
               id: data.id,
               name: data.name,
-              src: data.previewUrl,
+              src: typeof data.previewUrl === "string" ? data.previewUrl : "",
               storageKey: data.storageKey,
               mime: data.mime,
-              pixelW: data.pixelW,
-              pixelH: data.pixelH,
-              widthMm: data.widthMm,
-              heightMm: data.heightMm,
-              aspectRatio: data.aspectRatio || data.pixelW / data.pixelH,
+              pixelW: Number(data.pixelW) || 0,
+              pixelH: Number(data.pixelH) || 0,
+              widthMm: Number(data.widthMm) > 0 ? Number(data.widthMm) : 100,
+              heightMm: Number(data.heightMm) > 0 ? Number(data.heightMm) : 100,
+              aspectRatio:
+                Number(data.aspectRatio) > 0
+                  ? Number(data.aspectRatio)
+                  : Number(data.pixelW) > 0 && Number(data.pixelH) > 0
+                    ? Number(data.pixelW) / Number(data.pixelH)
+                    : 1,
               qty: 1,
               warnings: [],
               hasAlpha: data.hasAlpha,
@@ -269,6 +275,10 @@ export const useBuilderStore = create<BuilderState>()(
           adding: false,
           selectedId: created[0]?.id ?? get().selectedId,
         });
+        } catch (err) {
+          console.error("addFiles", err);
+          set({ adding: false });
+        }
       },
 
       addDesigns: (incoming, config) => {
@@ -374,6 +384,7 @@ export const useBuilderStore = create<BuilderState>()(
     {
       name: "hlv-builder",
       version: PERSIST_VERSION,
+      skipHydration: true,
       storage: createJSONStorage(() => ({
         getItem(name: string) {
           const raw = safeStorage.getItem(name);

@@ -29,6 +29,7 @@ describe("builder store rehydration", () => {
   it("does not crash and yields a warnings array for a stale v1 blob", async () => {
     installStorage(STALE_V1);
     const { useBuilderStore } = await import("./useBuilderStore");
+    await useBuilderStore.persist.rehydrate();
     const { designs, rejected } = useBuilderStore.getState();
     expect(designs).toEqual([]);
     expect(Array.isArray(rejected)).toBe(true);
@@ -41,6 +42,7 @@ describe("builder store rehydration", () => {
   it("survives a corrupt blob", async () => {
     installStorage('{"state":{"designs":"not-an-array","rejected":null},"version":2}');
     const { useBuilderStore } = await import("./useBuilderStore");
+    await useBuilderStore.persist.rehydrate();
     const s = useBuilderStore.getState();
     expect(Array.isArray(s.designs)).toBe(true);
     expect(Array.isArray(s.rejected)).toBe(true);

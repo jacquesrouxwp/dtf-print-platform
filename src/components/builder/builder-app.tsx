@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { effectiveDpi } from "@/lib/artwork";
 import { makeDemoDesigns } from "@/lib/demo-art";
 import { localizedPath } from "@/lib/i18n-config";
@@ -22,6 +22,9 @@ const BuilderCanvas = dynamic(
 
 export function BuilderApp() {
   const { locale, t } = useI18n();
+  useEffect(() => {
+    void useBuilderStore.persist.rehydrate();
+  }, []);
   const config = useSettingsStore((s) => s.config);
   const incl = useSettingsStore((s) => s.btwInclusive);
   const designs = useBuilderStore((s) => s.designs);
@@ -54,15 +57,19 @@ export function BuilderApp() {
 
   async function onFiles(list: FileList | null) {
     if (!list?.length) return;
-    await addFiles(Array.from(list), config);
+    try {
+      await addFiles(Array.from(list), config);
+    } catch (err) {
+      console.error("addFiles failed", err);
+    }
   }
 
-  const rejected = useBuilderStore((s) => s.rejected);
+  const rejected = useBuilderStore((s) => s.rejected) ?? [];
   const blocking = designs.some(
     (d) =>
       d.uploadError ||
       (d.warnings ?? []).some((w) => w.level === "red") ||
-      (rejected ?? []).includes(d.id)
+      rejected.includes(d.id)
   );
 
   function addToCart() {
@@ -191,7 +198,11 @@ export function BuilderApp() {
                 const blob = await (await fetch(d.src)).blob();
                 files.push(new File([blob], d.name, { type: "image/png" }));
               }
-              await addFiles(files, config);
+              try {
+                await addFiles(files, config);
+              } catch (err) {
+                console.error("demo addFiles", err);
+              }
             }}
           >
             {t.builder.demo}
@@ -214,7 +225,9 @@ export function BuilderApp() {
             onFiles(e.dataTransfer.files);
           }}
         >
-          <BuilderCanvas interactive />
+          <CanvasGuard>
+            <BuilderCanvas interactive />
+          </CanvasGuard>
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
@@ -252,6 +265,23 @@ export function BuilderApp() {
       </div>
     </div>
   );
+}
+
+class CanvasGuard extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    if (this.state.failed) {
+      return (
+        <div className="grid h-[420px] place-items-center border border-border bg-surface text-sm text-muted">
+          Canvas failed to render. Reload the page.
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 function Row({ k, v }: { k: string; v: string }) {

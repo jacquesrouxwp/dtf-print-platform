@@ -267,6 +267,10 @@ export function nest(sources: NestSource[], config: RollConfig): Layout {
   }[] = [];
 
   sources.forEach((src) => {
+    if (!Number.isFinite(src.widthMm) || !Number.isFinite(src.heightMm) || src.widthMm <= 0 || src.heightMm <= 0) {
+      rejected.push(src.designId);
+      return;
+    }
     const tooWide = src.widthMm > usable + EPS && src.heightMm > usable + EPS;
     if (tooWide) {
       rejected.push(src.designId);

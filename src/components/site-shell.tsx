@@ -1,5 +1,12 @@
+"use client";
+
 import type { ReactNode } from "react";
+import { BeamsBackground } from "@/components/ui/beams-background";
 
 export function SiteShell({ children }: { children: ReactNode }) {
-  return <div className="min-h-screen bg-background">{children}</div>;
+  return (
+    <BeamsBackground intensity="strong" className="min-h-screen">
+      {children}
+    </BeamsBackground>
+  );
 }

@@ -84,7 +84,9 @@ export async function inspectArtwork(input: Buffer): Promise<ArtworkInspect> {
 }
 
 export function printSizeFromTrim(trim: TrimBox, dpi = 300) {
-  const widthMm = Math.max(10, Math.round((trim.w / dpi) * 25.4));
-  const heightMm = Math.max(10, Math.round((trim.h / trim.w) * widthMm));
-  return { widthMm, heightMm, aspectRatio: trim.w / trim.h };
+  const tw = Math.max(1, trim.w);
+  const th = Math.max(1, trim.h);
+  const widthMm = Math.max(10, Math.round((tw / dpi) * 25.4));
+  const heightMm = Math.max(10, Math.round((th / tw) * widthMm));
+  return { widthMm, heightMm, aspectRatio: tw / th };
 }
