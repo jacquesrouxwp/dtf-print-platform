@@ -1,0 +1,117 @@
+diff --git a/src/components/builder/builder-app.tsx b/src/components/builder/builder-app.tsx
+index f84a543..1a4371f 100644
+--- a/src/components/builder/builder-app.tsx
++++ b/src/components/builder/builder-app.tsx
+@@ -61,8 +61,8 @@ export function BuilderApp() {
+   const blocking = designs.some(
+     (d) =>
+       d.uploadError ||
+-      d.warnings.some((w) => w.level === "red") ||
+-      rejected.includes(d.id)
++      (d.warnings ?? []).some((w) => w.level === "red") ||
++      (rejected ?? []).includes(d.id)
+   );
+ 
+   function addToCart() {
+@@ -433,7 +433,7 @@ function DesignCard({ design, selected }: { design: Design; selected: boolean })
+           {t.builder.remove}
+         </button>
+       </div>
+-      {design.warnings.map((w) => (
++      {(design.warnings ?? []).map((w) => (
+         <p
+           key={w.code}
+           className={`mt-3 text-xs ${
+diff --git a/src/store/useBuilderStore.ts b/src/store/useBuilderStore.ts
+index 9c954dd..088db59 100644
+--- a/src/store/useBuilderStore.ts
++++ b/src/store/useBuilderStore.ts
+@@ -61,6 +61,44 @@ type BuilderState = {
+   reset: () => void;
+ };
+ 
++/** Bump this whenever the persisted Design/PlacedPiece shape changes. */
++const PERSIST_VERSION = 2;
++
++/**
++ * Coerces one persisted design back into a valid Design.
++ * Every array and number is guaranteed, so the UI can never deref undefined.
++ */
++function hydrateDesign(raw: unknown): Design | null {
++  if (!raw || typeof raw !== "object") return null;
++  const d = raw as Partial<Design>;
++  if (typeof d.id !== "string" || !d.id) return null;
++  const widthMm = Number(d.widthMm);
++  const heightMm = Number(d.heightMm);
++  if (!Number.isFinite(widthMm) || !Number.isFinite(heightMm)) return null;
++  return {
++    id: d.id,
++    name: typeof d.name === "string" ? d.name : "artwork",
++    src: typeof d.src === "string" ? d.src : "",
++    storageKey: typeof d.storageKey === "string" ? d.storageKey : undefined,
++    mime: typeof d.mime === "string" ? d.mime : "image/png",
++    pixelW: Number.isFinite(Number(d.pixelW)) ? Number(d.pixelW) : 0,
++    pixelH: Number.isFinite(Number(d.pixelH)) ? Number(d.pixelH) : 0,
++    widthMm,
++    heightMm,
++    aspectRatio:
++      Number.isFinite(Number(d.aspectRatio)) && Number(d.aspectRatio) > 0
++        ? Number(d.aspectRatio)
++        : widthMm / Math.max(1, heightMm),
++    qty: Number.isFinite(Number(d.qty)) ? Math.max(1, Math.floor(Number(d.qty))) : 1,
++    warnings: Array.isArray(d.warnings) ? d.warnings : [],
++    hasAlpha: Boolean(d.hasAlpha),
++    hasSemiTransparency: Boolean(d.hasSemiTransparency),
++    whiteBackground: Boolean(d.whiteBackground),
++    allowRotate: d.allowRotate !== false,
++    uploadError: typeof d.uploadError === "string" ? d.uploadError : undefined,
++  };
++}
++
+ function recomputeWarnings(d: Design, config: SiteConfig): ArtworkWarning[] {
+   const dpi = effectiveDpi(d.pixelW, d.widthMm);
+   const warnings = [...dpiWarnings(dpi)];
+@@ -332,18 +370,33 @@ export const useBuilderStore = create<BuilderState>()(
+     }),
+     {
+       name: "hlv-builder",
++      version: PERSIST_VERSION,
+       storage: createJSONStorage(() => safeStorage),
++      /** Any older or corrupt blob is discarded rather than rehydrated. */
++      migrate: (persisted, version) =>
++        version === PERSIST_VERSION ? persisted : undefined,
+       merge: (persisted, current) => {
+-        const p = persisted as Partial<BuilderState> | undefined;
+-        return {
+-          ...current,
+-          ...p,
+-          designs: (p?.designs ?? current.designs).map((d) => ({
+-            ...d,
+-            allowRotate: d.allowRotate !== false,
+-            aspectRatio: d.aspectRatio || d.widthMm / Math.max(1, d.heightMm),
+-          })),
+-        };
++        try {
++          const p = persisted as Partial<BuilderState> | undefined;
++          if (!p || typeof p !== "object") return current;
++          const designs = Array.isArray(p.designs)
++            ? p.designs.map(hydrateDesign).filter(Boolean as unknown as (d: Design | null) => d is Design)
++            : current.designs;
++          const ids = new Set(designs.map((d) => d.id));
++          return {
++            ...current,
++            designs,
++            placed: Array.isArray(p.placed)
++              ? p.placed.filter((x) => x && typeof x.id === "string" && ids.has(x.designId))
++              : current.placed,
++            lengthMm: Number.isFinite(p.lengthMm) ? Number(p.lengthMm) : current.lengthMm,
++            rejected: Array.isArray(p.rejected) ? p.rejected.filter((x) => typeof x === "string") : [],
++            selectedId: null,
++            adding: false,
++          };
++        } catch {
++          return current;
++        }
+       },
+       partialize: (s) => ({
+         designs: s.designs.map((d) => ({

@@ -232,6 +232,11 @@ export async function writeProductionQueue(args: {
   await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
   try {
     await putObject(`queue/${args.orderId}.png`, png);
+    await putObject(`queue/${args.orderId}-operator.pdf`, Buffer.from(pdf));
+    await putObject(
+      `queue/${args.orderId}.json`,
+      Buffer.from(JSON.stringify(manifest, null, 2), "utf8")
+    );
   } catch {
     /* local fs is enough when blob is unset */
   }

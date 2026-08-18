@@ -25,13 +25,21 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) — middleware sends you to `/nl`.
 
+## Docs
+
+Handover and the live status overlay: [`docs/STATUS.md`](docs/STATUS.md). Original audit: [`docs/AUDIT-FIXES.md`](docs/AUDIT-FIXES.md).
+
 ## Admin
 
-`/nl/admin` — password `hlv-admin` unless `NEXT_PUBLIC_ADMIN_PASSWORD` is set. Edits live in the browser (prices, cutoff, roll width, press specs). Wire Sanity/Payload later for multi-device persistence.
+`/nl/admin` — header `x-admin-password`. Local default `hlv-admin`. On Vercel set `ADMIN_PASSWORD`; there is no default in production. Config is stored in Vercel Blob when `BLOB_READ_WRITE_TOKEN` is set.
 
 ## Payments
 
-Without `MOLLIE_API_KEY` checkout records the order and downloads a production JSON manifest. With a Mollie key, iDEAL redirects through Mollie.
+Without `MOLLIE_API_KEY` checkout records the order and writes a production PNG. **Do not set a live Mollie key until Blob is verified** — otherwise paid orders can still lose artwork. With a key, iDEAL redirects through Mollie.
+
+## Object storage
+
+Set `BLOB_READ_WRITE_TOKEN` on Vercel. Uploads, print queue and shop config then survive serverless restarts. Without it, files live under `.data/` locally and `/tmp` on Vercel.
 
 ## Placeholders (do not publish as confirmed promises)
 
