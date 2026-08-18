@@ -58,4 +58,45 @@ describe("print output", () => {
     }
     expect(opaque).toBeGreaterThan(100);
   });
+
+  it("crops to the trim box so a centered logo is not shrunk", async () => {
+    const roll = rollFromSite(defaultConfig);
+    const canvas = await sharp({
+      create: { width: 400, height: 400, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+    })
+      .composite([
+        {
+          input: await sharp({
+            create: { width: 80, height: 80, channels: 4, background: { r: 0, g: 200, b: 40, alpha: 1 } },
+          })
+            .png()
+            .toBuffer(),
+          left: 160,
+          top: 160,
+        },
+      ])
+      .png()
+      .toBuffer();
+    const layout = nest([{ designId: "logo", widthMm: 40, heightMm: 40, qty: 1 }], roll);
+    const withTrim = await renderPrintPng(
+      roll,
+      layout.billedLengthMm,
+      layout.items,
+      new Map([["logo", canvas]]),
+      new Map([["logo", { x: 160, y: 160, w: 80, h: 80 }]])
+    );
+    const withoutTrim = await renderPrintPng(
+      roll,
+      layout.billedLengthMm,
+      layout.items,
+      new Map([["logo", canvas]])
+    );
+    const count = async (buf: Buffer) => {
+      const { data } = await sharp(buf).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+      let n = 0;
+      for (let i = 3; i < data.length; i += 4) if (data[i] > 10) n += 1;
+      return n;
+    };
+    expect(await count(withTrim)).toBeGreaterThan((await count(withoutTrim)) * 2);
+  });
 });

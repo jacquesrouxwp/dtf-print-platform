@@ -476,6 +476,7 @@ export const en = {
     warnDpiFail: "Below 150 dpi at this size. We recommend a larger file or a smaller print.",
     warnJpeg: "JPEG cannot hold transparency. Any white in this file will print as white ink.",
     warnWhite: "This file looks like it has a white background. That white will print. Check the preview.",
+    warnSemi: "Semi-transparent pixels will print as a faded tint, not as a clean knockout.",
     warnCmyk: "PDF uploaded. If this is CMYK we will convert to sRGB for preview; the press file is rebuilt at 300 dpi.",
     warnWide: "Wider than the usable roll. We scaled it to the film width.",
     warnHuge: "Over 100 MB. Compress it or split the file.",

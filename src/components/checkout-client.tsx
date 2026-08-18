@@ -19,6 +19,19 @@ function cartItems(lines: ReturnType<typeof useCartStore.getState>["lines"]) {
       widthMm: d.widthMm,
       heightMm: d.heightMm,
       qty: d.qty,
+      trimBox: d.trimBox,
+      instances: line.placed
+        .filter((p) => p.designId === d.id)
+        .map((p) => ({
+          id: p.id,
+          locked: true,
+          xMm: p.xMm,
+          yMm: p.yMm,
+          rotation: p.rotation,
+          widthMm: p.widthMm,
+          heightMm: p.heightMm,
+          flipX: p.flipX,
+        })),
     }))
   );
 }

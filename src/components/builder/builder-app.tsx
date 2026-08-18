@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { effectiveDpi } from "@/lib/artwork";
+import { printDpi } from "@/lib/artwork";
 import { makeDemoDesigns } from "@/lib/demo-art";
 import { localizedPath } from "@/lib/i18n-config";
 import { interpolate } from "@/lib/interpolate";
@@ -102,6 +102,7 @@ export function BuilderApp() {
         qty: d.qty,
         widthMm: d.widthMm,
         heightMm: d.heightMm,
+        trimBox: d.trimBox,
       })),
       placed,
       createdAt: new Date().toISOString(),
@@ -440,7 +441,7 @@ function PropertiesPanel({
   const { t } = useI18n();
   const config = useSettingsStore((s) => s.config);
   const updateDesign = useBuilderStore((s) => s.updateDesign);
-  const dpi = Math.round(effectiveDpi(design.pixelW, design.widthMm));
+  const dpi = Math.round(printDpi(design.pixelW, design.pixelH, design.widthMm, design.heightMm).dpi);
   const [wDraft, setWDraft] = useState(String(Number((design.widthMm / 10).toFixed(1))));
   const [hDraft, setHDraft] = useState(String(Number((design.heightMm / 10).toFixed(1))));
   const [qtyDraft, setQtyDraft] = useState(String(design.qty));

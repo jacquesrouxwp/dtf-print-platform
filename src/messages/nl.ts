@@ -478,6 +478,7 @@ export const nl: typeof en = {
     warnDpiFail: "Onder 150 dpi op dit formaat. Groter bestand of kleiner drukken.",
     warnJpeg: "JPEG houdt geen transparantie. Wit in dit bestand drukt als witte inkt.",
     warnWhite: "Dit bestand lijkt een witte achtergrond te hebben. Dat wit drukt mee. Check de preview.",
+    warnSemi: "Halftransparante pixels drukken als een waas, niet als een schoon knockout.",
     warnCmyk: "PDF geüpload. Is dit CMYK, dan converteren we de preview naar sRGB; het persbestand bouwen we opnieuw op 300 dpi.",
     warnWide: "Breder dan de bruikbare rol. We hebben het naar de filmbreedte geschaald.",
     warnHuge: "Groter dan 100 MB. Comprimeer of splits het bestand.",

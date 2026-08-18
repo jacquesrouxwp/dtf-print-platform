@@ -20,6 +20,7 @@ export type CartLine = {
     qty: number;
     widthMm: number;
     heightMm: number;
+    trimBox?: { x: number; y: number; w: number; h: number };
   }[];
   placed: PlacedPiece[];
   createdAt: string;

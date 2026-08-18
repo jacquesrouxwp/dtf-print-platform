@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dpiWarnings, effectiveDpi } from "./artwork";
+import { dpiWarnings, effectiveDpi, printDpi } from "./artwork";
 import { usableWidthMm } from "./units";
 
 describe("validation", () => {
@@ -13,6 +13,11 @@ describe("validation", () => {
     const dpi = effectiveDpi(1970, 254);
     expect(dpi).toBeCloseTo(197, 0);
     expect(dpiWarnings(dpi).map((w) => w.code)).toContain("dpi_low");
+  });
+
+  it("print DPI uses the weaker axis", () => {
+    const { dpi } = printDpi(1200, 300, 100, 100);
+    expect(dpi).toBeCloseTo(effectiveDpi(300, 100), 1);
   });
 
   it("usable width rejects a piece too wide on both axes", () => {

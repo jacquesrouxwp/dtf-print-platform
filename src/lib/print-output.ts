@@ -3,8 +3,10 @@ import path from "path";
 import sharp from "sharp";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import type { Layout, PlacedItem } from "./nesting";
+import type { TrimBox } from "./inspect-artwork";
 import type { RollConfig } from "./roll";
 import { mmToPx } from "./units";
+import { putObject } from "./storage";
 
 export type ProductionFiles = {
   orderId: string;
@@ -26,7 +28,8 @@ export async function renderPrintPng(
   roll: RollConfig,
   billedLengthMm: number,
   items: PlacedItem[],
-  images?: Map<string, Buffer>
+  images?: Map<string, Buffer>,
+  trims?: Map<string, TrimBox>
 ): Promise<Buffer> {
   const { widthPx, heightPx } = printSizePx(roll, billedLengthMm);
   const base = sharp({
@@ -48,8 +51,24 @@ export async function renderPrintPng(
     if (!src) continue;
     const w = Math.max(1, mmToPx(item.widthMm, roll.outputDpi));
     const h = Math.max(1, mmToPx(item.heightMm, roll.outputDpi));
-    const resized = await sharp(src)
-      .rotate(item.rotation)
+    let img = sharp(src);
+    const trim = trims?.get(item.designId);
+    if (trim && trim.w > 0 && trim.h > 0) {
+      const meta = await sharp(src).metadata();
+      const nw = meta.width ?? 0;
+      const nh = meta.height ?? 0;
+      if (nw > trim.w + 2 || nh > trim.h + 2) {
+        img = sharp(src).extract({
+          left: Math.max(0, trim.x),
+          top: Math.max(0, trim.y),
+          width: Math.min(trim.w, Math.max(1, nw - trim.x)),
+          height: Math.min(trim.h, Math.max(1, nh - trim.y)),
+        });
+      }
+    }
+    if (item.flipX) img = img.flop();
+    const resized = await img
+      .rotate(item.rotation || 0)
       .resize(w, h, { fit: "fill" })
       .ensureAlpha()
       .png()
@@ -184,15 +203,18 @@ export async function writeProductionQueue(args: {
   customer: { name?: string; email?: string };
   priceExVat: number;
   images?: Map<string, Buffer>;
+  trims?: Map<string, TrimBox>;
 }): Promise<ProductionFiles> {
-  const dir = path.join(process.cwd(), ".data", "queue", args.orderId);
+  const root = process.env.VERCEL ? "/tmp" : process.cwd();
+  const dir = path.join(root, ".data", "queue", args.orderId);
   await mkdir(dir, { recursive: true });
   const { widthPx, heightPx } = printSizePx(args.roll, args.layout.billedLengthMm);
   const png = await renderPrintPng(
     args.roll,
     args.layout.billedLengthMm,
     args.layout.items,
-    args.images
+    args.images,
+    args.trims
   );
   const pdf = await renderOperatorPdf(args.orderId, args.roll, args.layout);
   const manifest = buildManifest({
@@ -208,6 +230,11 @@ export async function writeProductionQueue(args: {
   await writeFile(printPngPath, png);
   await writeFile(operatorPdfPath, pdf);
   await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
+  try {
+    await putObject(`queue/${args.orderId}.png`, png);
+  } catch {
+    /* local fs is enough when blob is unset */
+  }
   return {
     orderId: args.orderId,
     printPngPath,

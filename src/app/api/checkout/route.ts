@@ -8,7 +8,10 @@ import type { NestSource } from "@/lib/nesting";
 
 export const runtime = "nodejs";
 
-type CheckoutItem = NestSource & { storageKey?: string };
+type CheckoutItem = NestSource & {
+  storageKey?: string;
+  trimBox?: { x: number; y: number; w: number; h: number };
+};
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -80,6 +83,11 @@ export async function POST(request: Request) {
     },
     priceExVat: quote.subtotalExcl,
     images,
+    trims: new Map(
+      sources
+        .filter((s) => s.trimBox && s.trimBox.w > 0)
+        .map((s) => [s.designId, s.trimBox!])
+    ),
   });
 
   const key = process.env.MOLLIE_API_KEY;

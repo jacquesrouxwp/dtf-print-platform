@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
+import sharp from "sharp";
 import { inspectArtwork, printSizeFromTrim } from "@/lib/inspect-artwork";
 import { putObject } from "@/lib/storage";
 import { getServerConfig } from "@/lib/server-config";
@@ -34,7 +35,16 @@ export async function POST(request: Request) {
   }
 
   const id = randomUUID();
-  const storageKey = await putObject(`${id}.bin`, buf);
+  const trimmed = await sharp(buf)
+    .extract({
+      left: inspect.trimBox.x,
+      top: inspect.trimBox.y,
+      width: Math.max(1, inspect.trimBox.w),
+      height: Math.max(1, inspect.trimBox.h),
+    })
+    .png()
+    .toBuffer();
+  const storageKey = await putObject(`${id}.png`, trimmed);
   const previewKey = await putObject(`${id}-preview.png`, inspect.previewPng);
   const config = await getServerConfig();
   const usable = usableWidthMm(config.rollWidthMm, config.edgeMm);

@@ -7,6 +7,9 @@ export type NestInstance = {
   xMm?: number;
   yMm?: number;
   rotation?: 0 | 90;
+  widthMm?: number;
+  heightMm?: number;
+  flipX?: boolean;
 };
 
 export type NestSource = {
@@ -286,6 +289,9 @@ export function nest(sources: NestSource[], config: RollConfig): Layout {
             xMm: src.xMm,
             yMm: src.yMm,
             rotation: src.rotation,
+            widthMm: src.widthMm,
+            heightMm: src.heightMm,
+            flipX: undefined as boolean | undefined,
           }));
 
     for (const inst of instances) {
@@ -294,12 +300,13 @@ export function nest(sources: NestSource[], config: RollConfig): Layout {
         lockedItems.push({
           id: inst.id,
           designId: src.designId,
-          widthMm: src.widthMm,
-          heightMm: src.heightMm,
+          widthMm: inst.widthMm && inst.widthMm > 0 ? inst.widthMm : src.widthMm,
+          heightMm: inst.heightMm && inst.heightMm > 0 ? inst.heightMm : src.heightMm,
           xMm: inst.xMm ?? edge,
           yMm: inst.yMm ?? edge,
           rotation,
           locked: true,
+          flipX: inst.flipX,
         });
         continue;
       }

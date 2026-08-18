@@ -14,12 +14,24 @@ export type ArtworkInspect = {
 
 const ALPHA_TRIM = 16;
 
+const SCAN_MAX = 2000;
+
 export async function inspectArtwork(input: Buffer): Promise<ArtworkInspect> {
   const meta = await sharp(input).metadata();
-  const { data, info } = await sharp(input)
-    .ensureAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
+  const nativeW = meta.width ?? 1;
+  const nativeH = meta.height ?? 1;
+  const scanScale = Math.min(1, SCAN_MAX / Math.max(nativeW, nativeH));
+  const pipeline =
+    scanScale < 1
+      ? sharp(input)
+          .resize({
+            width: Math.max(1, Math.round(nativeW * scanScale)),
+            height: Math.max(1, Math.round(nativeH * scanScale)),
+            fit: "fill",
+          })
+          .ensureAlpha()
+      : sharp(input).ensureAlpha();
+  const { data, info } = await pipeline.raw().toBuffer({ resolveWithObject: true });
 
   const w = info.width;
   const h = info.height;
@@ -51,17 +63,26 @@ export async function inspectArtwork(input: Buffer): Promise<ArtworkInspect> {
     }
   }
 
-  const trimBox: TrimBox =
+  const scanned: TrimBox =
     maxX < 0
       ? { x: 0, y: 0, w, h }
       : { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+  const inv = scanScale > 0 ? 1 / scanScale : 1;
+  const trimBox: TrimBox = {
+    x: Math.max(0, Math.floor(scanned.x * inv)),
+    y: Math.max(0, Math.floor(scanned.y * inv)),
+    w: Math.min(nativeW, Math.max(1, Math.ceil(scanned.w * inv))),
+    h: Math.min(nativeH, Math.max(1, Math.ceil(scanned.h * inv))),
+  };
+  if (trimBox.x + trimBox.w > nativeW) trimBox.w = nativeW - trimBox.x;
+  if (trimBox.y + trimBox.h > nativeH) trimBox.h = nativeH - trimBox.y;
 
   const previewPng = await sharp(input)
     .extract({
       left: trimBox.x,
       top: trimBox.y,
-      width: trimBox.w,
-      height: trimBox.h,
+      width: Math.max(1, trimBox.w),
+      height: Math.max(1, trimBox.h),
     })
     .resize({
       width: Math.min(1200, trimBox.w),
@@ -73,8 +94,8 @@ export async function inspectArtwork(input: Buffer): Promise<ArtworkInspect> {
     .toBuffer();
 
   return {
-    naturalPxW: meta.width ?? w,
-    naturalPxH: meta.height ?? h,
+    naturalPxW: nativeW,
+    naturalPxH: nativeH,
     trimBox,
     hasAlpha,
     hasSemiTransparency,

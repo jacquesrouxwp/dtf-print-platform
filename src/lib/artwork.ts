@@ -7,7 +7,8 @@ export type ArtworkWarning = {
     | "white_bg"
     | "cmyk"
     | "too_wide"
-    | "file_huge";
+    | "file_huge"
+    | "semi";
   messageKey: string;
 };
 
@@ -15,6 +16,19 @@ export function effectiveDpi(pixelWidth: number, printWidthMm: number): number {
   if (printWidthMm <= 0) return 0;
   const inches = printWidthMm / 25.4;
   return pixelWidth / inches;
+}
+
+/** Lowest axis wins. Rotation does not change this if width/height stay tied to pixel W/H. */
+export function printDpi(
+  pixelW: number,
+  pixelH: number,
+  widthMm: number,
+  heightMm: number
+): { x: number; y: number; dpi: number } {
+  const x = effectiveDpi(pixelW, widthMm);
+  const y = effectiveDpi(pixelH, heightMm);
+  const finite = [x, y].filter((n) => Number.isFinite(n) && n > 0);
+  return { x, y, dpi: finite.length ? Math.min(...finite) : 0 };
 }
 
 export function dpiWarnings(dpi: number): ArtworkWarning[] {

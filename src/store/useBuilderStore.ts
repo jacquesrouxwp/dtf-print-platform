@@ -5,9 +5,10 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { safeStorage } from "@/lib/safe-storage";
 import {
   dpiWarnings,
-  effectiveDpi,
+  printDpi,
   type ArtworkWarning,
 } from "@/lib/artwork";
+import type { TrimBox } from "@/lib/inspect-artwork";
 import { nest, type PlacedPiece } from "@/lib/nesting";
 import { rollFromSite } from "@/lib/roll";
 import { usableWidthMm } from "@/lib/units";
@@ -31,6 +32,7 @@ export type Design = {
   whiteBackground: boolean;
   allowRotate: boolean;
   uploadError?: string;
+  trimBox?: TrimBox;
 };
 
 type BuilderSnap = {
@@ -125,11 +127,12 @@ function hydrateDesign(raw: unknown): Design | null {
     whiteBackground: Boolean(d.whiteBackground),
     allowRotate: d.allowRotate !== false,
     uploadError: typeof d.uploadError === "string" ? d.uploadError : undefined,
+    trimBox: d.trimBox,
   };
 }
 
 function recomputeWarnings(d: Design, config: SiteConfig): ArtworkWarning[] {
-  const dpi = effectiveDpi(d.pixelW, d.widthMm);
+  const { dpi } = printDpi(d.pixelW, d.pixelH, d.widthMm, d.heightMm);
   const warnings = [...dpiWarnings(dpi)];
   if (d.mime === "image/jpeg" || /\.jpe?g$/i.test(d.name)) {
     warnings.push({ level: "amber", code: "jpeg", messageKey: "builder.warnJpeg" });
@@ -144,8 +147,8 @@ function recomputeWarnings(d: Design, config: SiteConfig): ArtworkWarning[] {
   if (d.hasSemiTransparency) {
     warnings.push({
       level: "amber",
-      code: "jpeg",
-      messageKey: "builder.warnWhite",
+      code: "semi",
+      messageKey: "builder.warnSemi",
     });
   }
   const usable = usableWidthMm(config.rollWidthMm, config.edgeMm);
@@ -165,12 +168,13 @@ function syncPlaced(designs: Design[], existing: PlacedPiece[]): PlacedPiece[] {
       next.push({
         id: prev?.id ?? `${d.id}:${i}`,
         designId: d.id,
-        widthMm: d.widthMm,
-        heightMm: d.heightMm,
+        widthMm: prev?.locked ? prev.widthMm : d.widthMm,
+        heightMm: prev?.locked ? prev.heightMm : d.heightMm,
         xMm: prev?.xMm ?? 0,
         yMm: prev?.yMm ?? 0,
         rotation: prev?.rotation ?? 0,
         locked: prev?.locked ?? false,
+        flipX: prev?.flipX,
       });
     }
   }
@@ -198,6 +202,9 @@ function applyPack(
           xMm: p.xMm,
           yMm: p.yMm,
           rotation: p.rotation,
+          widthMm: p.widthMm,
+          heightMm: p.heightMm,
+          flipX: p.flipX,
         })),
     })),
     rollFromSite(config)
@@ -277,6 +284,7 @@ export const useBuilderStore = create<BuilderState>()(
               hasSemiTransparency: data.hasSemiTransparency,
               whiteBackground: data.whiteBackground,
               allowRotate: true,
+              trimBox: data.trimBox,
             });
           } catch {
             created.push({
