@@ -79,24 +79,25 @@ export function BuilderCanvas({
 
   const roll = Math.max(1, config.rollWidthMm);
   const viewLength = Math.max(lengthMm + 40, 280);
-  const base = boxW > 0 ? boxW / roll : 0;
-  const scale = base * Math.max(0.4, zoomPct / 100);
-  const stageW = Math.max(1, Math.round(roll * scale));
-  const stageH = Math.max(200, Math.min(Math.round(viewLength * scale), 2400));
+  const avail = Math.max(0, boxW);
+  const scale = avail > 0 ? (avail / roll) * Math.max(0.5, Math.min(zoomPct, 160) / 100) : 0;
+  const stageW = Math.max(1, Math.min(avail || 1, Math.round(roll * scale)));
+  const stageH = Math.max(200, Math.min(Math.round(viewLength * (stageW / roll)), 1800));
+  const drawScale = stageW / roll;
   const canDrag = interactive && finePointer;
 
   return (
-    <div ref={wrapRef} className="min-w-0 w-full overflow-hidden">
-      <div className="checker max-h-[68vh] w-full overflow-auto rounded-xl">
-        {boxW > 0 && (
+    <div ref={wrapRef} className="builder-film relative min-w-0 w-full max-w-full overflow-hidden">
+      <div className="checker max-h-[62vh] w-full max-w-full overflow-auto rounded-xl">
+        {avail > 0 && (
           <Stage width={stageW} height={stageH}>
             <Layer>
               <Rect x={0} y={0} width={stageW} height={stageH} fill="#f7f4ec" />
               <Rect
-                x={config.edgeMm * scale}
-                y={config.edgeMm * scale}
-                width={(roll - 2 * config.edgeMm) * scale}
-                height={Math.max(lengthMm - 2 * config.edgeMm, 20) * scale}
+                x={config.edgeMm * drawScale}
+                y={config.edgeMm * drawScale}
+                width={(roll - 2 * config.edgeMm) * drawScale}
+                height={Math.max(lengthMm - 2 * config.edgeMm, 20) * drawScale}
                 stroke="#d4cec0"
                 dash={[4, 4]}
               />
@@ -105,8 +106,8 @@ export function BuilderCanvas({
                 const img = images[p.designId];
                 const selected = selectedId === p.designId || selectedId === p.id;
                 const rotated = p.rotation === 90;
-                const boxWm = Math.max(1, p.widthMm * scale);
-                const boxHm = Math.max(1, p.heightMm * scale);
+                const boxWm = Math.max(1, p.widthMm * drawScale);
+                const boxHm = Math.max(1, p.heightMm * drawScale);
                 const drawW = rotated ? boxHm : boxWm;
                 const drawH = rotated ? boxWm : boxHm;
                 const flip = Boolean(p.flipX);
@@ -114,8 +115,8 @@ export function BuilderCanvas({
                   <KImage
                     key={p.id}
                     image={img}
-                    x={p.xMm * scale + (rotated ? boxWm : 0) + (flip && !rotated ? drawW : 0)}
-                    y={p.yMm * scale}
+                    x={p.xMm * drawScale + (rotated ? boxWm : 0) + (flip && !rotated ? drawW : 0)}
+                    y={p.yMm * drawScale}
                     width={drawW}
                     height={drawH}
                     rotation={rotated ? 90 : 0}
@@ -130,19 +131,19 @@ export function BuilderCanvas({
                     onDragEnd={(e) => {
                       const node = e.target;
                       const x = rotated ? node.x() - boxWm : node.x();
-                      movePiece(p.id, x / scale, node.y() / scale, config);
+                      movePiece(p.id, x / drawScale, node.y() / drawScale, config);
                     }}
                   />
                 );
               })}
               <Line
-                points={[0, lengthMm * scale, stageW, lengthMm * scale]}
+                points={[0, lengthMm * drawScale, stageW, lengthMm * drawScale]}
                 stroke="#e22b12"
                 dash={[8, 6]}
               />
               <Text
                 x={8}
-                y={Math.max(8, lengthMm * scale - 18)}
+                y={Math.max(8, lengthMm * drawScale - 18)}
                 text={`${(lengthMm / 10).toFixed(1)} cm`}
                 fill="#e22b12"
                 fontFamily="ui-monospace, monospace"

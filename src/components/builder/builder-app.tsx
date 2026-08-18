@@ -194,60 +194,67 @@ export function BuilderApp() {
 
       <p className="mb-6 text-sm text-muted md:hidden">{t.builder.mobileNote}</p>
 
-      <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[240px_minmax(0,1fr)_280px]">
-        <aside className="grid min-w-0 gap-3 self-start">
-          <label className="glass grid cursor-pointer place-items-center rounded-2xl px-4 py-6 text-center text-sm">
-            <span>{t.builder.drop}</span>
-            <span className="mt-2 text-xs text-muted">{t.builder.or}</span>
-            <span className="btn btn-primary mt-3">{t.builder.browse}</span>
-            <input
-              type="file"
-              multiple
-              accept=".png,.jpg,.jpeg,.tif,.tiff,.webp"
-              className="hidden"
-              onChange={(e) => onFiles(e.target.files)}
-            />
-          </label>
-          <button
-            type="button"
-            className="btn btn-ghost w-full"
-            onClick={async () => {
-              const demos = makeDemoDesigns();
-              const files: File[] = [];
-              for (const d of demos) {
-                const blob = await (await fetch(d.src)).blob();
-                files.push(new File([blob], d.name, { type: "image/png" }));
-              }
-              try {
-                await addFiles(files, config);
-              } catch (err) {
-                console.error("demo addFiles", err);
-              }
-            }}
-          >
-            {t.builder.demo}
-          </button>
-          {adding && <p className="text-center text-xs text-muted">{t.common.sending}</p>}
-          {designs.length === 0 && (
-            <p className="px-1 text-sm leading-relaxed text-muted">
-              {fill(t.builder.empty, config, locale)}
-            </p>
-          )}
-          <ul className="grid gap-2">
-            {designs.map((d) => (
-              <LibraryItem key={d.id} design={d} selected={selectedId === d.id || selectedDesign?.id === d.id} />
-            ))}
-          </ul>
+      <div className="flex min-w-0 flex-col items-stretch gap-4 xl:flex-row xl:items-start">
+        <aside className="w-full shrink-0 xl:w-[220px] xl:max-w-[220px]">
+          <div className="glass flex flex-col gap-3 overflow-hidden rounded-[24px] p-3">
+            <label className="grid cursor-pointer place-items-center rounded-2xl border border-dashed border-white/20 bg-white/5 px-3 py-6 text-center text-sm">
+              <span className="text-sm leading-snug">{t.builder.drop}</span>
+              <span className="mt-2 text-xs text-muted">{t.builder.or}</span>
+              <span className="btn btn-primary mt-3 w-full max-w-[160px]">{t.builder.browse}</span>
+              <input
+                type="file"
+                multiple
+                accept=".png,.jpg,.jpeg,.tif,.tiff,.webp"
+                className="hidden"
+                onChange={(e) => onFiles(e.target.files)}
+              />
+            </label>
+            <button
+              type="button"
+              className="btn btn-ghost w-full"
+              onClick={async () => {
+                const demos = makeDemoDesigns();
+                const files: File[] = [];
+                for (const d of demos) {
+                  const blob = await (await fetch(d.src)).blob();
+                  files.push(new File([blob], d.name, { type: "image/png" }));
+                }
+                try {
+                  await addFiles(files, config);
+                } catch (err) {
+                  console.error("demo addFiles", err);
+                }
+              }}
+            >
+              {t.builder.demo}
+            </button>
+            {adding && <p className="text-center text-xs text-muted">{t.common.sending}</p>}
+            {designs.length === 0 && (
+              <p className="px-1 text-xs leading-relaxed text-muted">
+                {fill(t.builder.empty, config, locale)}
+              </p>
+            )}
+            <ul className="grid max-h-[52vh] gap-2 overflow-y-auto pr-0.5">
+              {designs.map((d) => (
+                <LibraryItem
+                  key={d.id}
+                  design={d}
+                  selected={selectedId === d.id || selectedDesign?.id === d.id}
+                />
+              ))}
+            </ul>
+          </div>
         </aside>
 
         <section
-          className="glass min-w-0 overflow-hidden rounded-[24px] p-3 md:p-4"
+          className="min-w-0 w-full flex-1 overflow-hidden"
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
             onFiles(e.dataTransfer.files);
           }}
         >
+        <div className="glass min-w-0 overflow-hidden rounded-[24px] p-3 md:p-4">
           <div className="mb-3 flex flex-wrap items-center gap-1.5">
             <button type="button" className="btn-soft" disabled={!canUndo} onClick={undo}>
               {t.builder.undo}
@@ -320,19 +327,25 @@ export function BuilderApp() {
           <CanvasGuard>
             <BuilderCanvas interactive zoomPct={zoomPct} />
           </CanvasGuard>
+        </div>
         </section>
 
-        <aside className="grid min-w-0 gap-3 self-start lg:sticky lg:top-28">
-          {selectedDesign && (
-            <div className="glass hidden rounded-[24px] p-4 lg:block">
-              <PropertiesPanel
-                design={selectedDesign}
-                piece={selectedPiece}
-                onMove={(x, y) => selectedPiece && patchPiece(selectedPiece.id, { xMm: x, yMm: y, locked: true }, config)}
-              />
-            </div>
-          )}
-          <div className="glass hidden rounded-[24px] p-5 lg:block">{priceBlock}</div>
+        <aside className="hidden w-full shrink-0 xl:block xl:w-[260px] xl:max-w-[260px]">
+          <div className="sticky top-28 grid gap-3">
+            {selectedDesign && (
+              <div className="glass overflow-hidden rounded-[24px] p-4">
+                <PropertiesPanel
+                  design={selectedDesign}
+                  piece={selectedPiece}
+                  onMove={(x, y) =>
+                    selectedPiece &&
+                    patchPiece(selectedPiece.id, { xMm: x, yMm: y, locked: true }, config)
+                  }
+                />
+              </div>
+            )}
+            <div className="glass overflow-hidden rounded-[24px] p-5">{priceBlock}</div>
+          </div>
         </aside>
       </div>
 
@@ -391,7 +404,7 @@ function LibraryItem({ design, selected }: { design: Design; selected: boolean }
       <button
         type="button"
         onClick={() => select(design.id)}
-        className={`glass flex w-full items-center gap-3 rounded-2xl p-2 text-left ${
+        className={`flex w-full min-w-0 items-center gap-2 rounded-2xl bg-white/5 p-2 text-left ${
           selected ? "ring-1 ring-accent" : ""
         }`}
       >

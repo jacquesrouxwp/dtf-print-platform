@@ -153,3 +153,7 @@ input[type="number"]::-webkit-inner-spin-button {
   outline: 2px solid rgba(226, 43, 18, 0.45);
   outline-offset: 1px;
 }
+
+.builder-film canvas {
+  display: block !important;
+}
