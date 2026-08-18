@@ -498,6 +498,7 @@ export const en = {
     xpos: "X",
     ypos: "Y",
     nest: "Nest",
+    deleteHint: "Ctrl+click a piece to take it off the film. Delete key works too.",
   },
   cart: {
     title: "Cart",

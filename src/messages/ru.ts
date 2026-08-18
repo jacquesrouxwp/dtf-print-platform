@@ -500,6 +500,7 @@ export const ru: typeof en = {
     xpos: "X",
     ypos: "Y",
     nest: "Уложить",
+    deleteHint: "Ctrl+клик снимает кусок с плёнки. Delete — то же самое.",
   },
   cart: {
     title: "Корзина",

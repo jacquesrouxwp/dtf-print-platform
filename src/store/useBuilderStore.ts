@@ -506,12 +506,24 @@ export const useBuilderStore = create<BuilderState>()(
       removePiece: (id, config) => {
         const piece = get().placed.find((p) => p.id === id);
         if (!piece) return;
-        const copies = get().placed.filter((p) => p.designId === piece.designId).length;
-        if (copies <= 1) {
+        const copies = get().placed.filter((p) => p.designId === piece.designId);
+        if (copies.length <= 1) {
           get().removeDesign(piece.designId, config);
           return;
         }
-        get().updateDesign(piece.designId, { qty: copies - 1 }, config);
+        const prev = snapOf(get());
+        const remaining = get().placed.filter((p) => p.id !== id);
+        const designs = get().designs.map((d) =>
+          d.id === piece.designId ? { ...d, qty: Math.max(1, d.qty - 1) } : d
+        );
+        set({
+          ...applyPack(designs, remaining, config),
+          selectedId: get().selectedId === id ? piece.designId : get().selectedId,
+          history: [...get().history, prev].slice(-40),
+          future: [],
+          canUndo: true,
+          canRedo: false,
+        });
       },
     }),
     {

@@ -27,6 +27,7 @@ export function BuilderCanvas({
   const selectedId = useBuilderStore((s) => s.selectedId);
   const select = useBuilderStore((s) => s.select);
   const movePiece = useBuilderStore((s) => s.movePiece);
+  const removePiece = useBuilderStore((s) => s.removePiece);
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -126,8 +127,19 @@ export function BuilderCanvas({
                     stroke={selected ? "#e22b12" : "#12110e"}
                     strokeWidth={selected ? 2 : 0.5}
                     draggable={canDrag && !p.locked}
-                    onClick={() => select(p.id)}
+                    onClick={(e) => {
+                      const ev = e.evt;
+                      if (ev.ctrlKey || ev.metaKey) {
+                        e.cancelBubble = true;
+                        removePiece(p.id, config);
+                        return;
+                      }
+                      select(p.id);
+                    }}
                     onTap={() => select(p.id)}
+                    onMouseDown={(e) => {
+                      if (e.evt.ctrlKey || e.evt.metaKey) e.target.stopDrag?.();
+                    }}
                     onDragEnd={(e) => {
                       const node = e.target;
                       const x = rotated ? node.x() - boxWm : node.x();

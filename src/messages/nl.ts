@@ -500,6 +500,7 @@ export const nl: typeof en = {
     xpos: "X",
     ypos: "Y",
     nest: "Nesten",
+    deleteHint: "Ctrl+klik haalt een stuk van de film. Delete doet hetzelfde.",
   },
   cart: {
     title: "Winkelwagen",

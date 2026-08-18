@@ -26,6 +26,25 @@ export function BuilderApp() {
   useEffect(() => {
     void useBuilderStore.persist.rehydrate();
   }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) {
+        return;
+      }
+      if (e.key !== "Delete" && e.key !== "Backspace") return;
+      const state = useBuilderStore.getState();
+      const id = state.selectedId;
+      if (!id) return;
+      e.preventDefault();
+      const piece = state.placed.find((p) => p.id === id);
+      if (piece) state.removePiece(piece.id, config);
+      else if (state.designs.some((d) => d.id === id)) state.removeDesign(id, config);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [config]);
   const config = useSettingsStore((s) => s.config);
   const incl = useSettingsStore((s) => s.btwInclusive);
   const designs = useBuilderStore((s) => s.designs);
@@ -325,6 +344,7 @@ export function BuilderApp() {
           {alerts.overflow && (
             <p className="mb-2 rounded-xl bg-warn/20 px-3 py-2 text-sm text-warn">{t.builder.overflow}</p>
           )}
+          <p className="mb-2 text-center text-xs text-muted">{t.builder.deleteHint}</p>
           <CanvasGuard>
             <BuilderCanvas interactive zoomPct={zoomPct} />
           </CanvasGuard>
