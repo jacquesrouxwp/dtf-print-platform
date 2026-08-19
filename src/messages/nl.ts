@@ -500,7 +500,12 @@ export const nl: typeof en = {
     xpos: "X",
     ypos: "Y",
     nest: "Nesten",
-    deleteHint: "Ctrl+klik haalt een stuk van de film. Delete doet hetzelfde.",
+    thisCopy: "Dit exemplaar",
+    allCopies: "Alle kopieën van dit ontwerp",
+    deleteHint: "Sleep een hoek om dat exemplaar te schalen. Ctrl+klik of Delete haalt het weg.",
+    uploading: "Bestand lezen…",
+    loading: "Bouwer laden…",
+    uploadFailed: "Server kon dit bestand niet opslaan. Preview komt van je computer.",
   },
   cart: {
     title: "Winkelwagen",

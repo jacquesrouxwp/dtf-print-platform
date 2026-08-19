@@ -34,3 +34,42 @@ export function billedLengthMm(
 export function usableWidthMm(widthMm: number, edgeMarginMm: number): number {
   return widthMm - 2 * edgeMarginMm;
 }
+
+/** Smallest print size the builder will accept for one copy. */
+export const MIN_PIECE_MM = 10;
+
+/**
+ * Clamp one copy to a printable box: not below MIN_PIECE_MM, not wider than
+ * the usable film. Aspect is kept so a mouse-resize or a single-axis field
+ * cannot squash the artwork.
+ */
+export function clampPieceSize(
+  widthMm: number,
+  heightMm: number,
+  maxWidthMm: number,
+  minMm = MIN_PIECE_MM
+): { widthMm: number; heightMm: number } {
+  let w = Number(widthMm);
+  let h = Number(heightMm);
+  if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) {
+    return { widthMm: minMm, heightMm: minMm };
+  }
+  const ratio = w / h;
+  if (w < minMm) {
+    w = minMm;
+    h = w / ratio;
+  }
+  if (h < minMm) {
+    h = minMm;
+    w = h * ratio;
+  }
+  const maxW = Math.max(minMm, maxWidthMm);
+  if (w > maxW) {
+    w = maxW;
+    h = w / ratio;
+  }
+  return {
+    widthMm: Number(w.toFixed(1)),
+    heightMm: Number(h.toFixed(1)),
+  };
+}

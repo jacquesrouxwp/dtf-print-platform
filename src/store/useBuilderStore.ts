@@ -8,10 +8,11 @@ import {
   printDpi,
   type ArtworkWarning,
 } from "@/lib/artwork";
-import type { TrimBox } from "@/lib/inspect-artwork";
+import { printSizeFromPixels, type TrimBox } from "@/lib/inspect-artwork";
+import { localImageMeta, persistableSrc, readResponseJson } from "@/lib/local-artwork";
 import { nest, type PlacedPiece } from "@/lib/nesting";
 import { rollFromSite } from "@/lib/roll";
-import { usableWidthMm } from "@/lib/units";
+import { clampPieceSize, usableWidthMm } from "@/lib/units";
 import type { SiteConfig } from "@/lib/site-config";
 
 export type Design = {
@@ -62,6 +63,13 @@ type BuilderState = {
   select: (id: string | null) => void;
   autoArrange: (config: SiteConfig) => void;
   movePiece: (id: string, xMm: number, yMm: number, config: SiteConfig) => void;
+  resizePiece: (
+    id: string,
+    widthMm: number,
+    heightMm: number,
+    config: SiteConfig,
+    origin?: { xMm: number; yMm: number }
+  ) => void;
   patchCopies: (
     designId: string,
     patch: Partial<PlacedPiece>,
@@ -106,10 +114,7 @@ function hydrateDesign(raw: unknown): Design | null {
   return {
     id: d.id,
     name: typeof d.name === "string" ? d.name : "artwork",
-    src:
-      typeof d.src === "string" && d.src !== "data:," && !d.src.startsWith("data:,")
-        ? d.src
-        : "",
+    src: persistableSrc(typeof d.src === "string" ? d.src : ""),
     storageKey: typeof d.storageKey === "string" ? d.storageKey : undefined,
     mime: typeof d.mime === "string" ? d.mime : "image/png",
     pixelW: Number.isFinite(Number(d.pixelW)) ? Number(d.pixelW) : 0,
@@ -234,93 +239,105 @@ export const useBuilderStore = create<BuilderState>()(
       addFiles: async (files, config) => {
         set({ adding: true });
         const created: Design[] = [];
+        const usable = usableWidthMm(config.rollWidthMm, config.edgeMm);
         try {
-        for (const file of files) {
-          try {
-            const form = new FormData();
-            form.append("file", file);
-            const res = await fetch("/api/upload", { method: "POST", body: form });
-            const data = await res.json();
-            if (!res.ok) {
-              created.push({
-                id: crypto.randomUUID(),
-                name: file.name,
-                src: "",
-                mime: file.type,
-                pixelW: 0,
-                pixelH: 0,
-                widthMm: 100,
-                heightMm: 100,
-                aspectRatio: 1,
-                qty: 1,
-                warnings: [],
-                hasAlpha: false,
-                hasSemiTransparency: false,
-                whiteBackground: false,
-                allowRotate: true,
-                uploadError: data.error || "upload failed",
-              });
-              continue;
+          for (const file of files) {
+            let localSrc = "";
+            let pixelW = 0;
+            let pixelH = 0;
+            try {
+              const local = await localImageMeta(file);
+              localSrc = local.src;
+              pixelW = local.pixelW;
+              pixelH = local.pixelH;
+            } catch {
+              /* server may still decode it */
             }
-            created.push({
-              id: data.id,
-              name: data.name,
-              src: typeof data.previewUrl === "string" ? data.previewUrl : "",
-              storageKey: data.storageKey,
-              mime: data.mime,
-              pixelW: Number(data.pixelW) || 0,
-              pixelH: Number(data.pixelH) || 0,
-              widthMm: Number(data.widthMm) > 0 ? Number(data.widthMm) : 100,
-              heightMm: Number(data.heightMm) > 0 ? Number(data.heightMm) : 100,
-              aspectRatio:
-                Number(data.aspectRatio) > 0
-                  ? Number(data.aspectRatio)
-                  : Number(data.pixelW) > 0 && Number(data.pixelH) > 0
-                    ? Number(data.pixelW) / Number(data.pixelH)
-                    : 1,
-              qty: 1,
-              warnings: [],
-              hasAlpha: data.hasAlpha,
-              hasSemiTransparency: data.hasSemiTransparency,
-              whiteBackground: data.whiteBackground,
-              allowRotate: true,
-              trimBox: data.trimBox,
-            });
-          } catch {
-            created.push({
+            const localSize =
+              pixelW > 0 && pixelH > 0
+                ? printSizeFromPixels(pixelW, pixelH, config.outputDpi)
+                : { widthMm: 100, heightMm: 100, aspectRatio: 1 };
+            const widthMm = Math.min(usable, localSize.widthMm);
+            const heightMm = Math.max(10, Math.round(widthMm / Math.max(0.01, localSize.aspectRatio)));
+            const fallback: Design = {
               id: crypto.randomUUID(),
               name: file.name,
-              src: "",
-              mime: file.type,
-              pixelW: 0,
-              pixelH: 0,
-              widthMm: 100,
-              heightMm: 100,
-              aspectRatio: 1,
+              src: localSrc,
+              mime: file.type || "image/png",
+              pixelW,
+              pixelH,
+              widthMm,
+              heightMm,
+              aspectRatio: localSize.aspectRatio,
               qty: 1,
               warnings: [],
               hasAlpha: false,
               hasSemiTransparency: false,
               whiteBackground: false,
               allowRotate: true,
-              uploadError: "upload failed",
-            });
+            };
+            try {
+              const form = new FormData();
+              form.append("file", file);
+              const res = await fetch("/api/upload", { method: "POST", body: form });
+              const data = await readResponseJson(res);
+              if (!res.ok) {
+                created.push({
+                  ...fallback,
+                  uploadError: String(data.error || `http ${res.status}`),
+                });
+                continue;
+              }
+              created.push({
+                ...fallback,
+                id: typeof data.id === "string" && data.id ? data.id : fallback.id,
+                src: localSrc || persistableSrc(String(data.previewUrl ?? "")),
+                storageKey: typeof data.storageKey === "string" ? data.storageKey : undefined,
+                mime: typeof data.mime === "string" ? data.mime : fallback.mime,
+                pixelW: Number(data.pixelW) > 0 ? Number(data.pixelW) : pixelW,
+                pixelH: Number(data.pixelH) > 0 ? Number(data.pixelH) : pixelH,
+                widthMm: Number(data.widthMm) > 0 ? Number(data.widthMm) : widthMm,
+                heightMm: Number(data.heightMm) > 0 ? Number(data.heightMm) : heightMm,
+                aspectRatio:
+                  Number(data.aspectRatio) > 0 ? Number(data.aspectRatio) : localSize.aspectRatio,
+                hasAlpha: Boolean(data.hasAlpha),
+                hasSemiTransparency: Boolean(data.hasSemiTransparency),
+                whiteBackground: Boolean(data.whiteBackground),
+                trimBox: data.trimBox as TrimBox | undefined,
+              });
+            } catch {
+              created.push({ ...fallback, uploadError: "upload failed" });
+            }
           }
-        }
-        const designs = [...get().designs, ...created];
-        const prev = snapOf(get());
-        set({
-          ...applyPack(designs, get().placed, config),
-          adding: false,
-          selectedId: created[0]?.id ?? get().selectedId,
-          history: [...get().history, prev].slice(-40),
-          future: [],
-          canUndo: true,
-          canRedo: false,
-        });
+          const designs = [...get().designs, ...created];
+          const prev = snapOf(get());
+          let packed;
+          try {
+            packed = applyPack(designs, get().placed, config);
+          } catch (err) {
+            console.error("applyPack", err);
+            packed = { designs, placed: get().placed, lengthMm: get().lengthMm, rejected: [] as string[] };
+          }
+          set({
+            ...packed,
+            adding: false,
+            selectedId: created[0]?.id ?? get().selectedId,
+            history: [...get().history, prev].slice(-40),
+            future: [],
+            canUndo: true,
+            canRedo: false,
+          });
         } catch (err) {
           console.error("addFiles", err);
-          set({ adding: false });
+          if (created.length) {
+            set({
+              designs: [...get().designs, ...created],
+              adding: false,
+              selectedId: created[0]?.id ?? get().selectedId,
+            });
+          } else {
+            set({ adding: false });
+          }
         }
       },
 
@@ -394,6 +411,38 @@ export const useBuilderStore = create<BuilderState>()(
         set({ placed, lengthMm });
       },
 
+      resizePiece: (id, widthMm, heightMm, config, origin) => {
+        const current = get().placed.find((p) => p.id === id);
+        if (!current) return;
+        const usable = usableWidthMm(config.rollWidthMm, config.edgeMm);
+        const size = clampPieceSize(widthMm, heightMm, usable);
+        const prev = snapOf(get());
+        const placed = get().placed.map((p) =>
+          p.id === id
+            ? {
+                ...p,
+                widthMm: size.widthMm,
+                heightMm: size.heightMm,
+                xMm: origin?.xMm ?? p.xMm,
+                yMm: origin?.yMm ?? p.yMm,
+                locked: true,
+              }
+            : p
+        );
+        const lengthMm =
+          placed.length === 0
+            ? 0
+            : Math.max(...placed.map((p) => p.yMm + p.heightMm)) + config.edgeMm;
+        set({
+          placed,
+          lengthMm,
+          history: [...get().history, prev].slice(-40),
+          future: [],
+          canUndo: true,
+          canRedo: false,
+        });
+      },
+
       loadSnapshot: (json, config) => {
         try {
           const parsed = JSON.parse(json) as { designs: Design[]; placed?: PlacedPiece[] };
@@ -408,7 +457,7 @@ export const useBuilderStore = create<BuilderState>()(
         JSON.stringify({
           designs: get().designs.map((d) => ({
             ...d,
-            src: typeof d.src === "string" && d.src.startsWith("data:") ? "" : d.src || "",
+            src: persistableSrc(d.src),
           })),
           placed: get().placed,
           lengthMm: get().lengthMm,
@@ -584,7 +633,7 @@ export const useBuilderStore = create<BuilderState>()(
       partialize: (s) => ({
         designs: s.designs.map((d) => ({
           ...d,
-          src: typeof d.src === "string" && d.src.startsWith("data:") ? "" : d.src || "",
+          src: persistableSrc(d.src),
         })),
         placed: s.placed,
         lengthMm: s.lengthMm,

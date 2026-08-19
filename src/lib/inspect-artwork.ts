@@ -111,3 +111,23 @@ export function printSizeFromTrim(trim: TrimBox, dpi = 300) {
   const heightMm = Math.max(10, Math.round((th / tw) * widthMm));
   return { widthMm, heightMm, aspectRatio: tw / th };
 }
+
+export function printSizeFromPixels(pixelW: number, pixelH: number, dpi = 300) {
+  return printSizeFromTrim({ x: 0, y: 0, w: pixelW, h: pixelH }, dpi);
+}
+
+/** Crop to the opaque box. Never throws — bad boxes fall back to the full PNG. */
+export async function trimToPng(input: Buffer, box: TrimBox): Promise<Buffer> {
+  try {
+    const meta = await sharp(input).metadata();
+    const nw = Math.max(1, meta.width ?? 1);
+    const nh = Math.max(1, meta.height ?? 1);
+    const left = Math.min(Math.max(0, Math.floor(box.x)), nw - 1);
+    const top = Math.min(Math.max(0, Math.floor(box.y)), nh - 1);
+    const width = Math.max(1, Math.min(Math.floor(box.w) || 1, nw - left));
+    const height = Math.max(1, Math.min(Math.floor(box.h) || 1, nh - top));
+    return await sharp(input).extract({ left, top, width, height }).png().toBuffer();
+  } catch {
+    return sharp(input).png().toBuffer();
+  }
+}

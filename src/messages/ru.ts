@@ -500,7 +500,12 @@ export const ru: typeof en = {
     xpos: "X",
     ypos: "Y",
     nest: "Уложить",
-    deleteHint: "Ctrl+клик снимает кусок с плёнки. Delete — то же самое.",
+    thisCopy: "Эта копия",
+    allCopies: "Все копии этого макета",
+    deleteHint: "Тяните угол, чтобы изменить размер этой копии. Ctrl+клик или Delete снимает её.",
+    uploading: "Читаю макет…",
+    loading: "Загрузка билдера…",
+    uploadFailed: "Сервер не сохранил файл. Превью с вашего компьютера.",
   },
   cart: {
     title: "Корзина",

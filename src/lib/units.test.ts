@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { remainingToCutoff } from "./cutoff";
 import { layoutAlerts } from "./layout-alerts";
 import { defaultConfig, sanitizeConfig } from "./site-config";
-import { billedLengthMm, mmToPx, roundUp } from "./units";
+import { billedLengthMm, clampPieceSize, mmToPx, roundUp } from "./units";
 
 describe("geometry", () => {
   it("100 mm at 300 dpi is 1181 px", () => {
@@ -28,6 +28,14 @@ describe("geometry", () => {
 
   it("empty film bills zero, not the minimum", () => {
     expect(billedLengthMm(0, 100, 500)).toBe(0);
+  });
+
+  it("keeps aspect when a copy is clamped to the usable film width", () => {
+    expect(clampPieceSize(800, 400, 530)).toEqual({ widthMm: 530, heightMm: 265 });
+  });
+
+  it("does not shrink a copy below 10 mm on either axis", () => {
+    expect(clampPieceSize(4, 8, 530)).toEqual({ widthMm: 10, heightMm: 20 });
   });
 });
 

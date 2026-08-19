@@ -498,7 +498,12 @@ export const en = {
     xpos: "X",
     ypos: "Y",
     nest: "Nest",
-    deleteHint: "Ctrl+click a piece to take it off the film. Delete key works too.",
+    thisCopy: "This copy",
+    allCopies: "All copies of this design",
+    deleteHint: "Drag a corner to resize that copy. Ctrl+click or Delete removes it.",
+    uploading: "Reading artwork…",
+    loading: "Loading builder…",
+    uploadFailed: "Server could not store this file. Preview is from your computer.",
   },
   cart: {
     title: "Cart",

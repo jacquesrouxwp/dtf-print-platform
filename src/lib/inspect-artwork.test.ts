@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import sharp from "sharp";
-import { inspectArtwork } from "./inspect-artwork";
+import { inspectArtwork, printSizeFromPixels, trimToPng } from "./inspect-artwork";
 
 describe("trim box", () => {
   it("nests the opaque logo, not the empty canvas", async () => {
@@ -32,4 +32,22 @@ describe("trim box", () => {
     expect(inspect.trimBox.x).toBeGreaterThanOrEqual(158);
     expect(inspect.hasAlpha).toBe(true);
   });
+
+  it("trimToPng does not throw when the box sits past the image edge", async () => {
+    const buf = await sharp({
+      create: { width: 40, height: 40, channels: 4, background: { r: 226, g: 43, b: 18, alpha: 1 } },
+    })
+      .png()
+      .toBuffer();
+    const out = await trimToPng(buf, { x: 40, y: 40, w: 10, h: 10 });
+    const meta = await sharp(out).metadata();
+    expect(meta.width).toBeGreaterThan(0);
+    expect(meta.height).toBeGreaterThan(0);
+  });
+
+  it("print size at 300 dpi is millimetres, not pixels", () => {
+    const size = printSizeFromPixels(1181, 1181, 300);
+    expect(size.widthMm).toBe(100);
+  });
 });
+

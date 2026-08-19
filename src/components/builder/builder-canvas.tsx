@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Group, Image as KImage, Layer, Line, Rect, Stage, Text } from "react-konva";
+import Konva from "konva";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Group, Image as KImage, Layer, Line, Rect, Stage, Text, Transformer } from "react-konva";
+import { MIN_PIECE_MM, usableWidthMm } from "@/lib/units";
 import { useBuilderStore } from "@/store/useBuilderStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
+
+const RULER = 26;
 
 function usableSrc(src?: string) {
   return Boolean(src && !src.startsWith("data:,"));
@@ -24,6 +28,73 @@ function makeAlphaSwatch(cell = 6): HTMLCanvasElement {
   return c;
 }
 
+function RulerMarks({
+  lengthMm,
+  pxPerMm,
+  axis,
+}: {
+  lengthMm: number;
+  pxPerMm: number;
+  axis: "h" | "v";
+}) {
+  const marks: { mm: number; major: boolean }[] = [];
+  const end = Math.max(0, lengthMm);
+  for (let mm = 0; mm <= end + 0.01; mm += 10) {
+    marks.push({ mm, major: mm % 50 === 0 });
+  }
+  return (
+    <>
+      {marks.map(({ mm, major }) => {
+        const pos = mm * pxPerMm;
+        const cm = mm / 10;
+        if (axis === "h") {
+          return (
+            <div
+              key={mm}
+              className="absolute bottom-0"
+              style={{ left: pos, width: 1, height: "100%" }}
+            >
+              <div
+                className={`absolute bottom-0 w-px ${major ? "h-2.5 bg-[#c9c1b3]" : "h-1.5 bg-[#7a7368]"}`}
+              />
+              {major && (
+                <span
+                  className="num pointer-events-none absolute left-0 top-0.5 text-[9px] leading-none text-[#a89f91]"
+                  style={{ transform: cm === 0 ? "none" : "translateX(-50%)" }}
+                >
+                  {cm}
+                </span>
+              )}
+            </div>
+          );
+        }
+        return (
+          <div
+            key={mm}
+            className="absolute right-0"
+            style={{ top: pos, height: 1, width: "100%" }}
+          >
+            <div
+              className={`absolute right-0 h-px ${major ? "w-2.5 bg-[#c9c1b3]" : "w-1.5 bg-[#7a7368]"}`}
+            />
+            {major && (
+              <span
+                className="num pointer-events-none absolute left-0.5 text-[9px] leading-none text-[#a89f91]"
+                style={{
+                  top: 0,
+                  transform: cm === 0 ? "none" : "translateY(-50%)",
+                }}
+              >
+                {cm}
+              </span>
+            )}
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
 export function BuilderCanvas({
   interactive,
   zoomPct,
@@ -32,6 +103,8 @@ export function BuilderCanvas({
   zoomPct: number;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
+  const trRef = useRef<Konva.Transformer>(null);
+  const pieceRefs = useRef<Record<string, Konva.Group | null>>({});
   const [boxW, setBoxW] = useState(0);
   const [images, setImages] = useState<Record<string, HTMLImageElement>>({});
   const [finePointer, setFinePointer] = useState(false);
@@ -43,6 +116,7 @@ export function BuilderCanvas({
   const selectedId = useBuilderStore((s) => s.selectedId);
   const select = useBuilderStore((s) => s.select);
   const movePiece = useBuilderStore((s) => s.movePiece);
+  const resizePiece = useBuilderStore((s) => s.resizePiece);
   const removePiece = useBuilderStore((s) => s.removePiece);
 
   useEffect(() => {
@@ -103,124 +177,214 @@ export function BuilderCanvas({
 
   const roll = Math.max(1, config.rollWidthMm);
   const viewLength = Math.max(lengthMm + 40, 280);
-  const avail = Math.max(0, boxW);
+  const avail = Math.max(0, boxW - RULER);
   const scale = avail > 0 ? (avail / roll) * Math.max(0.5, Math.min(zoomPct, 160) / 100) : 0;
   const stageW = Math.max(1, Math.min(avail || 1, Math.round(roll * scale)));
   const stageH = Math.max(200, Math.min(Math.round(viewLength * (stageW / roll)), 1800));
   const drawScale = stageW / roll;
   const canDrag = interactive && finePointer;
+  const selectedPieceId = placed.some((p) => p.id === selectedId) ? selectedId : null;
+  const usable = usableWidthMm(config.rollWidthMm, config.edgeMm);
+  const minPx = MIN_PIECE_MM * drawScale;
+
+  useLayoutEffect(() => {
+    const tr = trRef.current;
+    if (!tr) return;
+    const node = selectedPieceId && canDrag ? pieceRefs.current[selectedPieceId] : null;
+    tr.nodes(node ? [node] : []);
+    tr.getLayer()?.batchDraw();
+  }, [selectedPieceId, placed, canDrag, drawScale]);
 
   return (
     <div ref={wrapRef} className="builder-film relative min-w-0 w-full max-w-full overflow-hidden">
       <div className="max-h-[62vh] w-full max-w-full overflow-auto rounded-xl bg-[#161412]">
         {avail > 0 && (
-          <Stage width={stageW} height={stageH}>
-            <Layer>
-              {swatch ? (
-                <Rect
-                  x={0}
-                  y={0}
-                  width={stageW}
-                  height={stageH}
-                  fillPatternImage={swatch}
-                  fillPatternRepeat="repeat"
-                  listening={false}
-                />
-              ) : (
-                <Rect x={0} y={0} width={stageW} height={stageH} fill="#efe8db" />
-              )}
-              <Rect
-                x={config.edgeMm * drawScale}
-                y={config.edgeMm * drawScale}
-                width={(roll - 2 * config.edgeMm) * drawScale}
-                height={Math.max(lengthMm - 2 * config.edgeMm, 20) * drawScale}
-                stroke="#c9c1b3"
-                dash={[4, 4]}
-              />
-              {placed.map((p) => {
-                const design = designs.find((d) => d.id === p.designId);
-                const img = images[p.designId];
-                const selected = selectedId === p.designId || selectedId === p.id;
-                const rotated = p.rotation === 90;
-                const boxWm = Math.max(1, p.widthMm * drawScale);
-                const boxHm = Math.max(1, p.heightMm * drawScale);
-                const drawW = rotated ? boxHm : boxWm;
-                const drawH = rotated ? boxWm : boxHm;
-                const flip = Boolean(p.flipX);
-                const ox = p.xMm * drawScale;
-                const oy = p.yMm * drawScale;
-                return (
-                  <Group
-                    key={p.id}
-                    x={ox}
-                    y={oy}
-                    clipX={0}
-                    clipY={0}
-                    clipWidth={boxWm}
-                    clipHeight={boxHm}
-                    draggable={canDrag && !p.locked}
-                    onClick={(e) => {
-                      const ev = e.evt;
-                      if (ev.ctrlKey || ev.metaKey) {
-                        e.cancelBubble = true;
-                        removePiece(p.id, config);
-                        return;
-                      }
-                      select(p.id);
-                    }}
-                    onTap={() => select(p.id)}
-                    onMouseDown={(e) => {
-                      if (e.evt.ctrlKey || e.evt.metaKey) e.target.stopDrag?.();
-                    }}
-                    onDragEnd={(e) => {
-                      movePiece(p.id, e.target.x() / drawScale, e.target.y() / drawScale, config);
-                    }}
-                  >
-                    {swatch && (
-                      <Rect
+          <div
+            className="relative"
+            style={{ width: RULER + stageW, height: RULER + stageH }}
+          >
+            <div
+              className="num pointer-events-none absolute left-0 top-0 z-10 grid place-items-center text-[9px] text-[#8a8378]"
+              style={{ width: RULER, height: RULER }}
+            >
+              cm
+            </div>
+            <div
+              className="pointer-events-none absolute top-0 z-10 overflow-hidden border-b border-[#3a3530]"
+              style={{ left: RULER, width: stageW, height: RULER }}
+            >
+              <RulerMarks lengthMm={roll} pxPerMm={drawScale} axis="h" />
+            </div>
+            <div
+              className="pointer-events-none absolute left-0 z-10 overflow-hidden border-r border-[#3a3530]"
+              style={{ top: RULER, width: RULER, height: stageH }}
+            >
+              <RulerMarks lengthMm={viewLength} pxPerMm={drawScale} axis="v" />
+            </div>
+            <div className="absolute" style={{ left: RULER, top: RULER }}>
+              <Stage width={stageW} height={stageH}>
+                <Layer>
+                  {swatch ? (
+                    <Rect
+                      x={0}
+                      y={0}
+                      width={stageW}
+                      height={stageH}
+                      fillPatternImage={swatch}
+                      fillPatternRepeat="repeat"
+                      onMouseDown={() => select(null)}
+                    />
+                  ) : (
+                    <Rect
+                      x={0}
+                      y={0}
+                      width={stageW}
+                      height={stageH}
+                      fill="#efe8db"
+                      onMouseDown={() => select(null)}
+                    />
+                  )}
+                  <Rect
+                    x={config.edgeMm * drawScale}
+                    y={config.edgeMm * drawScale}
+                    width={(roll - 2 * config.edgeMm) * drawScale}
+                    height={Math.max(lengthMm - 2 * config.edgeMm, 20) * drawScale}
+                    stroke="#c9c1b3"
+                    dash={[4, 4]}
+                    listening={false}
+                  />
+                  {placed.map((p) => {
+                    const design = designs.find((d) => d.id === p.designId);
+                    const img = images[p.designId];
+                    const selected = selectedId === p.designId || selectedId === p.id;
+                    const rotated = p.rotation === 90;
+                    const boxWm = Math.max(1, p.widthMm * drawScale);
+                    const boxHm = Math.max(1, p.heightMm * drawScale);
+                    const drawW = rotated ? boxHm : boxWm;
+                    const drawH = rotated ? boxWm : boxHm;
+                    const flip = Boolean(p.flipX);
+                    const ox = p.xMm * drawScale;
+                    const oy = p.yMm * drawScale;
+                    return (
+                      <Group
+                        key={p.id}
+                        ref={(node) => {
+                          pieceRefs.current[p.id] = node;
+                        }}
+                        x={ox}
+                        y={oy}
                         width={boxWm}
                         height={boxHm}
-                        fillPatternImage={swatch}
-                        fillPatternRepeat="repeat"
-                        listening={false}
-                      />
-                    )}
-                    <KImage
-                      image={img}
-                      x={rotated ? boxWm : flip ? drawW : 0}
-                      y={0}
-                      width={drawW}
-                      height={drawH}
-                      rotation={rotated ? 90 : 0}
-                      scaleX={flip ? -1 : 1}
-                      opacity={usableSrc(design?.src) ? 1 : 0.9}
-                      listening={false}
+                        clipX={0}
+                        clipY={0}
+                        clipWidth={boxWm}
+                        clipHeight={boxHm}
+                        draggable={canDrag}
+                        onClick={(e) => {
+                          e.cancelBubble = true;
+                          const ev = e.evt;
+                          if (ev.ctrlKey || ev.metaKey) {
+                            removePiece(p.id, config);
+                            return;
+                          }
+                          select(p.id);
+                        }}
+                        onTap={() => select(p.id)}
+                        onMouseDown={(e) => {
+                          e.cancelBubble = true;
+                          if (e.evt.ctrlKey || e.evt.metaKey) e.target.stopDrag?.();
+                        }}
+                        onDragEnd={(e) => {
+                          movePiece(p.id, e.target.x() / drawScale, e.target.y() / drawScale, config);
+                        }}
+                        onTransformEnd={(e) => {
+                          const node = e.target as Konva.Group;
+                          const sx = node.scaleX();
+                          const sy = node.scaleY();
+                          node.scaleX(1);
+                          node.scaleY(1);
+                          resizePiece(
+                            p.id,
+                            (node.width() * sx) / drawScale,
+                            (node.height() * sy) / drawScale,
+                            config,
+                            { xMm: node.x() / drawScale, yMm: node.y() / drawScale }
+                          );
+                        }}
+                      >
+                        {swatch && (
+                          <Rect
+                            width={boxWm}
+                            height={boxHm}
+                            fillPatternImage={swatch}
+                            fillPatternRepeat="repeat"
+                            listening={false}
+                          />
+                        )}
+                        <KImage
+                          image={img}
+                          x={rotated ? boxWm : flip ? drawW : 0}
+                          y={0}
+                          width={drawW}
+                          height={drawH}
+                          rotation={rotated ? 90 : 0}
+                          scaleX={flip ? -1 : 1}
+                          opacity={usableSrc(design?.src) ? 1 : 0.9}
+                          listening={false}
+                        />
+                        <Rect
+                          width={boxWm}
+                          height={boxHm}
+                          stroke={selected ? "#e22b12" : "rgba(30,26,22,0.22)"}
+                          strokeWidth={selected ? 1.5 : 0.6}
+                          listening={false}
+                        />
+                      </Group>
+                    );
+                  })}
+                  <Line
+                    points={[0, lengthMm * drawScale, stageW, lengthMm * drawScale]}
+                    stroke="#e22b12"
+                    dash={[8, 6]}
+                    listening={false}
+                  />
+                  <Text
+                    x={8}
+                    y={Math.max(8, lengthMm * drawScale - 18)}
+                    text={`${(lengthMm / 10).toFixed(1)} cm`}
+                    fill="#e22b12"
+                    fontFamily="ui-monospace, monospace"
+                    fontSize={12}
+                    listening={false}
+                  />
+                  {canDrag && (
+                    <Transformer
+                      ref={trRef}
+                      rotateEnabled={false}
+                      flipEnabled={false}
+                      keepRatio
+                      enabledAnchors={["top-left", "top-right", "bottom-left", "bottom-right"]}
+                      borderStroke="#e22b12"
+                      borderStrokeWidth={1}
+                      anchorStroke="#e22b12"
+                      anchorFill="#efe8db"
+                      anchorSize={9}
+                      anchorCornerRadius={1}
+                      boundBoxFunc={(oldBox, newBox) => {
+                        if (newBox.width < minPx || newBox.height < minPx) return oldBox;
+                        const maxW = Math.max(minPx, usable * drawScale);
+                        if (newBox.width > maxW) {
+                          const ratio = newBox.height / Math.max(1, newBox.width);
+                          return { ...newBox, width: maxW, height: maxW * ratio };
+                        }
+                        return newBox;
+                      }}
                     />
-                    <Rect
-                      width={boxWm}
-                      height={boxHm}
-                      stroke={selected ? "#e22b12" : "rgba(30,26,22,0.22)"}
-                      strokeWidth={selected ? 1.5 : 0.6}
-                      listening={false}
-                    />
-                  </Group>
-                );
-              })}
-              <Line
-                points={[0, lengthMm * drawScale, stageW, lengthMm * drawScale]}
-                stroke="#e22b12"
-                dash={[8, 6]}
-              />
-              <Text
-                x={8}
-                y={Math.max(8, lengthMm * drawScale - 18)}
-                text={`${(lengthMm / 10).toFixed(1)} cm`}
-                fill="#e22b12"
-                fontFamily="ui-monospace, monospace"
-                fontSize={12}
-              />
-            </Layer>
-          </Stage>
+                  )}
+                </Layer>
+              </Stage>
+            </div>
+          </div>
         )}
       </div>
     </div>

@@ -23,8 +23,12 @@ const BuilderCanvas = dynamic(
 
 export function BuilderApp() {
   const { locale, t } = useI18n();
+  const [ready, setReady] = useState(false);
   useEffect(() => {
+    const unsub = useBuilderStore.persist.onFinishHydration(() => setReady(true));
     void useBuilderStore.persist.rehydrate();
+    if (useBuilderStore.persist.hasHydrated()) setReady(true);
+    return unsub;
   }, []);
   const config = useSettingsStore((s) => s.config);
   const incl = useSettingsStore((s) => s.btwInclusive);
@@ -139,8 +143,9 @@ export function BuilderApp() {
     setSaved(true);
   }
 
+  const selectedPieceExact = placed.find((p) => p.id === selectedId) ?? null;
   const selectedPiece =
-    placed.find((p) => p.id === selectedId) ??
+    selectedPieceExact ??
     placed.find((p) => p.designId === selectedId) ??
     null;
   const selectedDesign = selectedPiece
@@ -217,16 +222,21 @@ export function BuilderApp() {
       <div className="flex w-full min-w-0 flex-col items-stretch gap-4 xl:flex-row xl:items-start">
         <aside className="relative z-10 w-full shrink-0 xl:w-[220px] xl:flex-none xl:max-w-[220px]">
           <div className="glass flex flex-col gap-3 overflow-hidden rounded-[24px] p-3">
-            <label className="grid cursor-pointer place-items-center rounded-2xl border border-dashed border-white/20 bg-white/5 px-3 py-6 text-center text-sm">
+            <label className="relative grid cursor-pointer place-items-center overflow-hidden rounded-2xl border border-dashed border-white/20 bg-white/5 px-3 py-6 text-center text-sm">
               <span className="text-sm leading-snug">{t.builder.drop}</span>
               <span className="mt-2 text-xs text-muted">{t.builder.or}</span>
               <span className="btn btn-primary mt-3 w-full max-w-[160px]">{t.builder.browse}</span>
               <input
+                data-testid="builder-file"
                 type="file"
                 multiple
                 accept=".png,.jpg,.jpeg,.tif,.tiff,.webp"
-                className="hidden"
-                onChange={(e) => onFiles(e.target.files)}
+                disabled={!ready || adding}
+                className="absolute inset-0 z-10 cursor-pointer opacity-0"
+                onChange={(e) => {
+                  void onFiles(e.target.files);
+                  e.target.value = "";
+                }}
               />
             </label>
             <button
@@ -248,7 +258,8 @@ export function BuilderApp() {
             >
               {t.builder.demo}
             </button>
-            {adding && <p className="text-center text-xs text-muted">{t.common.sending}</p>}
+            {!ready && <p className="text-center text-xs text-muted">{t.builder.loading}</p>}
+            {adding && <p className="text-center text-xs text-muted">{t.builder.uploading}</p>}
             {designs.length === 0 && (
               <p className="px-1 text-xs leading-relaxed text-muted">
                 {fill(t.builder.empty, config, locale)}
@@ -357,10 +368,10 @@ export function BuilderApp() {
               <div className="glass overflow-hidden rounded-[24px] p-4">
                 <PropertiesPanel
                   design={selectedDesign}
-                  piece={selectedPiece}
+                  piece={selectedPieceExact}
                   onMove={(x, y) =>
-                    selectedPiece &&
-                    patchPiece(selectedPiece.id, { xMm: x, yMm: y, locked: true }, config)
+                    selectedPieceExact &&
+                    patchPiece(selectedPieceExact.id, { xMm: x, yMm: y, locked: true }, config)
                   }
                 />
               </div>
@@ -419,6 +430,7 @@ function Row({ k, v }: { k: string; v: string }) {
 const PRESETS_CM = [10, 15, 20, 25, 30];
 
 function LibraryItem({ design, selected }: { design: Design; selected: boolean }) {
+  const { t } = useI18n();
   const select = useBuilderStore((s) => s.select);
   return (
     <li>
@@ -442,6 +454,9 @@ function LibraryItem({ design, selected }: { design: Design; selected: boolean }
           <p className="num text-xs text-muted">
             {(design.widthMm / 10).toFixed(1)} × {(design.heightMm / 10).toFixed(1)} cm
           </p>
+          {design.uploadError && (
+            <p className="mt-0.5 truncate text-[10px] text-bad">{t.builder.uploadFailed}</p>
+          )}
         </div>
         <span className="num rounded-full bg-white/10 px-2 py-0.5 text-xs">{design.qty}</span>
       </button>
@@ -461,22 +476,45 @@ function PropertiesPanel({
   const { t } = useI18n();
   const config = useSettingsStore((s) => s.config);
   const updateDesign = useBuilderStore((s) => s.updateDesign);
-  const dpi = Math.round(printDpi(design.pixelW, design.pixelH, design.widthMm, design.heightMm).dpi);
-  const [wDraft, setWDraft] = useState(String(Number((design.widthMm / 10).toFixed(1))));
-  const [hDraft, setHDraft] = useState(String(Number((design.heightMm / 10).toFixed(1))));
+  const resizePiece = useBuilderStore((s) => s.resizePiece);
+  const printW = piece
+    ? piece.rotation === 90
+      ? piece.heightMm
+      : piece.widthMm
+    : design.widthMm;
+  const printH = piece
+    ? piece.rotation === 90
+      ? piece.widthMm
+      : piece.heightMm
+    : design.heightMm;
+  const dpi = Math.round(printDpi(design.pixelW, design.pixelH, printW, printH).dpi);
+  const sizeW = piece?.widthMm ?? design.widthMm;
+  const sizeH = piece?.heightMm ?? design.heightMm;
+  const [wDraft, setWDraft] = useState(String(Number((sizeW / 10).toFixed(1))));
+  const [hDraft, setHDraft] = useState(String(Number((sizeH / 10).toFixed(1))));
   const [qtyDraft, setQtyDraft] = useState(String(design.qty));
   const qtyTimer = useRef<number | null>(null);
 
   useEffect(() => {
     setQtyDraft(String(design.qty));
-    setWDraft(String(Number((design.widthMm / 10).toFixed(1))));
-    setHDraft(String(Number((design.heightMm / 10).toFixed(1))));
-  }, [design.qty, design.widthMm, design.heightMm]);
+    setWDraft(String(Number((sizeW / 10).toFixed(1))));
+    setHDraft(String(Number((sizeH / 10).toFixed(1))));
+  }, [design.qty, sizeW, sizeH, piece?.id]);
+
+  function commitSize(nextWmm: number | undefined, nextHmm: number | undefined) {
+    const ratio = sizeW / Math.max(1, sizeH);
+    const w = nextWmm && nextWmm > 0 ? nextWmm : nextHmm && nextHmm > 0 ? nextHmm * ratio : 0;
+    const h = nextHmm && nextHmm > 0 ? nextHmm : nextWmm && nextWmm > 0 ? nextWmm / ratio : 0;
+    if (!(w > 0) || !(h > 0)) return;
+    if (piece) resizePiece(piece.id, w, h, config);
+    else updateDesign(design.id, { widthMm: w, heightMm: h }, config);
+  }
 
   return (
     <div>
       <p className="num text-xs uppercase tracking-[0.18em] text-muted">{t.builder.properties}</p>
       <p className="mt-2 truncate text-sm">{design.name}</p>
+      <p className="mt-1 text-xs text-muted">{piece ? t.builder.thisCopy : t.builder.allCopies}</p>
       <p className={`num mt-1 text-xs ${dpi < 150 ? "text-bad" : dpi < 200 ? "text-warn" : "text-muted"}`}>
         {t.builder.dpi} {dpi}
         {dpi < 150 ? " BAD" : ""}
@@ -493,7 +531,7 @@ function PropertiesPanel({
             onChange={(e) => {
               setWDraft(e.target.value);
               const n = Number(e.target.value);
-              if (n > 0) updateDesign(design.id, { widthMm: n * 10 }, config);
+              if (n > 0) commitSize(n * 10, undefined);
             }}
           />
         </label>
@@ -508,7 +546,7 @@ function PropertiesPanel({
             onChange={(e) => {
               setHDraft(e.target.value);
               const n = Number(e.target.value);
-              if (n > 0) updateDesign(design.id, { heightMm: n * 10 }, config);
+              if (n > 0) commitSize(undefined, n * 10);
             }}
           />
         </label>
@@ -535,18 +573,20 @@ function PropertiesPanel({
               <span className="text-muted">{t.builder.xpos}</span>
               <input
                 type="number"
+                step={0.1}
                 className="field num"
-                value={Number(piece.xMm.toFixed(1))}
-                onChange={(e) => onMove(Number(e.target.value), piece.yMm)}
+                value={Number((piece.xMm / 10).toFixed(1))}
+                onChange={(e) => onMove(Number(e.target.value) * 10, piece.yMm)}
               />
             </label>
             <label className="grid gap-1">
               <span className="text-muted">{t.builder.ypos}</span>
               <input
                 type="number"
+                step={0.1}
                 className="field num"
-                value={Number(piece.yMm.toFixed(1))}
-                onChange={(e) => onMove(piece.xMm, Number(e.target.value))}
+                value={Number((piece.yMm / 10).toFixed(1))}
+                onChange={(e) => onMove(piece.xMm, Number(e.target.value) * 10)}
               />
             </label>
           </>
@@ -558,9 +598,9 @@ function PropertiesPanel({
             key={cm}
             type="button"
             className="btn-soft num"
-            onClick={() => updateDesign(design.id, { widthMm: cm * 10 }, config)}
+            onClick={() => commitSize(cm * 10, undefined)}
           >
-            {cm} cm
+            {cm} {t.builder.cm}
           </button>
         ))}
       </div>

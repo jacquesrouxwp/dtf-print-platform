@@ -42,16 +42,16 @@ export async function getObject(ref: string): Promise<Buffer | null> {
       return Buffer.from(await res.arrayBuffer());
     }
     if (ref.startsWith("fs:")) {
-      return readFile(path.join(DIR, ref.slice(3)));
+      return await readFile(path.join(DIR, ref.slice(3)));
     }
     const token = blobToken();
     if (token) {
       const { list } = await import("@vercel/blob");
       const { blobs } = await list({ prefix: `hlv/${ref}`, token });
       const hit = blobs.find((b) => b.pathname === `hlv/${ref}` || b.pathname.endsWith(`/${ref}`));
-      if (hit?.url) return getObject(hit.url);
+      if (hit?.url) return await getObject(hit.url);
     }
-    return readFile(path.join(DIR, ref));
+    return await readFile(path.join(DIR, ref));
   } catch {
     return null;
   }
