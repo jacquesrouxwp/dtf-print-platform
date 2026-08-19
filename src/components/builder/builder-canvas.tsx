@@ -324,7 +324,7 @@ export function BuilderCanvas({
                   })}
                   <Line
                     points={[0, lengthMm * drawScale, stageW, lengthMm * drawScale]}
-                    stroke="#e22b12"
+                    stroke="#7eb6e4"
                     dash={[8, 6]}
                     listening={false}
                   />
@@ -332,7 +332,7 @@ export function BuilderCanvas({
                     x={8}
                     y={Math.max(8, lengthMm * drawScale - 18)}
                     text={`${(lengthMm / 10).toFixed(1)} cm`}
-                    fill="#e22b12"
+                    fill="#7eb6e4"
                     fontFamily="ui-monospace, monospace"
                     fontSize={12}
                     listening={false}
@@ -344,9 +344,9 @@ export function BuilderCanvas({
                       flipEnabled={false}
                       keepRatio
                       enabledAnchors={["top-left", "top-right", "bottom-left", "bottom-right"]}
-                      borderStroke="#e22b12"
+                      borderStroke="#7eb6e4"
                       borderStrokeWidth={1}
-                      anchorStroke="#e22b12"
+                      anchorStroke="#7eb6e4"
                       anchorFill="#efe8db"
                       anchorSize={9}
                       anchorCornerRadius={1}

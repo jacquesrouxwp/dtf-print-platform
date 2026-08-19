@@ -163,15 +163,15 @@ function RollDiagram({ locale, label }: { locale: string; label: string }) {
         <rect x="1" y="1" width="548" height="318" fill="#f3efe6" stroke="#12110e" />
         <rect x="10" y="10" width="530" height="10" fill="#d4cec0" />
         <rect x="24" y="32" width="80" height="80" fill="#12110e" />
-        <rect x="114" y="32" width="180" height="54" fill="#e22b12" />
+        <rect x="114" y="32" width="180" height="54" fill="#7eb6e4" />
         <rect x="304" y="32" width="60" height="60" fill="#12110e" />
         <rect x="374" y="32" width="160" height="50" fill="#12110e" />
         <rect x="24" y="122" width="70" height="88" fill="#12110e" />
         <rect x="104" y="122" width="70" height="88" fill="#12110e" />
         <rect x="184" y="122" width="80" height="80" fill="#12110e" />
         <rect x="274" y="122" width="60" height="60" fill="#12110e" />
-        <line x1="1" y1="230" x2="549" y2="230" stroke="#e22b12" strokeDasharray="6 4" />
-        <text x="16" y="258" fill="#e22b12" fontFamily="ui-monospace, monospace" fontSize="16">
+        <line x1="1" y1="230" x2="549" y2="230" stroke="#7eb6e4" strokeDasharray="6 4" />
+        <text x="16" y="258" fill="#7eb6e4" fontFamily="ui-monospace, monospace" fontSize="16">
           0.8 m ·{" "}
           {locale === "nl"
             ? "€7,56 excl. btw"

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { localizedPath } from "@/lib/i18n-config";
+import { CosmicGlowButton } from "@/components/ui/spark-button";
 import { useI18n } from "./providers";
 
 export function HomeHero({ cutoffLine }: { cutoffLine: string }) {
@@ -24,9 +25,15 @@ export function HomeHero({ cutoffLine }: { cutoffLine: string }) {
           {t.home.lede}
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3 md:justify-start">
-          <Link href={L("/order")} className="btn btn-primary">
+          <CosmicGlowButton
+            as={Link}
+            href={L("/order")}
+            color="hsl(205, 62%, 70%)"
+            speed="6s"
+            className="px-6 py-3 text-sm"
+          >
             {t.common.startOrder}
-          </Link>
+          </CosmicGlowButton>
           <Link href={L("/samples")} className="btn btn-ghost">
             {t.common.samples}
           </Link>

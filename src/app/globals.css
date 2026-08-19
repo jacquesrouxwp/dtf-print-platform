@@ -1,12 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #0f0e0d;
-  --surface: #1a1917;
-  --text: #f3efe6;
-  --text-dim: #9a958c;
+  --bg: #0c1118;
+  --surface: #151c26;
+  --text: #eef3f8;
+  --text-dim: #8b98a8;
   --line: rgba(255, 255, 255, 0.12);
-  --accent: #e22b12;
+  --accent: #7eb6e4;
+  --accent-strong: #9cc9ee;
   --ok: #2d8a58;
   --warn: #c9a227;
   --bad: #e24a4a;
@@ -29,6 +30,29 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-display: var(--font-display);
+  --animate-glow-scale: glow-scale 5s ease-in-out infinite;
+  --animate-glow-slide: glow-slide 5s linear infinite;
+}
+
+@keyframes glow-scale {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.7;
+  }
+}
+
+@keyframes glow-slide {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 html,
@@ -86,23 +110,26 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 
 .glass {
-  background: rgba(18, 16, 15, 0.58);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(12, 18, 26, 0.62);
+  border: 1px solid rgba(126, 182, 228, 0.14);
   backdrop-filter: blur(20px) saturate(1.25);
   -webkit-backdrop-filter: blur(20px) saturate(1.25);
 }
 
 .btn {
+  position: relative;
+  isolation: isolate;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   text-align: center;
   gap: 0.4rem;
-  border-radius: 9999px;
+  overflow: hidden;
+  border-radius: 1rem;
   font-size: 0.875rem;
   line-height: 1.1;
   padding: 0.7rem 1.15rem;
-  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
 }
 
 .btn:disabled {
@@ -111,33 +138,59 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 
 .btn-primary {
-  background: var(--accent);
+  background: linear-gradient(90deg, #121a24 0%, #1c2836 50%, #121a24 100%);
   color: #fff;
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.4),
+    0 0 22px color-mix(in srgb, var(--accent) 38%, transparent);
+}
+
+.btn-primary::before {
+  content: "";
+  position: absolute;
+  inset: -35%;
+  z-index: -1;
+  background: radial-gradient(circle at center, var(--accent) 10%, transparent 62%);
+  opacity: 0.45;
+  filter: blur(14px);
+  animation: glow-scale 5s ease-in-out infinite;
+}
+
+.btn-primary::after {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  z-index: -1;
+  background: conic-gradient(from 90deg at 50% 50%, transparent 0deg, var(--accent) 120deg, transparent 240deg);
+  opacity: 0.22;
+  animation: glow-slide 6s linear infinite;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #f0361c;
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.45),
+    0 0 28px color-mix(in srgb, var(--accent) 55%, transparent);
 }
 
 .btn-ghost {
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, rgba(255, 255, 255, 0.14));
+  background: rgba(126, 182, 228, 0.06);
 }
 
 .btn-ghost:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(126, 182, 228, 0.14);
 }
 
 .btn-soft {
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, rgba(255, 255, 255, 0.1));
+  background: rgba(126, 182, 228, 0.07);
   border-radius: 0.75rem;
   padding: 0.45rem 0.7rem;
   font-size: 0.75rem;
 }
 
 .btn-soft:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(126, 182, 228, 0.16);
 }
 
 .field {
@@ -150,7 +203,7 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 
 .field:focus {
-  outline: 2px solid rgba(226, 43, 18, 0.45);
+  outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
   outline-offset: 1px;
 }
 
@@ -175,4 +228,13 @@ input[type="number"]::-webkit-inner-spin-button {
 .builder-film canvas {
   display: block !important;
   max-width: 100% !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary::before,
+  .btn-primary::after,
+  .animate-glow-scale,
+  .animate-glow-slide {
+    animation: none !important;
+  }
 }

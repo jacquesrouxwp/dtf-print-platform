@@ -50,14 +50,14 @@ function NlMap() {
         d="M70 20 L120 18 L150 50 L160 90 L145 140 L150 190 L120 220 L80 210 L50 170 L40 110 L55 60 Z"
         fill="#12110e"
       />
-      <circle cx="95" cy="118" r="6" fill="#e22b12" />
+      <circle cx="95" cy="118" r="6" fill="#7eb6e4" />
       <text x="108" y="122" fill="#f3efe6" fontSize="10" fontFamily="ui-monospace, monospace">
         HLV
       </text>
-      <text x="70" y="95" fill="#e22b12" fontSize="8" fontFamily="ui-monospace, monospace">
+      <text x="70" y="95" fill="#7eb6e4" fontSize="8" fontFamily="ui-monospace, monospace">
         AMS
       </text>
-      <text x="108" y="145" fill="#e22b12" fontSize="8" fontFamily="ui-monospace, monospace">
+      <text x="108" y="145" fill="#7eb6e4" fontSize="8" fontFamily="ui-monospace, monospace">
         UT
       </text>
     </svg>
