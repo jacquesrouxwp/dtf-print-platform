@@ -500,6 +500,7 @@ export const en = {
     nest: "Nest",
     thisCopy: "This copy",
     allCopies: "All copies of this design",
+    selectHint: "Click a file on the left or a piece on the film to see it here.",
     deleteHint: "Drag a corner to resize that copy. Ctrl+click or Delete removes it.",
     uploading: "Reading artwork…",
     loading: "Loading builder…",

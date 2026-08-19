@@ -502,6 +502,7 @@ export const nl: typeof en = {
     nest: "Nesten",
     thisCopy: "Dit exemplaar",
     allCopies: "Alle kopieën van dit ontwerp",
+    selectHint: "Klik een bestand links of een stuk op de film om het hier te zien.",
     deleteHint: "Sleep een hoek om dat exemplaar te schalen. Ctrl+klik of Delete haalt het weg.",
     uploading: "Bestand lezen…",
     loading: "Bouwer laden…",

@@ -185,7 +185,7 @@ export function BuilderCanvas({
 
   return (
     <div ref={wrapRef} className="builder-film relative min-w-0 w-full max-w-full overflow-hidden">
-      <div className="max-h-[62vh] w-full max-w-full overflow-auto rounded-xl bg-[#161412]">
+      <div className="max-h-[70vh] w-full max-w-full overflow-auto rounded-xl bg-[#161412]">
         {avail > 0 && (
           <div
             className="relative"

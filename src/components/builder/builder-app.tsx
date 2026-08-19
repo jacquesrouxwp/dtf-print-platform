@@ -199,13 +199,13 @@ export function BuilderApp() {
   );
 
   return (
-    <div className="mx-auto max-w-[1400px] px-3 pb-36 pt-8 md:px-4 lg:pb-12">
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+    <div className="mx-auto w-full max-w-[1760px] px-3 pb-36 pt-5 md:px-5 lg:pb-10">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="num text-xs uppercase tracking-[0.2em] text-muted">
             {config.rollWidthMm / 10} cm
           </p>
-          <h1 className="font-display mt-3 text-4xl md:text-5xl">{t.builder.title}</h1>
+          <h1 className="font-display mt-2 text-3xl md:text-4xl">{t.builder.title}</h1>
         </div>
         <p className="num text-3xl text-accent">{money(displayTotal, locale)}</p>
       </div>
@@ -219,13 +219,13 @@ export function BuilderApp() {
 
       <p className="mb-6 text-sm text-muted md:hidden">{t.builder.mobileNote}</p>
 
-      <div className="flex w-full min-w-0 flex-col items-stretch gap-4 xl:flex-row xl:items-start">
-        <aside className="relative z-10 w-full shrink-0 xl:w-[220px] xl:flex-none xl:max-w-[220px]">
-          <div className="glass flex flex-col gap-3 overflow-hidden rounded-[24px] p-3">
-            <label className="relative grid cursor-pointer place-items-center overflow-hidden rounded-2xl border border-dashed border-white/20 bg-white/5 px-3 py-6 text-center text-sm">
+      <div className="flex w-full min-w-0 flex-col items-stretch gap-4 lg:flex-row lg:items-start">
+        <aside className="relative z-10 w-full shrink-0 lg:w-[300px] lg:flex-none lg:max-w-[300px] xl:w-[320px] xl:max-w-[320px]">
+          <div className="glass flex flex-col gap-3 overflow-hidden rounded-[24px] p-3 lg:sticky lg:top-24">
+            <label className="relative grid cursor-pointer place-items-center overflow-hidden rounded-2xl border border-dashed border-white/20 bg-white/5 px-3 py-4 text-center text-sm">
               <span className="text-sm leading-snug">{t.builder.drop}</span>
-              <span className="mt-2 text-xs text-muted">{t.builder.or}</span>
-              <span className="btn btn-primary mt-3 w-full max-w-[160px]">{t.builder.browse}</span>
+              <span className="mt-1 text-xs text-muted">{t.builder.or}</span>
+              <span className="btn btn-primary mt-2 w-full max-w-[180px]">{t.builder.browse}</span>
               <input
                 data-testid="builder-file"
                 type="file"
@@ -265,7 +265,7 @@ export function BuilderApp() {
                 {fill(t.builder.empty, config, locale)}
               </p>
             )}
-            <ul className="grid max-h-[52vh] gap-2 overflow-y-auto pr-0.5">
+            <ul className="grid max-h-[58vh] gap-2 overflow-y-auto pr-0.5 lg:max-h-[calc(100vh-22rem)]">
               {designs.map((d) => (
                 <LibraryItem
                   key={d.id}
@@ -278,7 +278,7 @@ export function BuilderApp() {
         </aside>
 
         <section
-          className="relative z-0 min-w-0 flex-1 overflow-hidden xl:max-w-[calc(100%-500px)]"
+          className="relative z-0 min-w-0 flex-1 overflow-hidden"
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
@@ -362,10 +362,10 @@ export function BuilderApp() {
         </div>
         </section>
 
-        <aside className="relative z-10 hidden w-full shrink-0 xl:block xl:w-[260px] xl:flex-none xl:max-w-[260px]">
-          <div className="sticky top-28 grid gap-3">
-            {selectedDesign && (
-              <div className="glass overflow-hidden rounded-[24px] p-4">
+        <aside className="relative z-10 w-full shrink-0 lg:w-[300px] lg:flex-none lg:max-w-[300px] xl:w-[340px] xl:max-w-[340px]">
+          <div className="sticky top-24 grid gap-3">
+            <div className="glass overflow-hidden rounded-[24px] p-4">
+              {selectedDesign ? (
                 <PropertiesPanel
                   design={selectedDesign}
                   piece={selectedPieceExact}
@@ -373,9 +373,15 @@ export function BuilderApp() {
                     selectedPieceExact &&
                     patchPiece(selectedPieceExact.id, { xMm: x, yMm: y, locked: true }, config)
                   }
+                  onRemove={() => {
+                    if (selectedPieceExact) removePiece(selectedPieceExact.id, config);
+                    else if (selectedDesign) removeDesign(selectedDesign.id, config);
+                  }}
                 />
-              </div>
-            )}
+              ) : (
+                <p className="text-sm leading-relaxed text-muted">{t.builder.selectHint}</p>
+              )}
+            </div>
             <div className="glass overflow-hidden rounded-[24px] p-5">{priceBlock}</div>
           </div>
         </aside>
@@ -432,16 +438,20 @@ const PRESETS_CM = [10, 15, 20, 25, 30];
 function LibraryItem({ design, selected }: { design: Design; selected: boolean }) {
   const { t } = useI18n();
   const select = useBuilderStore((s) => s.select);
+  const removeDesign = useBuilderStore((s) => s.removeDesign);
+  const config = useSettingsStore((s) => s.config);
   return (
-    <li>
+    <li
+      className={`flex w-full min-w-0 items-stretch gap-1 rounded-2xl bg-white/5 p-2 ${
+        selected ? "ring-1 ring-accent" : ""
+      }`}
+    >
       <button
         type="button"
         onClick={() => select(design.id)}
-        className={`flex w-full min-w-0 items-center gap-2 rounded-2xl bg-white/5 p-2 text-left ${
-          selected ? "ring-1 ring-accent" : ""
-        }`}
+        className="flex min-w-0 flex-1 items-center gap-3 text-left"
       >
-        <div className="checker h-12 w-12 shrink-0 overflow-hidden rounded-xl">
+        <div className="checker h-16 w-16 shrink-0 overflow-hidden rounded-xl">
           {design.src ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={design.src} alt="" className="h-full w-full object-contain" />
@@ -450,15 +460,23 @@ function LibraryItem({ design, selected }: { design: Design; selected: boolean }
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm">{design.name}</p>
-          <p className="num text-xs text-muted">
+          <p className="text-sm leading-snug break-all">{design.name}</p>
+          <p className="num mt-1 text-xs text-muted">
             {(design.widthMm / 10).toFixed(1)} × {(design.heightMm / 10).toFixed(1)} cm
+            <span className="mx-1 text-white/20">·</span>×{design.qty}
           </p>
           {design.uploadError && (
-            <p className="mt-0.5 truncate text-[10px] text-bad">{t.builder.uploadFailed}</p>
+            <p className="mt-0.5 text-[10px] leading-snug text-bad">{t.builder.uploadFailed}</p>
           )}
         </div>
-        <span className="num rounded-full bg-white/10 px-2 py-0.5 text-xs">{design.qty}</span>
+      </button>
+      <button
+        type="button"
+        className="btn-soft shrink-0 self-start px-2 text-bad"
+        aria-label={t.builder.remove}
+        onClick={() => removeDesign(design.id, config)}
+      >
+        ×
       </button>
     </li>
   );
@@ -468,10 +486,12 @@ function PropertiesPanel({
   design,
   piece,
   onMove,
+  onRemove,
 }: {
   design: Design;
   piece: ReturnType<typeof useBuilderStore.getState>["placed"][number] | null;
   onMove: (x: number, y: number) => void;
+  onRemove: () => void;
 }) {
   const { t } = useI18n();
   const config = useSettingsStore((s) => s.config);
@@ -513,7 +533,15 @@ function PropertiesPanel({
   return (
     <div>
       <p className="num text-xs uppercase tracking-[0.18em] text-muted">{t.builder.properties}</p>
-      <p className="mt-2 truncate text-sm">{design.name}</p>
+      <div className="checker mt-3 aspect-[5/4] w-full overflow-hidden rounded-2xl">
+        {design.src ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={design.src} alt="" className="h-full w-full object-contain" />
+        ) : (
+          <span className="grid h-full place-items-center text-xs text-muted">—</span>
+        )}
+      </div>
+      <p className="mt-3 break-all text-sm leading-snug">{design.name}</p>
       <p className="mt-1 text-xs text-muted">{piece ? t.builder.thisCopy : t.builder.allCopies}</p>
       <p className={`num mt-1 text-xs ${dpi < 150 ? "text-bad" : dpi < 200 ? "text-warn" : "text-muted"}`}>
         {t.builder.dpi} {dpi}
@@ -604,6 +632,9 @@ function PropertiesPanel({
           </button>
         ))}
       </div>
+      <button type="button" className="btn-soft mt-4 w-full text-bad" onClick={onRemove}>
+        {t.builder.remove}
+      </button>
       {(design.warnings ?? []).map((w) => (
         <p
           key={w.code}
