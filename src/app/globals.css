@@ -154,9 +154,17 @@ input[type="number"]::-webkit-inner-spin-button {
   outline-offset: 1px;
 }
 
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 .builder-film {
   overflow: hidden;
   max-width: 100%;
+  height: 100%;
 }
 
 .builder-film .konvajs-content {
