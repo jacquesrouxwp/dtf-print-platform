@@ -112,9 +112,7 @@ export function printSizeFromTrim(trim: TrimBox, dpi = 300) {
   return { widthMm, heightMm, aspectRatio: tw / th };
 }
 
-export function printSizeFromPixels(pixelW: number, pixelH: number, dpi = 300) {
-  return printSizeFromTrim({ x: 0, y: 0, w: pixelW, h: pixelH }, dpi);
-}
+export { printSizeFromPixels } from "./units";
 
 /** Crop to the opaque box. Never throws — bad boxes fall back to the full PNG. */
 export async function trimToPng(input: Buffer, box: TrimBox): Promise<Buffer> {

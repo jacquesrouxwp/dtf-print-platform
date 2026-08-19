@@ -8,11 +8,11 @@ import {
   printDpi,
   type ArtworkWarning,
 } from "@/lib/artwork";
-import { printSizeFromPixels, type TrimBox } from "@/lib/inspect-artwork";
+import type { TrimBox } from "@/lib/inspect-artwork";
 import { localImageMeta, persistableSrc, readResponseJson } from "@/lib/local-artwork";
 import { nest, type PlacedPiece } from "@/lib/nesting";
 import { rollFromSite } from "@/lib/roll";
-import { clampPieceSize, usableWidthMm } from "@/lib/units";
+import { clampPieceSize, printSizeFromPixels, usableWidthMm } from "@/lib/units";
 import type { SiteConfig } from "@/lib/site-config";
 
 export type Design = {

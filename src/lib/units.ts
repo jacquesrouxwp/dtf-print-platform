@@ -43,6 +43,15 @@ export const MIN_PIECE_MM = 10;
  * the usable film. Aspect is kept so a mouse-resize or a single-axis field
  * cannot squash the artwork.
  */
+/** Print millimetres from pixel size at a given dpi. Client-safe (no sharp). */
+export function printSizeFromPixels(pixelW: number, pixelH: number, dpi = 300) {
+  const tw = Math.max(1, pixelW);
+  const th = Math.max(1, pixelH);
+  const widthMm = Math.max(10, Math.round((tw / dpi) * 25.4));
+  const heightMm = Math.max(10, Math.round((th / tw) * widthMm));
+  return { widthMm, heightMm, aspectRatio: tw / th };
+}
+
 export function clampPieceSize(
   widthMm: number,
   heightMm: number,
