@@ -13,16 +13,16 @@ function usableSrc(src?: string) {
   return Boolean(src && !src.startsWith("data:,"));
 }
 
-/** Fine, warm, print-studio alpha grid. Not the Photoshop magenta/grey. */
-function makeAlphaSwatch(cell = 6): HTMLCanvasElement {
+/** One continuous PET checker. Equal squares, no strokes, no per-piece reset. */
+function makeAlphaSwatch(cell = 10): HTMLCanvasElement {
   const c = document.createElement("canvas");
   c.width = cell * 2;
   c.height = cell * 2;
   const ctx = c.getContext("2d");
   if (!ctx) return c;
-  ctx.fillStyle = "#e4ddd0";
+  ctx.fillStyle = "#efe8dc";
   ctx.fillRect(0, 0, cell * 2, cell * 2);
-  ctx.fillStyle = "#c8c0b2";
+  ctx.fillStyle = "#d4cdc0";
   ctx.fillRect(0, 0, cell, cell);
   ctx.fillRect(cell, cell, cell, cell);
   return c;
@@ -107,8 +107,7 @@ export function BuilderCanvas({
   const pieceRefs = useRef<Record<string, Konva.Group | null>>({});
   const [boxW, setBoxW] = useState(0);
   const [images, setImages] = useState<Record<string, HTMLImageElement>>({});
-  const [finePointer, setFinePointer] = useState(false);
-  const [swatch, setSwatch] = useState<HTMLImageElement | null>(null);
+  const [swatch, setSwatch] = useState<HTMLCanvasElement | null>(null);
   const config = useSettingsStore((s) => s.config);
   const designs = useBuilderStore((s) => s.designs);
   const placed = useBuilderStore((s) => s.placed);
@@ -133,18 +132,7 @@ export function BuilderCanvas({
   }, []);
 
   useEffect(() => {
-    const tile = makeAlphaSwatch(8);
-    const img = new window.Image();
-    img.onload = () => setSwatch(img);
-    img.src = tile.toDataURL("image/png");
-  }, []);
-
-  useEffect(() => {
-    const mq = window.matchMedia("(pointer: fine)");
-    const apply = () => setFinePointer(mq.matches);
-    apply();
-    mq.addEventListener("change", apply);
-    return () => mq.removeEventListener("change", apply);
+    setSwatch(makeAlphaSwatch(10));
   }, []);
 
   useEffect(() => {
@@ -182,7 +170,7 @@ export function BuilderCanvas({
   const stageW = Math.max(1, Math.min(avail || 1, Math.round(roll * scale)));
   const stageH = Math.max(200, Math.min(Math.round(viewLength * (stageW / roll)), 1800));
   const drawScale = stageW / roll;
-  const canDrag = interactive && finePointer;
+  const canDrag = interactive;
   const selectedPieceId = placed.some((p) => p.id === selectedId) ? selectedId : null;
   const usable = usableWidthMm(config.rollWidthMm, config.edgeMm);
   const minPx = MIN_PIECE_MM * drawScale;
@@ -230,8 +218,9 @@ export function BuilderCanvas({
                       y={0}
                       width={stageW}
                       height={stageH}
-                      fillPatternImage={swatch}
+                      fillPatternImage={swatch as unknown as HTMLImageElement}
                       fillPatternRepeat="repeat"
+                      perfectDrawEnabled={false}
                       onMouseDown={() => select(null)}
                     />
                   ) : (
@@ -240,23 +229,13 @@ export function BuilderCanvas({
                       y={0}
                       width={stageW}
                       height={stageH}
-                      fill="#efe8db"
+                      fill="#efe8dc"
                       onMouseDown={() => select(null)}
                     />
                   )}
-                  <Rect
-                    x={config.edgeMm * drawScale}
-                    y={config.edgeMm * drawScale}
-                    width={(roll - 2 * config.edgeMm) * drawScale}
-                    height={Math.max(lengthMm - 2 * config.edgeMm, 20) * drawScale}
-                    stroke="#c9c1b3"
-                    dash={[4, 4]}
-                    listening={false}
-                  />
                   {placed.map((p) => {
                     const design = designs.find((d) => d.id === p.designId);
                     const img = images[p.designId];
-                    const selected = selectedId === p.designId || selectedId === p.id;
                     const rotated = p.rotation === 90;
                     const boxWm = Math.max(1, p.widthMm * drawScale);
                     const boxHm = Math.max(1, p.heightMm * drawScale);
@@ -280,6 +259,14 @@ export function BuilderCanvas({
                         clipWidth={boxWm}
                         clipHeight={boxHm}
                         draggable={canDrag}
+                        onMouseEnter={(e) => {
+                          const el = e.target.getStage()?.container();
+                          if (el) el.style.cursor = "move";
+                        }}
+                        onMouseLeave={(e) => {
+                          const el = e.target.getStage()?.container();
+                          if (el) el.style.cursor = "default";
+                        }}
                         onClick={(e) => {
                           e.cancelBubble = true;
                           const ev = e.evt;
@@ -292,7 +279,11 @@ export function BuilderCanvas({
                         onTap={() => select(p.id)}
                         onMouseDown={(e) => {
                           e.cancelBubble = true;
-                          if (e.evt.ctrlKey || e.evt.metaKey) e.target.stopDrag?.();
+                          if (e.evt.ctrlKey || e.evt.metaKey) {
+                            e.target.stopDrag?.();
+                            return;
+                          }
+                          select(p.id);
                         }}
                         onDragEnd={(e) => {
                           movePiece(p.id, e.target.x() / drawScale, e.target.y() / drawScale, config);
@@ -312,15 +303,6 @@ export function BuilderCanvas({
                           );
                         }}
                       >
-                        {swatch && (
-                          <Rect
-                            width={boxWm}
-                            height={boxHm}
-                            fillPatternImage={swatch}
-                            fillPatternRepeat="repeat"
-                            listening={false}
-                          />
-                        )}
                         <KImage
                           image={img}
                           x={rotated ? boxWm : flip ? drawW : 0}
@@ -335,9 +317,7 @@ export function BuilderCanvas({
                         <Rect
                           width={boxWm}
                           height={boxHm}
-                          stroke={selected ? "#e22b12" : "rgba(30,26,22,0.22)"}
-                          strokeWidth={selected ? 1.5 : 0.6}
-                          listening={false}
+                          fill="rgba(0,0,0,0.001)"
                         />
                       </Group>
                     );

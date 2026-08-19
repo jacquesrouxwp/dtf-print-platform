@@ -321,7 +321,10 @@ export const useBuilderStore = create<BuilderState>()(
           set({
             ...packed,
             adding: false,
-            selectedId: created[0]?.id ?? get().selectedId,
+            selectedId:
+              packed.placed.find((p) => p.designId === created[0]?.id)?.id ??
+              created[0]?.id ??
+              get().selectedId,
             history: [...get().history, prev].slice(-40),
             future: [],
             canUndo: true,
