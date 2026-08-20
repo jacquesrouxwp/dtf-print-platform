@@ -527,6 +527,7 @@ export const nl: typeof en = {
     font: "Lettertype",
     textSize: "Formaat",
     outline: "Contour",
+    backToSite: "Terug naar site",
     autoFilm: "Auto film",
     fillFilm: "Vullen",
     fillDone: "{n} kopieën geplaatst",

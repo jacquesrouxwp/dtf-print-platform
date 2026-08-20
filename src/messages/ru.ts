@@ -527,6 +527,7 @@ export const ru: typeof en = {
     font: "Шрифт",
     textSize: "Кегль",
     outline: "Обводка",
+    backToSite: "На сайт",
     autoFilm: "Авто-плёнка",
     fillFilm: "Заполнить",
     fillDone: "Разложено копий: {n}",

@@ -3,6 +3,8 @@
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { Footer } from "./footer";
+import { Header } from "./header";
+import { CutoffBar } from "./cutoff-bar";
 
 /** The builder route — an app shell rather than a scrolling document. */
 export function isBuilderPath(pathname: string): boolean {
@@ -34,4 +36,19 @@ export function AppFrame({ children }: { children: ReactNode }) {
 /** The footer belongs to documents; the shell has no room for one. */
 export function FooterSlot() {
   return isBuilderPath(usePathname() ?? "") ? null : <Footer />;
+}
+
+/**
+ * The builder owns the whole window. Site navigation, the cutoff strip and the
+ * language switcher belong to the storefront around it — inside the tool they
+ * are 110px of chrome taken from the film. The builder draws its own bar, with
+ * the logo as the way back out.
+ */
+export function SiteChrome() {
+  return isBuilderPath(usePathname() ?? "") ? null : (
+    <>
+      <CutoffBar />
+      <Header />
+    </>
+  );
 }

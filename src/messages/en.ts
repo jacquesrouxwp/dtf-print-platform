@@ -525,6 +525,7 @@ export const en = {
     font: "Font",
     textSize: "Size",
     outline: "Outline",
+    backToSite: "Back to site",
     autoFilm: "Auto film",
     fillFilm: "Fill",
     fillDone: "Laid out {n} copies",
