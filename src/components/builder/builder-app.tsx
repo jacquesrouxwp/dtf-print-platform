@@ -289,9 +289,9 @@ export function BuilderApp() {
   };
 
   return (
-    <div className="flex h-[calc(100dvh-5.75rem)] min-h-[620px] w-full flex-col overflow-hidden px-2 pb-16 pt-2 lg:h-[calc(100dvh-6.25rem)] lg:pb-2">
+    <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden px-2 pb-16 pt-2 lg:pb-2">
       <div className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-white/10 bg-black/30">
-        <nav className="flex w-14 shrink-0 flex-col items-center gap-1 border-r border-white/10 bg-black/40 py-3">
+        <nav className="flex w-14 shrink-0 flex-col items-center gap-1 overflow-y-auto no-scrollbar border-r border-white/10 bg-black/40 py-3">
           <RailBtn
             active={tab === "images"}
             label={t.builder.tabImages}
@@ -308,7 +308,7 @@ export function BuilderApp() {
           </RailBtn>
         </nav>
 
-        <aside className="flex w-[280px] shrink-0 flex-col border-r border-white/10 bg-black/20 xl:w-[300px]">
+        <aside className="flex w-[280px] min-h-0 shrink-0 flex-col overflow-y-auto no-scrollbar border-r border-white/10 bg-black/20 xl:w-[300px]">
           {tab === "images" ? (
             <>
               <div className="shrink-0 space-y-2 p-3">
@@ -525,7 +525,7 @@ export function BuilderApp() {
           </div>
         </section>
 
-        <aside className="flex w-[280px] shrink-0 flex-col border-l border-white/10 bg-black/20 xl:w-[300px]">
+        <aside className="flex w-[280px] min-h-0 shrink-0 flex-col overflow-y-auto no-scrollbar border-l border-white/10 bg-black/20 xl:w-[300px]">
           <div className="flex shrink-0 items-center justify-between px-3 py-3">
             <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{t.builder.films}</p>
             <button type="button" className="btn-soft" onClick={newFilm}>
