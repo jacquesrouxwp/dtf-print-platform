@@ -39,7 +39,7 @@ function filmItems(line: ReturnType<typeof useCartStore.getState>["lines"][numbe
  * are relative to their film, so the server must never flatten them together.
  */
 function cartFilms(lines: ReturnType<typeof useCartStore.getState>["lines"]) {
-  return lines.map((line) => ({ id: line.id, items: filmItems(line) }));
+  return lines.map((line) => ({ id: line.id, gapMm: line.gapMm, items: filmItems(line) }));
 }
 
 export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {

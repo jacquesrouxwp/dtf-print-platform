@@ -48,7 +48,7 @@ export async function fulfillPaidOrder(order: PendingOrder) {
       const filmId = quoted.films.length > 1 ? `${working.orderId}-${i + 1}` : working.orderId;
       await writeProductionQueue({
         orderId: filmId,
-        roll: rollFromSite(config),
+        roll: rollFromSite(config, { gapMm: order.films[i]?.gapMm }),
         layout: film.layout,
         customer: working.customer,
         priceExVat: film.quote.subtotalExcl,

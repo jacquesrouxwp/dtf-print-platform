@@ -525,6 +525,8 @@ export const en = {
     font: "Font",
     textSize: "Size",
     outline: "Outline",
+    gap: "Gap",
+    gapHint: "Space between pieces. Tighter means less film but harder cutting.",
     backToSite: "Back to site",
     autoFilm: "Auto film",
     fillFilm: "Fill",

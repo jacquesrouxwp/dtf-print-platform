@@ -527,6 +527,8 @@ export const ru: typeof en = {
     font: "Шрифт",
     textSize: "Кегль",
     outline: "Обводка",
+    gap: "Зазор",
+    gapHint: "Промежуток между макетами. Меньше зазор — меньше плёнки, но тяжелее резать.",
     backToSite: "На сайт",
     autoFilm: "Авто-плёнка",
     fillFilm: "Заполнить",

@@ -3,20 +3,25 @@ import { getServerConfig } from "@/lib/server-config";
 import { authoritativeOrderQuote, type OrderFilm } from "@/lib/order-quote";
 import type { NestSource } from "@/lib/nesting";
 
-type PriceFilm = { id?: string; items?: NestSource[] };
+type PriceFilm = { id?: string; items?: NestSource[]; gapMm?: number };
 
 /** A flat `items` array is a single film. Films are never merged. */
-function filmsFromBody(body: { films?: PriceFilm[]; items?: NestSource[] }): OrderFilm[] {
+function filmsFromBody(body: {
+  films?: PriceFilm[];
+  items?: NestSource[];
+  gapMm?: number;
+}): OrderFilm[] {
   if (Array.isArray(body.films) && body.films.length) {
     return body.films
       .map((film, i) => ({
         id: typeof film.id === "string" ? film.id : `film-${i + 1}`,
         sources: film.items ?? [],
+        gapMm: film.gapMm,
       }))
       .filter((film) => film.sources.length > 0);
   }
   const items = body.items ?? [];
-  return items.length ? [{ id: "film-1", sources: items }] : [];
+  return items.length ? [{ id: "film-1", sources: items, gapMm: body.gapMm }] : [];
 }
 
 export async function POST(request: Request) {

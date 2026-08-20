@@ -15,7 +15,7 @@ import { alignedPosition, duplicateOffset, type AlignEdge } from "@/lib/piece-op
 import { rasterizeText, type TextSpec } from "@/lib/raster-text";
 import { fitToLength } from "@/lib/fit-to-length";
 import { autoFill, copiesForLength } from "@/lib/auto-fill";
-import { rollFromSite } from "@/lib/roll";
+import { clampGapMm, rollFromSite } from "@/lib/roll";
 import { clampPieceSize, MIN_PIECE_MM, printSizeFromPixels, usableWidthMm } from "@/lib/units";
 import type { SiteConfig } from "@/lib/site-config";
 
@@ -49,6 +49,8 @@ type BuilderSnap = {
   placed: PlacedPiece[];
   lengthMm: number;
   rejected: string[];
+  /** Gap between pieces on this film, in mm. The customer may tune it. */
+  gapMm: number | null;
 };
 
 type BuilderState = {
@@ -56,6 +58,8 @@ type BuilderState = {
   placed: PlacedPiece[];
   lengthMm: number;
   rejected: string[];
+  /** Gap between pieces on this film, in mm; null means the shop default. */
+  gapMm: number | null;
   selectedId: string | null;
   adding: boolean;
   history: BuilderSnap[];
@@ -98,6 +102,7 @@ type BuilderState = {
   copyPiece: (id: string) => void;
   pastePiece: (config: SiteConfig) => void;
   alignPiece: (id: string, edge: AlignEdge, config: SiteConfig) => void;
+  setGapMm: (mm: number | null, config: SiteConfig) => void;
   setDesignText: (id: string, spec: TextSpec) => void;
   /** Shrink every piece just enough to land on `targetMm`. Returns the factor used. */
   fitFilmTo: (targetMm: number, config: SiteConfig) => number | null;
@@ -113,12 +118,19 @@ type BuilderState = {
   clipboard: string | null;
 };
 
-function snapOf(s: { designs: Design[]; placed: PlacedPiece[]; lengthMm: number; rejected: string[] }): BuilderSnap {
+function snapOf(s: {
+  designs: Design[];
+  placed: PlacedPiece[];
+  lengthMm: number;
+  rejected: string[];
+  gapMm: number | null;
+}): BuilderSnap {
   return {
     designs: s.designs,
     placed: s.placed,
     lengthMm: s.lengthMm,
     rejected: s.rejected,
+    gapMm: s.gapMm,
   };
 }
 
@@ -217,7 +229,8 @@ function syncPlaced(designs: Design[], existing: PlacedPiece[]): PlacedPiece[] {
 function applyPack(
   designs: Design[],
   existing: PlacedPiece[],
-  config: SiteConfig
+  config: SiteConfig,
+  gapMm?: number | null
 ) {
   const seeded = syncPlaced(designs, existing);
   const result = nest(
@@ -240,7 +253,7 @@ function applyPack(
           flipX: p.flipX,
         })),
     })),
-    rollFromSite(config)
+    rollFromSite(config, gapMm == null ? undefined : { gapMm })
   );
   return {
     designs: designs.map((d) => ({ ...d, warnings: recomputeWarnings(d, config) })),
@@ -257,6 +270,7 @@ export const useBuilderStore = create<BuilderState>()(
       placed: [],
       lengthMm: 0,
       rejected: [],
+      gapMm: null,
       selectedId: null,
       clipboard: null,
       adding: false,
@@ -343,7 +357,7 @@ export const useBuilderStore = create<BuilderState>()(
           const prev = snapOf(get());
           let packed;
           try {
-            packed = applyPack(designs, get().placed, config);
+            packed = applyPack(designs, get().placed, config, get().gapMm);
           } catch (err) {
             console.error("applyPack", err);
             packed = { designs, placed: get().placed, lengthMm: get().lengthMm, rejected: [] as string[] };
@@ -377,7 +391,7 @@ export const useBuilderStore = create<BuilderState>()(
       addDesigns: (incoming, config) => {
         const designs = [...get().designs, ...incoming];
         set({
-          ...applyPack(designs, get().placed, config),
+          ...applyPack(designs, get().placed, config, get().gapMm),
           selectedId: incoming[0]?.id ?? get().selectedId,
         });
       },
@@ -404,7 +418,7 @@ export const useBuilderStore = create<BuilderState>()(
           patch.widthMm !== undefined ||
           patch.heightMm !== undefined ||
           patch.qty !== undefined;
-        if (shouldRepack) set(applyPack(designs, get().placed, config));
+        if (shouldRepack) set(applyPack(designs, get().placed, config, get().gapMm));
         else
           set({
             designs: designs.map((d) => ({ ...d, warnings: recomputeWarnings(d, config) })),
@@ -414,7 +428,7 @@ export const useBuilderStore = create<BuilderState>()(
       removeDesign: (id, config) => {
         const designs = get().designs.filter((d) => d.id !== id);
         set({
-          ...applyPack(designs, get().placed, config),
+          ...applyPack(designs, get().placed, config, get().gapMm),
           selectedId: get().selectedId === id ? null : get().selectedId,
         });
       },
@@ -423,14 +437,14 @@ export const useBuilderStore = create<BuilderState>()(
 
       autoArrange: (config) => {
         const unlocked = get().placed.map((p) => ({ ...p, locked: false }));
-        set(applyPack(get().designs, unlocked, config));
+        set(applyPack(get().designs, unlocked, config, get().gapMm));
       },
 
       patchCopies: (designId, patch, config) => {
         const placed = get().placed.map((p) =>
           p.designId === designId ? { ...p, ...patch } : p
         );
-        set(applyPack(get().designs, placed, config));
+        set(applyPack(get().designs, placed, config, get().gapMm));
       },
 
       movePiece: (id, xMm, yMm, config) => {
@@ -480,7 +494,7 @@ export const useBuilderStore = create<BuilderState>()(
         try {
           const parsed = JSON.parse(json) as { designs: Design[]; placed?: PlacedPiece[] };
           if (!Array.isArray(parsed.designs)) return;
-          set(applyPack(parsed.designs, parsed.placed ?? [], config));
+          set(applyPack(parsed.designs, parsed.placed ?? [], config, get().gapMm));
         } catch {
           /* ignore */
         }
@@ -605,7 +619,7 @@ export const useBuilderStore = create<BuilderState>()(
         );
         // Old positions belong to the old quantity; lay the film out afresh.
         set({
-          ...applyPack(designs, [], config),
+          ...applyPack(designs, [], config, get().gapMm),
           selectedId: designId,
           history: [...get().history, prev].slice(-40),
           future: [],
@@ -656,7 +670,7 @@ export const useBuilderStore = create<BuilderState>()(
         // Positions were chosen for the old sizes, so everything is laid out
         // again rather than shrunk around stale coordinates.
         set({
-          ...applyPack(resized, [], config),
+          ...applyPack(resized, [], config, get().gapMm),
           selectedId: null,
           history: [...get().history, prev].slice(-40),
           future: [],
@@ -664,6 +678,20 @@ export const useBuilderStore = create<BuilderState>()(
           canRedo: false,
         });
         return fit.scale;
+      },
+
+      setGapMm: (mm, config) => {
+        const next = mm === null ? null : clampGapMm(mm, config.gapMm);
+        const prev = snapOf(get());
+        set({
+          gapMm: next,
+          // Positions were packed against the old gap; lay it out again.
+          ...applyPack(get().designs, [], config, next),
+          history: [...get().history, prev].slice(-40),
+          future: [],
+          canUndo: true,
+          canRedo: false,
+        });
       },
 
       setDesignText: (id, spec) =>
@@ -730,7 +758,7 @@ export const useBuilderStore = create<BuilderState>()(
             : d
         );
         set({
-          ...applyPack(designs, get().placed, config),
+          ...applyPack(designs, get().placed, config, get().gapMm),
           history: [...get().history, prev].slice(-40),
           future: [],
           canUndo: true,
@@ -755,7 +783,7 @@ export const useBuilderStore = create<BuilderState>()(
           d.id === piece.designId ? { ...d, qty: d.qty + 1 } : d
         );
         set({
-          ...applyPack(designs, [...get().placed, copy], config),
+          ...applyPack(designs, [...get().placed, copy], config, get().gapMm),
           selectedId: copy.id,
           history: [...get().history, prev].slice(-40),
           future: [],
@@ -799,7 +827,7 @@ export const useBuilderStore = create<BuilderState>()(
           d.id === piece.designId ? { ...d, qty: Math.max(1, d.qty - 1) } : d
         );
         set({
-          ...applyPack(designs, remaining, config),
+          ...applyPack(designs, remaining, config, get().gapMm),
           selectedId: get().selectedId === id ? piece.designId : get().selectedId,
           history: [...get().history, prev].slice(-40),
           future: [],

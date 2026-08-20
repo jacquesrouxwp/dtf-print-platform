@@ -527,6 +527,8 @@ export const nl: typeof en = {
     font: "Lettertype",
     textSize: "Formaat",
     outline: "Contour",
+    gap: "Tussenruimte",
+    gapHint: "Ruimte tussen ontwerpen. Krapper is minder film, maar lastiger snijden.",
     backToSite: "Terug naar site",
     autoFilm: "Auto film",
     fillFilm: "Vullen",
