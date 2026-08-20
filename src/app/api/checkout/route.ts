@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerConfig } from "@/lib/server-config";
-import { authoritativeQuote } from "@/lib/server-quote";
+import { authoritativeOrderQuote, type OrderFilm } from "@/lib/order-quote";
 import { rollFromSite } from "@/lib/roll";
 import { writeProductionQueue } from "@/lib/print-output";
 import { getObject } from "@/lib/storage";
@@ -13,27 +13,59 @@ type CheckoutItem = NestSource & {
   trimBox?: { x: number; y: number; w: number; h: number };
 };
 
+type CheckoutFilm = { id?: string; items?: CheckoutItem[] };
+
+/**
+ * An order is a list of films. Older clients posted a flat `items` array; that
+ * is one film, not a licence to merge everything onto one sheet.
+ */
+function filmsFromBody(body: {
+  films?: CheckoutFilm[];
+  items?: CheckoutItem[];
+}): OrderFilm[] {
+  if (Array.isArray(body.films) && body.films.length) {
+    return body.films
+      .map((film, i) => ({
+        id: typeof film.id === "string" ? film.id : `film-${i + 1}`,
+        sources: (film.items ?? []) as NestSource[],
+      }))
+      .filter((film) => film.sources.length > 0);
+  }
+  const items = (body.items ?? []) as CheckoutItem[];
+  return items.length ? [{ id: "film-1", sources: items as NestSource[] }] : [];
+}
+
 export async function POST(request: Request) {
   const body = await request.json();
   const config = await getServerConfig();
-  const sources = (body.items ?? []) as CheckoutItem[];
+  const films = filmsFromBody(body);
+  const sources = films.flatMap((f) => f.sources) as CheckoutItem[];
 
-  if (sources.some((s) => s.widthMm > config.rollWidthMm - 2 * config.edgeMm && s.heightMm > config.rollWidthMm - 2 * config.edgeMm)) {
+  if (!films.length) {
+    return NextResponse.json({ error: "empty_order" }, { status: 422 });
+  }
+
+  const usableWidth = config.rollWidthMm - 2 * config.edgeMm;
+  if (sources.some((s) => s.widthMm > usableWidth && s.heightMm > usableWidth)) {
     return NextResponse.json(
-      { error: "rejected_designs", rejected: sources.filter((s) => s.widthMm > config.rollWidthMm - 2 * config.edgeMm).map((s) => s.designId) },
+      {
+        error: "rejected_designs",
+        rejected: sources.filter((s) => s.widthMm > usableWidth).map((s) => s.designId),
+      },
       { status: 422 }
     );
   }
 
-  const { layout, quote } = authoritativeQuote(sources, config, {
+  const order = authoritativeOrderQuote(films, config, {
     trade: Boolean(body.trade),
     rush: Boolean(body.rush),
     includeShipping: !body.pickup,
   });
+  const quote = order.total;
 
-  if (layout.rejected.length) {
+  if (order.rejected.length) {
     return NextResponse.json(
-      { error: "rejected_designs", rejected: layout.rejected, quote, layout },
+      { error: "rejected_designs", rejected: order.rejected, quote },
       { status: 422 }
     );
   }
@@ -48,7 +80,7 @@ export async function POST(request: Request) {
       {
         requiresConfirmation: true,
         quote,
-        billedLengthMm: layout.billedLengthMm,
+        billedLengthMm: quote.lengthMm,
       },
       { status: 409 }
     );
@@ -73,22 +105,33 @@ export async function POST(request: Request) {
       ? body.orderId
       : `HLV-${Date.now().toString(36).toUpperCase()}`;
 
-  const files = await writeProductionQueue({
-    orderId,
-    roll: rollFromSite(config),
-    layout,
-    customer: {
-      name: body.customer?.name,
-      email: body.customer?.email,
-    },
-    priceExVat: quote.subtotalExcl,
-    images,
-    trims: new Map(
-      sources
-        .filter((s) => s.trimBox && s.trimBox.w > 0)
-        .map((s) => [s.designId, s.trimBox!])
-    ),
-  });
+  const trims = new Map(
+    sources
+      .filter((s) => s.trimBox && s.trimBox.w > 0)
+      .map((s) => [s.designId, s.trimBox!])
+  );
+
+  // One print file per film — the operator prints them on separate strips.
+  const written = [];
+  for (const [i, film] of order.films.entries()) {
+    const filmId = order.films.length > 1 ? `${orderId}-${i + 1}` : orderId;
+    const files = await writeProductionQueue({
+      orderId: filmId,
+      roll: rollFromSite(config),
+      layout: film.layout,
+      customer: { name: body.customer?.name, email: body.customer?.email },
+      priceExVat: film.quote.subtotalExcl,
+      images,
+      trims,
+    });
+    written.push({
+      filmId,
+      billedLengthMm: film.layout.billedLengthMm,
+      printWidthPx: files.printWidthPx,
+      printHeightPx: files.printHeightPx,
+      manifestPath: files.manifestPath,
+    });
+  }
 
   const key = process.env.MOLLIE_API_KEY;
   const site = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
@@ -125,11 +168,14 @@ export async function POST(request: Request) {
     demo: !key,
     mollie: Boolean(key),
     quote,
-    billedLengthMm: layout.billedLengthMm,
-    files: {
-      printWidthPx: files.printWidthPx,
-      printHeightPx: files.printHeightPx,
-      manifestPath: files.manifestPath,
-    },
+    billedLengthMm: quote.lengthMm,
+    films: written,
+    files: written[0]
+      ? {
+          printWidthPx: written[0].printWidthPx,
+          printHeightPx: written[0].printHeightPx,
+          manifestPath: written[0].manifestPath,
+        }
+      : undefined,
   });
 }

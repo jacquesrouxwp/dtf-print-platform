@@ -11,29 +11,35 @@ import { useCartStore } from "@/store/useCartStore";
 import { useSessionStore } from "@/store/useSessionStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
 
-function cartItems(lines: ReturnType<typeof useCartStore.getState>["lines"]) {
-  return lines.flatMap((line) =>
-    line.designs.map((d) => ({
-      designId: d.id,
-      storageKey: d.storageKey,
-      widthMm: d.widthMm,
-      heightMm: d.heightMm,
-      qty: d.qty,
-      trimBox: d.trimBox,
-      instances: line.placed
-        .filter((p) => p.designId === d.id)
-        .map((p) => ({
-          id: p.id,
-          locked: true,
-          xMm: p.xMm,
-          yMm: p.yMm,
-          rotation: p.rotation,
-          widthMm: p.widthMm,
-          heightMm: p.heightMm,
-          flipX: p.flipX,
-        })),
-    }))
-  );
+function filmItems(line: ReturnType<typeof useCartStore.getState>["lines"][number]) {
+  return line.designs.map((d) => ({
+    designId: d.id,
+    storageKey: d.storageKey,
+    widthMm: d.widthMm,
+    heightMm: d.heightMm,
+    qty: d.qty,
+    trimBox: d.trimBox,
+    instances: line.placed
+      .filter((p) => p.designId === d.id)
+      .map((p) => ({
+        id: p.id,
+        locked: true,
+        xMm: p.xMm,
+        yMm: p.yMm,
+        rotation: p.rotation,
+        widthMm: p.widthMm,
+        heightMm: p.heightMm,
+        flipX: p.flipX,
+      })),
+  }));
+}
+
+/**
+ * Each cart line is its own film, printed on its own strip. Piece coordinates
+ * are relative to their film, so the server must never flatten them together.
+ */
+function cartFilms(lines: ReturnType<typeof useCartStore.getState>["lines"]) {
+  return lines.map((line) => ({ id: line.id, items: filmItems(line) }));
 }
 
 export function CheckoutClient() {
@@ -67,7 +73,7 @@ export function CheckoutClient() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        items: cartItems(lines),
+        films: cartFilms(lines),
         trade,
         rush,
         includeShipping: !pickup,
@@ -91,7 +97,7 @@ export function CheckoutClient() {
       ? Object.fromEntries(new FormData(form).entries())
       : {};
     const orderId = `HLV-${Date.now().toString(36).toUpperCase()}`;
-    const items = cartItems(lines);
+    const films = cartFilms(lines);
     const res = await fetch("/api/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -103,7 +109,7 @@ export function CheckoutClient() {
         rush,
         pickup,
         confirm,
-        items,
+        films,
         customer: { name: data.name, email: data.email },
       }),
     });
@@ -124,7 +130,7 @@ export function CheckoutClient() {
       return;
     }
     const manifest = JSON.stringify(
-      { orderId: payload.orderId ?? orderId, quote: payload.quote, items, files: payload.files },
+      { orderId: payload.orderId ?? orderId, quote: payload.quote, films, files: payload.files },
       null,
       2
     );
