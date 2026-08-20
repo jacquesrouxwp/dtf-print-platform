@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { getServerConfig } from "@/lib/server-config";
 import { authoritativeOrderQuote, type OrderFilm } from "@/lib/order-quote";
-import { rollFromSite } from "@/lib/roll";
-import { writeProductionQueue } from "@/lib/print-output";
-import { getObject } from "@/lib/storage";
+import { fulfillPaidOrder } from "@/lib/fulfill-order";
+import {
+  deferPrintUntilPaid,
+  savePendingOrder,
+  type PendingFilm,
+} from "@/lib/pending-order";
 import type { NestSource } from "@/lib/nesting";
 
 export const runtime = "nodejs";
@@ -86,14 +89,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const images = new Map<string, Buffer>();
-  for (const src of sources) {
-    if (!src.storageKey) continue;
-    const buf = await getObject(src.storageKey);
-    if (buf) images.set(src.designId, buf);
-  }
-
-  if (images.size === 0) {
+  if (sources.every((s) => !s.storageKey)) {
     return NextResponse.json(
       { error: "artwork_missing", message: "No stored originals. Re-upload designs." },
       { status: 422 }
@@ -105,38 +101,33 @@ export async function POST(request: Request) {
       ? body.orderId
       : `HLV-${Date.now().toString(36).toUpperCase()}`;
 
-  const trims = new Map(
-    sources
-      .filter((s) => s.trimBox && s.trimBox.w > 0)
-      .map((s) => [s.designId, s.trimBox!])
-  );
+  const pendingFilms: PendingFilm[] = films.map((f) => ({
+    id: f.id,
+    sources: f.sources as PendingFilm["sources"],
+  }));
 
-  // One print file per film — the operator prints them on separate strips.
-  const written = [];
-  for (const [i, film] of order.films.entries()) {
-    const filmId = order.films.length > 1 ? `${orderId}-${i + 1}` : orderId;
-    const files = await writeProductionQueue({
-      orderId: filmId,
-      roll: rollFromSite(config),
-      layout: film.layout,
-      customer: { name: body.customer?.name, email: body.customer?.email },
-      priceExVat: film.quote.subtotalExcl,
-      images,
-      trims,
-    });
-    written.push({
-      filmId,
-      billedLengthMm: film.layout.billedLengthMm,
-      printWidthPx: files.printWidthPx,
-      printHeightPx: files.printHeightPx,
-      manifestPath: files.manifestPath,
-    });
-  }
+  const pending = {
+    orderId,
+    status: "pending" as const,
+    films: pendingFilms,
+    customer: {
+      name: typeof body.customer?.name === "string" ? body.customer.name : undefined,
+      email: typeof body.customer?.email === "string" ? body.customer.email : undefined,
+    },
+    trade: Boolean(body.trade),
+    rush: Boolean(body.rush),
+    pickup: Boolean(body.pickup),
+    charged,
+    createdAt: new Date().toISOString(),
+  };
+
+  await savePendingOrder(pending);
 
   const key = process.env.MOLLIE_API_KEY;
   const site = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const method = typeof body.method === "string" ? body.method : "ideal";
 
-  if (key && body.method === "ideal") {
+  if (deferPrintUntilPaid(key, method)) {
     const res = await fetch("https://api.mollie.com/v2/payments", {
       method: "POST",
       headers: {
@@ -147,6 +138,7 @@ export async function POST(request: Request) {
         amount: { currency: "EUR", value: charged.toFixed(2) },
         description: `HLV ${orderId}`,
         redirectUrl: `${site}/nl/checkout?paid=${orderId}`,
+        webhookUrl: `${site}/api/mollie`,
         method: "ideal",
         metadata: { orderId },
       }),
@@ -158,9 +150,12 @@ export async function POST(request: Request) {
         orderId,
         quote,
         mollie: true,
+        pending: true,
       });
     }
   }
+
+  const written = await fulfillPaidOrder({ ...pending, status: "paid" });
 
   return NextResponse.json({
     ok: true,
@@ -169,12 +164,12 @@ export async function POST(request: Request) {
     mollie: Boolean(key),
     quote,
     billedLengthMm: quote.lengthMm,
-    films: written,
-    files: written[0]
+    films: written.films,
+    files: written.films[0]
       ? {
-          printWidthPx: written[0].printWidthPx,
-          printHeightPx: written[0].printHeightPx,
-          manifestPath: written[0].manifestPath,
+          printWidthPx: undefined,
+          printHeightPx: undefined,
+          manifestPath: `queue/${written.films[0].filmId}.json`,
         }
       : undefined,
   });

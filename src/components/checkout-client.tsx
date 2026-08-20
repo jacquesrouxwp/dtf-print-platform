@@ -42,7 +42,7 @@ function cartFilms(lines: ReturnType<typeof useCartStore.getState>["lines"]) {
   return lines.map((line) => ({ id: line.id, items: filmItems(line) }));
 }
 
-export function CheckoutClient() {
+export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
   const { locale, t } = useI18n();
   const lines = useCartStore((s) => s.lines);
   const removeLine = useCartStore((s) => s.removeLine);
@@ -150,6 +150,16 @@ export function CheckoutClient() {
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     await submit(false);
+  }
+
+  if (paidOrderId && !done) {
+    return (
+      <PageShell title={t.checkout.successTitle} lede={t.checkout.successBody}>
+        <p className="num text-sm">
+          {t.checkout.orderId} {paidOrderId}
+        </p>
+      </PageShell>
+    );
   }
 
   if (done) {
