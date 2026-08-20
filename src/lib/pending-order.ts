@@ -11,9 +11,11 @@ export type PendingFilm = {
   >;
 };
 
+export type OrderStatus = "pending" | "paid" | "fulfilling" | "fulfilled";
+
 export type PendingOrder = {
   orderId: string;
-  status: "pending" | "paid" | "fulfilled";
+  status: OrderStatus;
   films: PendingFilm[];
   customer: { name?: string; email?: string };
   trade: boolean;
@@ -23,6 +25,37 @@ export type PendingOrder = {
   createdAt: string;
   fulfilledAt?: string;
 };
+
+export type ClaimResult =
+  | { ok: true; order: PendingOrder }
+  | { ok: false; reason: "missing" | "busy" | "done" };
+
+/** Whether a second webhook should skip, or try to take the job. */
+export function fulfillmentClaim(status: OrderStatus): "claim" | "busy" | "done" {
+  if (status === "fulfilled") return "done";
+  if (status === "fulfilling") return "busy";
+  return "claim";
+}
+
+/**
+ * Mark the order fulfilling before Sharp starts. Blob is not atomic, so this
+ * only shrinks the race — a second webhook that already read `paid` can still
+ * slip through, but not one that arrives after this write.
+ */
+export async function claimForFulfillment(orderId: string): Promise<ClaimResult> {
+  const current = await loadPendingOrder(orderId);
+  if (!current) return { ok: false, reason: "missing" };
+  const gate = fulfillmentClaim(current.status);
+  if (gate === "done") return { ok: false, reason: "done" };
+  if (gate === "busy") return { ok: false, reason: "busy" };
+  const claimed: PendingOrder = { ...current, status: "fulfilling" };
+  await savePendingOrder(claimed);
+  return { ok: true, order: claimed };
+}
+
+export async function releaseFulfillmentClaim(order: PendingOrder): Promise<void> {
+  await savePendingOrder({ ...order, status: "paid" });
+}
 
 function keyOf(orderId: string) {
   return `orders/${orderId}.json`;

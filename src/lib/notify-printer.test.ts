@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { printerNoticeText } from "./notify-printer";
-import { deferPrintUntilPaid } from "./pending-order";
+import { deferPrintUntilPaid, fulfillmentClaim } from "./pending-order";
 
 describe("printer notice", () => {
   it("names the order, the customer and every film file", () => {
@@ -30,5 +30,20 @@ describe("deferPrintUntilPaid", () => {
   it("prints immediately in demo checkout with no Mollie key", () => {
     expect(deferPrintUntilPaid(undefined, "ideal")).toBe(false);
     expect(deferPrintUntilPaid("", "ideal")).toBe(false);
+  });
+});
+
+describe("fulfillmentClaim", () => {
+  it("lets pending and paid orders take the job", () => {
+    expect(fulfillmentClaim("pending")).toBe("claim");
+    expect(fulfillmentClaim("paid")).toBe("claim");
+  });
+
+  it("drops a second webhook while Sharp is still running", () => {
+    expect(fulfillmentClaim("fulfilling")).toBe("busy");
+  });
+
+  it("drops a webhook after the printer was already notified", () => {
+    expect(fulfillmentClaim("fulfilled")).toBe("done");
   });
 });

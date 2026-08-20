@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { fulfillOrderId } from "@/lib/fulfill-order";
-import { loadPendingOrder, savePendingOrder } from "@/lib/pending-order";
+import { loadPendingOrder } from "@/lib/pending-order";
 
 export const runtime = "nodejs";
 
@@ -45,9 +45,8 @@ export async function POST(request: Request) {
 
   const pending = await loadPendingOrder(orderId);
   if (!pending) return NextResponse.json({ error: "unknown_order" }, { status: 404 });
-
-  if (pending.status !== "fulfilled") {
-    await savePendingOrder({ ...pending, status: "paid" });
+  if (pending.status === "fulfilled" || pending.status === "fulfilling") {
+    return NextResponse.json({ ok: true, orderId, already: true });
   }
 
   try {
