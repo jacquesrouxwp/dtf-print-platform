@@ -19,6 +19,8 @@ export type Design = {
   id: string;
   name: string;
   src: string;
+  /** Server-served preview that survives navigation, unlike a blob: URL. */
+  previewUrl?: string;
   storageKey?: string;
   mime: string;
   pixelW: number;
@@ -114,7 +116,10 @@ function hydrateDesign(raw: unknown): Design | null {
   return {
     id: d.id,
     name: typeof d.name === "string" ? d.name : "artwork",
-    src: persistableSrc(typeof d.src === "string" ? d.src : ""),
+    src:
+      persistableSrc(typeof d.src === "string" ? d.src : "") ||
+      (typeof d.previewUrl === "string" ? d.previewUrl : ""),
+    previewUrl: typeof d.previewUrl === "string" ? d.previewUrl : undefined,
     storageKey: typeof d.storageKey === "string" ? d.storageKey : undefined,
     mime: typeof d.mime === "string" ? d.mime : "image/png",
     pixelW: Number.isFinite(Number(d.pixelW)) ? Number(d.pixelW) : 0,
@@ -292,6 +297,7 @@ export const useBuilderStore = create<BuilderState>()(
                 ...fallback,
                 id: typeof data.id === "string" && data.id ? data.id : fallback.id,
                 src: localSrc || persistableSrc(String(data.previewUrl ?? "")),
+                previewUrl: persistableSrc(String(data.previewUrl ?? "")) || undefined,
                 storageKey: typeof data.storageKey === "string" ? data.storageKey : undefined,
                 mime: typeof data.mime === "string" ? data.mime : fallback.mime,
                 pixelW: Number(data.pixelW) > 0 ? Number(data.pixelW) : pixelW,
@@ -460,7 +466,7 @@ export const useBuilderStore = create<BuilderState>()(
         JSON.stringify({
           designs: get().designs.map((d) => ({
             ...d,
-            src: persistableSrc(d.src),
+            src: persistableSrc(d.src) || d.previewUrl || "",
           })),
           placed: get().placed,
           lengthMm: get().lengthMm,
