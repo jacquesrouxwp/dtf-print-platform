@@ -2,6 +2,8 @@ import { getObject, putObject } from "./storage";
 import type { NestSource } from "./nesting";
 
 export type PendingFilm = {
+  /** Gap the customer chose, so fulfilment repeats the layout they paid for. */
+  gapMm?: number;
   id: string;
   sources: Array<
     NestSource & {

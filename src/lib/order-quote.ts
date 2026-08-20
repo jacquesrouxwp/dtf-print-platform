@@ -6,6 +6,8 @@ import type { SiteConfig } from "./site-config";
 export type OrderFilm = {
   id: string;
   sources: NestSource[];
+  /** Gap the customer chose for this film; clamped, never trusted raw. */
+  gapMm?: number;
 };
 
 export type FilmQuote = {
@@ -41,8 +43,10 @@ export function authoritativeOrderQuote(
   config: SiteConfig,
   opts?: QuoteOptions
 ): OrderQuote {
-  const roll = rollFromSite(config);
   const priced: FilmQuote[] = films.map((film) => {
+    // Each film carries its own gap, so one loosely spaced sheet cannot quietly
+    // reprice the rest of the order.
+    const roll = rollFromSite(config, { gapMm: film.gapMm });
     const layout = nest(film.sources, roll);
     return {
       id: film.id,

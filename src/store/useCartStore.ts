@@ -13,6 +13,8 @@ export type CartLine = {
   subtotalExcl: number;
   trade: boolean;
   rush: boolean;
+  /** Gap this film was laid out and priced with. */
+  gapMm?: number;
   designs: {
     id: string;
     name: string;

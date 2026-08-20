@@ -87,6 +87,8 @@ export function BuilderApp() {
   const setDesignText = useBuilderStore((s) => s.setDesignText);
   const fitFilmTo = useBuilderStore((s) => s.fitFilmTo);
   const fillWithDesign = useBuilderStore((s) => s.fillWithDesign);
+  const gapMm = useBuilderStore((s) => s.gapMm);
+  const setGapMm = useBuilderStore((s) => s.setGapMm);
   const freeCopiesFor = useBuilderStore((s) => s.freeCopiesFor);
   const movePiece = useBuilderStore((s) => s.movePiece);
   const selectDesign = useBuilderStore((s) => s.select);
@@ -273,6 +275,7 @@ export function BuilderApp() {
         subtotalExcl: q.subtotalExcl,
         trade,
         rush: false,
+        gapMm: gapMm ?? config.gapMm,
         designs: (parsed.designs ?? []).map((d) => ({
           id: d.id,
           name: d.name,
@@ -579,6 +582,16 @@ export function BuilderApp() {
             </button>
             <div className="ml-auto flex items-center gap-3">
               <span className="num text-lg text-accent">{money(displayLive, locale)}</span>
+              <label className="flex items-center gap-1.5 text-xs text-muted" title={t.builder.gapHint}>
+                {t.builder.gap}
+                <input
+                  className="field num w-14 py-1 text-center text-xs"
+                  inputMode="decimal"
+                  value={gapMm ?? config.gapMm}
+                  onChange={(e) => setGapMm(Number(e.target.value.replace(",", ".")), config)}
+                />
+                <span>mm</span>
+              </label>
               <label className="flex items-center gap-2 text-xs text-muted">
                 {t.builder.zoom}
                 <input

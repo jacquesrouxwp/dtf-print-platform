@@ -16,7 +16,7 @@ type CheckoutItem = NestSource & {
   trimBox?: { x: number; y: number; w: number; h: number };
 };
 
-type CheckoutFilm = { id?: string; items?: CheckoutItem[] };
+type CheckoutFilm = { id?: string; items?: CheckoutItem[]; gapMm?: number };
 
 /**
  * An order is a list of films. Older clients posted a flat `items` array; that
@@ -31,6 +31,7 @@ function filmsFromBody(body: {
       .map((film, i) => ({
         id: typeof film.id === "string" ? film.id : `film-${i + 1}`,
         sources: (film.items ?? []) as NestSource[],
+        gapMm: film.gapMm,
       }))
       .filter((film) => film.sources.length > 0);
   }
@@ -104,6 +105,7 @@ export async function POST(request: Request) {
   const pendingFilms: PendingFilm[] = films.map((f) => ({
     id: f.id,
     sources: f.sources as PendingFilm["sources"],
+    gapMm: f.gapMm,
   }));
 
   const pending = {
