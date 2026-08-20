@@ -338,11 +338,19 @@ export function BuilderApp() {
   };
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden px-2 pb-16 pt-2 lg:pb-2">
-      {/* The order lives at the top, always in sight — a customer should never
-          scroll a panel to find out what they are about to pay. */}
-      <div className="mb-2 flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-white/10 bg-black/30 px-3 py-2">
-        <div className="flex items-baseline gap-2">
+    <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+      {/* The builder owns the window, so it carries its own bar: the way back
+          to the site on the left, the money and the order on the right. */}
+      <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-white/10 bg-black/40 px-3 py-2">
+        <Link
+          href={localizedPath(locale, "/")}
+          className="font-display text-xl leading-none tracking-tight text-foreground"
+          title={t.builder.backToSite}
+        >
+          HLV
+        </Link>
+        <span className="hidden text-xs text-muted sm:inline">{t.builder.title}</span>
+        <div className="flex items-baseline gap-2 lg:ml-6">
           <span className="text-xs text-muted">{t.builder.orderTotal}</span>
           <span className="num text-xl text-accent">{money(displayJob, locale)}</span>
         </div>
@@ -380,7 +388,7 @@ export function BuilderApp() {
           </button>
         </div>
       </div>
-      <div className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-white/10 bg-black/30">
+      <div className="flex min-h-0 flex-1 overflow-hidden border border-white/10 bg-black/30">
         <nav className="flex w-14 shrink-0 flex-col items-center gap-1 overflow-y-auto thin-scroll border-r border-white/10 bg-black/40 py-3">
           <RailBtn
             active={tab === "images"}
