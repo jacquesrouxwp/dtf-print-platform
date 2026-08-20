@@ -82,6 +82,8 @@ export function BuilderApp() {
   const rotatePiece = useBuilderStore((s) => s.rotatePiece);
   const flipPiece = useBuilderStore((s) => s.flipPiece);
   const removePiece = useBuilderStore((s) => s.removePiece);
+  const duplicatePiece = useBuilderStore((s) => s.duplicatePiece);
+  const alignPiece = useBuilderStore((s) => s.alignPiece);
   const rejected = useBuilderStore((s) => s.rejected) ?? [];
 
   const films = useJobStore((s) => s.films);
@@ -103,6 +105,22 @@ export function BuilderApp() {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
       if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) {
+        return;
+      }
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && ["d", "c", "v"].includes(e.key.toLowerCase())) {
+        const state = useBuilderStore.getState();
+        const pieceId = state.placed.find((p) => p.id === state.selectedId)?.id ?? null;
+        const key = e.key.toLowerCase();
+        if (key === "v") {
+          e.preventDefault();
+          state.pastePiece(config);
+          return;
+        }
+        if (!pieceId) return;
+        e.preventDefault();
+        if (key === "d") state.duplicatePiece(pieceId, config);
+        if (key === "c") state.copyPiece(pieceId);
         return;
       }
       if (e.key !== "Delete" && e.key !== "Backspace") return;
@@ -480,6 +498,31 @@ export function BuilderApp() {
             >
               {t.builder.flip}
             </button>
+            <button
+              type="button"
+              className="btn-soft"
+              disabled={!selectedPiece}
+              onClick={() => selectedPiece && duplicatePiece(selectedPiece.id, config)}
+              title="Ctrl/⌘ + D"
+            >
+              {t.builder.duplicate}
+            </button>
+            <span className="mx-0.5 h-5 w-px bg-white/10" aria-hidden />
+            {(["left", "center", "right"] as const).map((edge) => (
+              <button
+                key={edge}
+                type="button"
+                className="btn-soft"
+                disabled={!selectedPiece}
+                onClick={() => selectedPiece && alignPiece(selectedPiece.id, edge, config)}
+              >
+                {edge === "left"
+                  ? t.builder.alignLeft
+                  : edge === "center"
+                  ? t.builder.alignCenter
+                  : t.builder.alignRight}
+              </button>
+            ))}
             <button
               type="button"
               className="btn-soft"

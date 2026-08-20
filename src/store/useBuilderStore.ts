@@ -11,6 +11,7 @@ import {
 import type { TrimBox } from "@/lib/inspect-artwork";
 import { localImageMeta, persistableSrc, readResponseJson } from "@/lib/local-artwork";
 import { nest, type PlacedPiece } from "@/lib/nesting";
+import { alignedPosition, duplicateOffset, type AlignEdge } from "@/lib/piece-ops";
 import { rollFromSite } from "@/lib/roll";
 import { clampPieceSize, printSizeFromPixels, usableWidthMm } from "@/lib/units";
 import type { SiteConfig } from "@/lib/site-config";
@@ -88,6 +89,11 @@ type BuilderState = {
   flipPiece: (id: string) => void;
   rotatePiece: (id: string) => void;
   removePiece: (id: string, config: SiteConfig) => void;
+  duplicatePiece: (id: string, config: SiteConfig) => void;
+  copyPiece: (id: string) => void;
+  pastePiece: (config: SiteConfig) => void;
+  alignPiece: (id: string, edge: AlignEdge, config: SiteConfig) => void;
+  clipboard: string | null;
 };
 
 function snapOf(s: { designs: Design[]; placed: PlacedPiece[]; lengthMm: number; rejected: string[] }): BuilderSnap {
@@ -235,6 +241,7 @@ export const useBuilderStore = create<BuilderState>()(
       lengthMm: 0,
       rejected: [],
       selectedId: null,
+      clipboard: null,
       adding: false,
       canUndo: false,
       canRedo: false,
@@ -559,6 +566,53 @@ export const useBuilderStore = create<BuilderState>()(
           canUndo: true,
           canRedo: false,
         });
+      },
+
+      duplicatePiece: (id, config) => {
+        const piece = get().placed.find((p) => p.id === id);
+        if (!piece) return;
+        const prev = snapOf(get());
+        const usable = usableWidthMm(config.rollWidthMm, config.edgeMm);
+        const at = duplicateOffset(piece, usable, config.gapMm, config.edgeMm);
+        const copy: PlacedPiece = {
+          ...piece,
+          id: crypto.randomUUID(),
+          xMm: at.xMm,
+          yMm: at.yMm,
+          locked: true,
+        };
+        const designs = get().designs.map((d) =>
+          d.id === piece.designId ? { ...d, qty: d.qty + 1 } : d
+        );
+        set({
+          ...applyPack(designs, [...get().placed, copy], config),
+          selectedId: copy.id,
+          history: [...get().history, prev].slice(-40),
+          future: [],
+          canUndo: true,
+          canRedo: false,
+        });
+      },
+
+      copyPiece: (id) => {
+        const piece = get().placed.find((p) => p.id === id);
+        set({ clipboard: piece ? piece.id : null });
+      },
+
+      pastePiece: (config) => {
+        const id = get().clipboard;
+        if (!id) return;
+        // The copied piece may be gone by now; pasting nothing is not an error.
+        if (!get().placed.some((p) => p.id === id)) return;
+        get().duplicatePiece(id, config);
+      },
+
+      alignPiece: (id, edge, config) => {
+        const piece = get().placed.find((p) => p.id === id);
+        if (!piece) return;
+        const usable = usableWidthMm(config.rollWidthMm, config.edgeMm);
+        const at = alignedPosition(piece, usable, config.edgeMm, edge);
+        get().patchPiece(id, { xMm: at.xMm, yMm: at.yMm, locked: true }, config);
       },
 
       removePiece: (id, config) => {
