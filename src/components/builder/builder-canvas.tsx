@@ -8,6 +8,8 @@ import { useBuilderStore } from "@/store/useBuilderStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
 
 const RULER = 26;
+/** Neutral margin around the film, so it sits on a surface instead of in a corner. */
+const SURROUND = 24;
 
 function usableSrc(src?: string) {
   return Boolean(src && !src.startsWith("data:,"));
@@ -103,6 +105,7 @@ export function BuilderCanvas({
   zoomPct: number;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const trRef = useRef<Konva.Transformer>(null);
   const pieceRefs = useRef<Record<string, Konva.Group | null>>({});
   const [boxW, setBoxW] = useState(0);
@@ -119,7 +122,10 @@ export function BuilderCanvas({
   const removePiece = useBuilderStore((s) => s.removePiece);
 
   useEffect(() => {
-    const el = wrapRef.current;
+    // Measure the scrolling box, not its parent: a vertical scrollbar eats
+    // real width, and centring against the wrong number leaves the film
+    // sitting off to one side.
+    const el = scrollRef.current ?? wrapRef.current;
     if (!el) return;
     const apply = () => {
       const next = Math.max(80, Math.floor(el.clientWidth));
@@ -165,11 +171,14 @@ export function BuilderCanvas({
 
   const roll = Math.max(1, config.rollWidthMm);
   const viewLength = Math.max(lengthMm + 40, 280);
-  const avail = Math.max(0, boxW - RULER);
-  const scale = avail > 0 ? (avail / roll) * Math.max(0.5, Math.min(zoomPct, 160) / 100) : 0;
-  const stageW = Math.max(1, Math.min(avail || 1, Math.round(roll * scale)));
-  const stageH = Math.max(200, Math.min(Math.round(viewLength * (stageW / roll)), 1800));
-  const drawScale = stageW / roll;
+  // Room for the film once the ruler and a margin of surround are taken out.
+  const avail = Math.max(0, boxW - RULER - SURROUND * 2);
+  // 100% means the whole width of the roll fits. Zooming past that has to make
+  // the film genuinely bigger and scroll, not stop at the edge of the box.
+  const fitScale = avail > 0 ? avail / roll : 0;
+  const drawScale = fitScale * (Math.max(25, Math.min(zoomPct, 400)) / 100);
+  const stageW = Math.max(1, Math.round(roll * drawScale));
+  const stageH = Math.max(200, Math.min(Math.round(viewLength * drawScale), 20000));
   const canDrag = interactive;
   const selectedPieceId = placed.some((p) => p.id === selectedId) ? selectedId : null;
   const usable = usableWidthMm(config.rollWidthMm, config.edgeMm);
@@ -185,11 +194,17 @@ export function BuilderCanvas({
 
   return (
     <div ref={wrapRef} className="builder-film relative h-full min-h-[420px] min-w-0 w-full max-w-full overflow-hidden">
-      <div className="h-full w-full max-w-full overflow-auto rounded-xl bg-[#161412]">
+      <div ref={scrollRef} className="h-full w-full max-w-full overflow-auto rounded-xl bg-[#161412]">
         {avail > 0 && (
           <div
             className="relative"
-            style={{ width: RULER + stageW, height: RULER + stageH }}
+            style={{
+              width: RULER + stageW,
+              height: RULER + stageH,
+              // Centred while it fits, and still scrollable from the left edge
+              // once the customer zooms past the width of the box.
+              margin: `${SURROUND}px auto`,
+            }}
           >
             <div
               className="num pointer-events-none absolute left-0 top-0 z-10 grid place-items-center text-[9px] text-[#8a8378]"

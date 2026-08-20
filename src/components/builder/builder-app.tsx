@@ -7,6 +7,8 @@ import { Image as ImageIcon, Type } from "lucide-react";
 import { printDpi } from "@/lib/artwork";
 import { makeDemoDesigns } from "@/lib/demo-art";
 import { localizedPath } from "@/lib/i18n-config";
+import { effectiveDpi, MIN_PIECE_MM } from "@/lib/units";
+import type { PlacedPiece } from "@/lib/nesting";
 import { filmsCount } from "@/lib/plural";
 import { metersLabel, money, quoteFilm } from "@/lib/pricing";
 import { layoutAlerts } from "@/lib/layout-alerts";
@@ -26,15 +28,20 @@ const BuilderCanvas = dynamic(
 type LeftTab = "images" | "text";
 
 const PRESETS_CM = [10, 15, 20, 25, 30];
+const ZOOM_STEPS = [25, 50, 75, 100, 150, 200, 300, 400];
 const TEXT_COLORS = [
   { id: "white", hex: "#f4f0e6" },
   { id: "black", hex: "#14110e" },
   { id: "red", hex: "#e22b12" },
 ];
 const TEXT_FONTS = [
-  { id: "sans", family: "system-ui, sans-serif" },
-  { id: "serif", family: "Georgia, 'Times New Roman', serif" },
-  { id: "mono", family: "ui-monospace, monospace" },
+  { id: "Sans", family: "system-ui, 'Segoe UI', Roboto, sans-serif" },
+  { id: "Grotesk", family: "'Arial Black', 'Helvetica Neue', Arial, sans-serif" },
+  { id: "Serif", family: "Georgia, 'Times New Roman', serif" },
+  { id: "Slab", family: "'Rockwell', 'Courier New', Georgia, serif" },
+  { id: "Mono", family: "ui-monospace, 'Courier New', monospace" },
+  { id: "Script", family: "'Segoe Script', 'Brush Script MT', cursive" },
+  { id: "Condensed", family: "'Arial Narrow', 'Haettenschweiler', sans-serif" },
 ];
 
 export function BuilderApp() {
@@ -86,6 +93,8 @@ export function BuilderApp() {
   const duplicatePiece = useBuilderStore((s) => s.duplicatePiece);
   const alignPiece = useBuilderStore((s) => s.alignPiece);
   const setDesignText = useBuilderStore((s) => s.setDesignText);
+  const resizePiece = useBuilderStore((s) => s.resizePiece);
+  const movePiece = useBuilderStore((s) => s.movePiece);
   const selectDesign = useBuilderStore((s) => s.select);
   const updateTextDesign = useBuilderStore((s) => s.updateTextDesign);
   const rejected = useBuilderStore((s) => s.rejected) ?? [];
@@ -580,18 +589,35 @@ export function BuilderApp() {
             </button>
             <div className="ml-auto flex items-center gap-3">
               <span className="num text-lg text-accent">{money(displayLive, locale)}</span>
-              <label className="flex items-center gap-2 text-xs text-muted">
-                {t.builder.zoom}
-                <input
-                  type="range"
-                  min={50}
-                  max={160}
-                  value={zoomPct}
-                  className="w-20"
+              <div className="flex items-center gap-1 text-xs text-muted">
+                <button
+                  type="button"
+                  className="btn-soft"
+                  title={t.builder.zoomOut}
+                  onClick={() => setZoomPct((z) => Math.max(25, z - 25))}
+                >
+                  −
+                </button>
+                <select
+                  className="field num w-[5.5rem] py-1 text-center"
+                  value={ZOOM_STEPS.includes(zoomPct) ? zoomPct : 100}
                   onChange={(e) => setZoomPct(Number(e.target.value))}
-                />
-                <span className="num w-10">{zoomPct}%</span>
-              </label>
+                >
+                  {ZOOM_STEPS.map((z) => (
+                    <option key={z} value={z}>
+                      {z === 100 ? t.builder.zoomFit : `${z}%`}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="btn-soft"
+                  title={t.builder.zoomIn}
+                  onClick={() => setZoomPct((z) => Math.min(400, z + 25))}
+                >
+                  +
+                </button>
+              </div>
             </div>
           </div>
           {alerts.overlap && (
@@ -613,6 +639,19 @@ export function BuilderApp() {
         </section>
 
         <aside className="flex w-[280px] min-h-0 shrink-0 flex-col overflow-y-auto thin-scroll border-l border-white/10 bg-black/20 xl:w-[300px]">
+          {selectedDesign && selectedPiece && (
+            <PieceProperties
+              design={selectedDesign}
+              piece={selectedPiece}
+              t={t}
+              onResize={(w, h) =>
+                updateDesign(selectedDesign.id, { widthMm: w, heightMm: h }, config)
+              }
+              onMove={(x, y) => movePiece(selectedPiece.id, x, y, config)}
+              onDuplicate={() => duplicatePiece(selectedPiece.id, config)}
+              onQty={(qty) => updateDesign(selectedDesign.id, { qty }, config)}
+            />
+          )}
           {selectedDesign?.text && (
             <TextProperties
               design={selectedDesign}
@@ -692,6 +731,163 @@ export function BuilderApp() {
  * Copy stays editable after it lands on the film: reword it, restyle it, and
  * the piece is re-rendered and re-uploaded so the print file follows.
  */
+/** Any colour, not a choice of three: a swatch that opens the OS picker, plus hex. */
+/** The numbers a customer needs before paying: real size, where it sits, and
+ *  whether the file has the resolution to print at that size. */
+function PieceProperties({
+  design,
+  piece,
+  t,
+  onResize,
+  onMove,
+  onDuplicate,
+  onQty,
+}: {
+  design: Design;
+  piece: PlacedPiece;
+  t: ReturnType<typeof useI18n>["t"];
+  onResize: (widthMm: number, heightMm: number) => void;
+  onMove: (xMm: number, yMm: number) => void;
+  onDuplicate: () => void;
+  onQty: (qty: number) => void;
+}) {
+  const [lockRatio, setLockRatio] = useState(true);
+  const ratio = design.aspectRatio > 0 ? design.aspectRatio : design.widthMm / Math.max(1, design.heightMm);
+  const dpi = effectiveDpi(design.pixelW, design.widthMm);
+  const dpiOk = dpi >= 150;
+
+  function setWidthCm(cm: number) {
+    const w = Math.max(MIN_PIECE_MM, Math.round(cm * 10));
+    onResize(w, lockRatio ? Math.max(MIN_PIECE_MM, Math.round(w / Math.max(0.01, ratio))) : design.heightMm);
+  }
+  function setHeightCm(cm: number) {
+    const h = Math.max(MIN_PIECE_MM, Math.round(cm * 10));
+    onResize(lockRatio ? Math.max(MIN_PIECE_MM, Math.round(h * ratio)) : design.widthMm, h);
+  }
+
+  return (
+    <div className="shrink-0 space-y-3 border-b border-white/10 px-3 py-3">
+      <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{t.builder.properties}</p>
+      <div className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
+        <NumField label={`${t.builder.width} (cm)`} value={design.widthMm / 10} onCommit={setWidthCm} />
+        <NumField label={`${t.builder.height} (cm)`} value={design.heightMm / 10} onCommit={setHeightCm} />
+        <button
+          type="button"
+          onClick={() => setLockRatio((v) => !v)}
+          title={t.builder.ratio}
+          className={`btn-soft h-[2.1rem] ${lockRatio ? "text-foreground" : "text-muted"}`}
+        >
+          {lockRatio ? "⚭" : "⚮"}
+        </button>
+      </div>
+      <div className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
+        <NumField label="X (cm)" value={piece.xMm / 10} onCommit={(cm) => onMove(cm * 10, piece.yMm)} />
+        <NumField label="Y (cm)" value={piece.yMm / 10} onCommit={(cm) => onMove(piece.xMm, cm * 10)} />
+        <span
+          className={`num rounded px-2 py-1.5 text-xs ${
+            dpiOk ? "bg-ok/20 text-ok" : "bg-warn/20 text-warn"
+          }`}
+          title="DPI"
+        >
+          {Math.round(dpi)} {dpiOk ? t.builder.dpiGood : t.builder.dpiLow}
+        </span>
+      </div>
+      <div className="flex gap-2">
+        <button type="button" className="btn-soft flex-1" onClick={onDuplicate}>
+          {t.builder.duplicate}
+        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            className="btn-soft"
+            onClick={() => onQty(Math.max(1, design.qty - 1))}
+          >
+            −
+          </button>
+          <span className="num w-8 text-center text-sm">{design.qty}</span>
+          <button type="button" className="btn-soft" onClick={() => onQty(design.qty + 1)}>
+            +
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** A number you can actually type into: commits on blur, reverts nonsense. */
+function NumField({
+  label,
+  value,
+  onCommit,
+}: {
+  label: string;
+  value: number;
+  onCommit: (n: number) => void;
+}) {
+  const [draft, setDraft] = useState(value.toFixed(1));
+  useEffect(() => setDraft(value.toFixed(1)), [value]);
+  return (
+    <label className="grid gap-1 text-xs">
+      <span className="text-muted">{label}</span>
+      <input
+        className="field num py-1.5 text-sm"
+        inputMode="decimal"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => {
+          const n = Number(draft.replace(",", "."));
+          if (Number.isFinite(n) && n > 0) onCommit(n);
+          else setDraft(value.toFixed(1));
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") e.currentTarget.blur();
+        }}
+      />
+    </label>
+  );
+}
+
+function ColorField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (hex: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  useEffect(() => setDraft(value), [value]);
+
+  function commit(next: string) {
+    const hex = next.trim().replace(/^#?/, "#");
+    if (/^#[0-9a-fA-F]{6}$/.test(hex)) onChange(hex.toLowerCase());
+    else setDraft(value);
+  }
+
+  return (
+    <label className="flex items-center gap-2 text-xs">
+      <span className="sr-only">{label}</span>
+      <input
+        type="color"
+        value={/^#[0-9a-fA-F]{6}$/.test(value) ? value : "#ffffff"}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-7 w-9 cursor-pointer rounded border border-white/20 bg-transparent p-0"
+        title={label}
+      />
+      <input
+        className="field num w-24 py-1 text-xs"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={(e) => commit(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") e.currentTarget.blur();
+        }}
+      />
+    </label>
+  );
+}
+
 function TextProperties({
   design,
   t,
@@ -756,18 +952,11 @@ function TextProperties({
         />
       </label>
       <div className="flex items-center gap-2">
-        {TEXT_COLORS.map((c) => (
-          <button
-            key={c.id}
-            type="button"
-            title={c.id}
-            onClick={() => onChange({ fill: c.hex })}
-            className={`h-7 w-7 rounded-full border ${
-              spec.fill === c.hex ? "border-white" : "border-white/20"
-            }`}
-            style={{ background: c.hex }}
-          />
-        ))}
+        <ColorField
+          label={t.builder.textColor}
+          value={spec.fill}
+          onChange={(hex) => onChange({ fill: hex })}
+        />
         <button
           type="button"
           onClick={() => onChange({ bold: !spec.bold })}
@@ -808,20 +997,11 @@ function TextProperties({
         />
       </label>
       {spec.strokeWidth > 0 && (
-        <div className="flex gap-2">
-          {TEXT_COLORS.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              title={c.id}
-              onClick={() => onChange({ stroke: c.hex })}
-              className={`h-6 w-6 rounded border ${
-                spec.stroke === c.hex ? "border-white" : "border-white/20"
-              }`}
-              style={{ background: c.hex }}
-            />
-          ))}
-        </div>
+        <ColorField
+          label={t.builder.outlineColor}
+          value={spec.stroke}
+          onChange={(hex) => onChange({ stroke: hex })}
+        />
       )}
     </div>
   );
