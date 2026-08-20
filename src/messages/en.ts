@@ -524,6 +524,7 @@ export const en = {
     addText: "Add text to film",
     font: "Font",
     textSize: "Size",
+    outline: "Outline",
   },
   cart: {
     title: "Cart",

@@ -12,6 +12,7 @@ import type { TrimBox } from "@/lib/inspect-artwork";
 import { localImageMeta, persistableSrc, readResponseJson } from "@/lib/local-artwork";
 import { nest, type PlacedPiece } from "@/lib/nesting";
 import { alignedPosition, duplicateOffset, type AlignEdge } from "@/lib/piece-ops";
+import { rasterizeText, type TextSpec } from "@/lib/raster-text";
 import { rollFromSite } from "@/lib/roll";
 import { clampPieceSize, printSizeFromPixels, usableWidthMm } from "@/lib/units";
 import type { SiteConfig } from "@/lib/site-config";
@@ -37,6 +38,8 @@ export type Design = {
   allowRotate: boolean;
   uploadError?: string;
   trimBox?: TrimBox;
+  /** Set when the piece is copy the customer typed, so it stays editable. */
+  text?: TextSpec;
 };
 
 type BuilderSnap = {
@@ -93,6 +96,12 @@ type BuilderState = {
   copyPiece: (id: string) => void;
   pastePiece: (config: SiteConfig) => void;
   alignPiece: (id: string, edge: AlignEdge, config: SiteConfig) => void;
+  setDesignText: (id: string, spec: TextSpec) => void;
+  updateTextDesign: (
+    id: string,
+    patch: Partial<TextSpec>,
+    config: SiteConfig
+  ) => Promise<void>;
   clipboard: string | null;
 };
 
@@ -561,6 +570,78 @@ export const useBuilderStore = create<BuilderState>()(
                 }
               : p
           ),
+          history: [...get().history, prev].slice(-40),
+          future: [],
+          canUndo: true,
+          canRedo: false,
+        });
+      },
+
+      setDesignText: (id, spec) =>
+        set({
+          designs: get().designs.map((d) => (d.id === id ? { ...d, text: spec } : d)),
+        }),
+
+      updateTextDesign: async (id, patch, config) => {
+        const design = get().designs.find((d) => d.id === id);
+        if (!design?.text) return;
+        const spec: TextSpec = { ...design.text, ...patch };
+        if (!spec.value.trim()) return;
+
+        let file: File;
+        try {
+          file = await rasterizeText(spec.value, spec);
+        } catch {
+          return;
+        }
+
+        // The print file comes from storage, not from the canvas, so edited copy
+        // has to be re-uploaded or the shop prints the previous wording.
+        let uploaded: Record<string, unknown> = {};
+        let ok = false;
+        try {
+          const form = new FormData();
+          form.append("file", file);
+          const res = await fetch("/api/upload", { method: "POST", body: form });
+          uploaded = await readResponseJson(res);
+          ok = res.ok;
+        } catch {
+          ok = false;
+        }
+
+        const local = await localImageMeta(file).catch(() => null);
+        const usable = usableWidthMm(config.rollWidthMm, config.edgeMm);
+        const pixelW = Number(uploaded.pixelW) > 0 ? Number(uploaded.pixelW) : local?.pixelW ?? design.pixelW;
+        const pixelH = Number(uploaded.pixelH) > 0 ? Number(uploaded.pixelH) : local?.pixelH ?? design.pixelH;
+        const size =
+          pixelW > 0 && pixelH > 0
+            ? printSizeFromPixels(pixelW, pixelH, config.outputDpi)
+            : { widthMm: design.widthMm, heightMm: design.heightMm, aspectRatio: design.aspectRatio };
+        const widthMm = Math.min(usable, size.widthMm);
+        const heightMm = Math.max(10, Math.round(widthMm / Math.max(0.01, size.aspectRatio)));
+
+        const prev = snapOf(get());
+        const designs = get().designs.map((d) =>
+          d.id === id
+            ? {
+                ...d,
+                text: spec,
+                name: `${file.name}`,
+                src: local?.src || persistableSrc(String(uploaded.previewUrl ?? "")) || d.src,
+                previewUrl: persistableSrc(String(uploaded.previewUrl ?? "")) || d.previewUrl,
+                storageKey: ok && typeof uploaded.storageKey === "string" ? uploaded.storageKey : d.storageKey,
+                uploadError: ok ? undefined : "upload failed",
+                pixelW,
+                pixelH,
+                widthMm,
+                heightMm,
+                aspectRatio: size.aspectRatio,
+                trimBox: (uploaded.trimBox as TrimBox | undefined) ?? undefined,
+              }
+            : d
+        );
+        set({
+          ...applyPack(designs, get().placed, config),
           history: [...get().history, prev].slice(-40),
           future: [],
           canUndo: true,

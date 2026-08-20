@@ -10,7 +10,7 @@ import { localizedPath } from "@/lib/i18n-config";
 import { filmsCount } from "@/lib/plural";
 import { metersLabel, money, quoteFilm } from "@/lib/pricing";
 import { layoutAlerts } from "@/lib/layout-alerts";
-import { rasterizeText } from "@/lib/raster-text";
+import { defaultTextSpec, rasterizeText, type TextAlign, type TextSpec } from "@/lib/raster-text";
 import { fill } from "@/lib/tokens";
 import { useBuilderStore, type Design } from "@/store/useBuilderStore";
 import { useCartStore } from "@/store/useCartStore";
@@ -85,6 +85,9 @@ export function BuilderApp() {
   const removePiece = useBuilderStore((s) => s.removePiece);
   const duplicatePiece = useBuilderStore((s) => s.duplicatePiece);
   const alignPiece = useBuilderStore((s) => s.alignPiece);
+  const setDesignText = useBuilderStore((s) => s.setDesignText);
+  const selectDesign = useBuilderStore((s) => s.select);
+  const updateTextDesign = useBuilderStore((s) => s.updateTextDesign);
   const rejected = useBuilderStore((s) => s.rejected) ?? [];
 
   const films = useJobStore((s) => s.films);
@@ -280,12 +283,24 @@ export function BuilderApp() {
     try {
       const font = TEXT_FONTS.find((f) => f.id === fontId) ?? TEXT_FONTS[0];
       const color = TEXT_COLORS.find((c) => c.id === colorId) ?? TEXT_COLORS[0];
-      const file = await rasterizeText(text, {
-        fill: color.hex,
+      const spec: TextSpec = {
+        ...defaultTextSpec,
+        value: text,
+        fontId: font.id,
         fontFamily: font.family,
         fontPx,
-      });
+        fill: color.hex,
+      };
+      const file = await rasterizeText(text, spec);
+      const before = new Set(useBuilderStore.getState().designs.map((d) => d.id));
       await addFiles([file], config);
+      // Keep the copy on the piece so it can be reworded later instead of
+      // deleted and typed again.
+      const added = useBuilderStore.getState().designs.find((d) => !before.has(d.id));
+      if (added) {
+        setDesignText(added.id, spec);
+        selectDesign(added.id);
+      }
       setText("");
     } catch (err) {
       console.error("addText", err);
@@ -598,6 +613,13 @@ export function BuilderApp() {
         </section>
 
         <aside className="flex w-[280px] min-h-0 shrink-0 flex-col overflow-y-auto thin-scroll border-l border-white/10 bg-black/20 xl:w-[300px]">
+          {selectedDesign?.text && (
+            <TextProperties
+              design={selectedDesign}
+              t={t}
+              onChange={(patch) => void updateTextDesign(selectedDesign.id, patch, config)}
+            />
+          )}
           <div className="flex shrink-0 items-center justify-between px-3 py-3">
             <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{t.builder.films}</p>
             <button type="button" className="btn-soft" onClick={newFilm}>
@@ -662,6 +684,145 @@ export function BuilderApp() {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Copy stays editable after it lands on the film: reword it, restyle it, and
+ * the piece is re-rendered and re-uploaded so the print file follows.
+ */
+function TextProperties({
+  design,
+  t,
+  onChange,
+}: {
+  design: Design;
+  t: ReturnType<typeof useI18n>["t"];
+  onChange: (patch: Partial<TextSpec>) => void;
+}) {
+  const spec = design.text as TextSpec;
+  const [draft, setDraft] = useState(spec.value);
+
+  useEffect(() => {
+    setDraft(spec.value);
+  }, [spec.value, design.id]);
+
+  // Every keystroke would mean an upload, so the wording commits on blur.
+  function commitValue() {
+    if (draft !== spec.value && draft.trim()) onChange({ value: draft });
+  }
+
+  return (
+    <div className="shrink-0 space-y-3 border-b border-white/10 px-3 py-3">
+      <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{t.builder.tabText}</p>
+      <textarea
+        value={draft}
+        rows={2}
+        className="field resize-none text-sm"
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commitValue}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) e.currentTarget.blur();
+        }}
+      />
+      <label className="grid gap-1 text-xs">
+        <span className="text-muted">{t.builder.font}</span>
+        <select
+          className="field py-1.5"
+          value={spec.fontId}
+          onChange={(e) => {
+            const font = TEXT_FONTS.find((f) => f.id === e.target.value) ?? TEXT_FONTS[0];
+            onChange({ fontId: font.id, fontFamily: font.family });
+          }}
+        >
+          {TEXT_FONTS.map((f) => (
+            <option key={f.id} value={f.id}>
+              {f.id}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="grid gap-1 text-xs">
+        <span className="text-muted">
+          {t.builder.textSize} · {spec.fontPx}px
+        </span>
+        <input
+          type="range"
+          min={28}
+          max={200}
+          value={spec.fontPx}
+          onChange={(e) => onChange({ fontPx: Number(e.target.value) })}
+        />
+      </label>
+      <div className="flex items-center gap-2">
+        {TEXT_COLORS.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            title={c.id}
+            onClick={() => onChange({ fill: c.hex })}
+            className={`h-7 w-7 rounded-full border ${
+              spec.fill === c.hex ? "border-white" : "border-white/20"
+            }`}
+            style={{ background: c.hex }}
+          />
+        ))}
+        <button
+          type="button"
+          onClick={() => onChange({ bold: !spec.bold })}
+          className={`btn-soft ml-auto font-bold ${spec.bold ? "text-foreground" : "text-muted"}`}
+        >
+          B
+        </button>
+        <button
+          type="button"
+          onClick={() => onChange({ italic: !spec.italic })}
+          className={`btn-soft italic ${spec.italic ? "text-foreground" : "text-muted"}`}
+        >
+          I
+        </button>
+      </div>
+      <div className="flex gap-1">
+        {(["left", "center", "right"] as TextAlign[]).map((a) => (
+          <button
+            key={a}
+            type="button"
+            onClick={() => onChange({ align: a })}
+            className={`btn-soft flex-1 ${spec.align === a ? "text-foreground" : "text-muted"}`}
+          >
+            {a === "left" ? "≡" : a === "center" ? "≡" : "≡"}
+          </button>
+        ))}
+      </div>
+      <label className="grid gap-1 text-xs">
+        <span className="text-muted">
+          {t.builder.outline} · {spec.strokeWidth}
+        </span>
+        <input
+          type="range"
+          min={0}
+          max={12}
+          value={spec.strokeWidth}
+          onChange={(e) => onChange({ strokeWidth: Number(e.target.value) })}
+        />
+      </label>
+      {spec.strokeWidth > 0 && (
+        <div className="flex gap-2">
+          {TEXT_COLORS.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              title={c.id}
+              onClick={() => onChange({ stroke: c.hex })}
+              className={`h-6 w-6 rounded border ${
+                spec.stroke === c.hex ? "border-white" : "border-white/20"
+              }`}
+              style={{ background: c.hex }}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
