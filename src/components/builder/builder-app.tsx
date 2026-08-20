@@ -9,6 +9,7 @@ import { makeDemoDesigns } from "@/lib/demo-art";
 import { localizedPath } from "@/lib/i18n-config";
 import { effectiveDpi, MIN_PIECE_MM } from "@/lib/units";
 import type { PlacedPiece } from "@/lib/nesting";
+import { previousWholeMetreMm } from "@/lib/fit-to-length";
 import { filmsCount } from "@/lib/plural";
 import { metersLabel, money, quoteFilm } from "@/lib/pricing";
 import { layoutAlerts } from "@/lib/layout-alerts";
@@ -44,6 +45,7 @@ export function BuilderApp() {
   const [tab, setTab] = useState<LeftTab>("images");
   const [query, setQuery] = useState("");
   const [zoomPct, setZoomPct] = useState(100);
+  const [fitNote, setFitNote] = useState<string | null>(null);
   const [trade, setTrade] = useState(false);
   const [added, setAdded] = useState(false);
 
@@ -83,6 +85,7 @@ export function BuilderApp() {
   const duplicatePiece = useBuilderStore((s) => s.duplicatePiece);
   const alignPiece = useBuilderStore((s) => s.alignPiece);
   const setDesignText = useBuilderStore((s) => s.setDesignText);
+  const fitFilmTo = useBuilderStore((s) => s.fitFilmTo);
   const movePiece = useBuilderStore((s) => s.movePiece);
   const selectDesign = useBuilderStore((s) => s.select);
   const updateTextDesign = useBuilderStore((s) => s.updateTextDesign);
@@ -277,6 +280,22 @@ export function BuilderApp() {
     setAdded(true);
   }
 
+  /** The metre this film is spilling over, if the spill is worth offering to fix. */
+  const fitTargetMm = designs.length ? previousWholeMetreMm(lengthMm) : null;
+  const fitSavingMm = fitTargetMm ? lengthMm - fitTargetMm : 0;
+  const offerFit = Boolean(fitTargetMm) && fitSavingMm > 5 && fitSavingMm <= 150;
+
+  function fitToWholeMetre() {
+    if (!fitTargetMm) return;
+    const scale = fitFilmTo(fitTargetMm, config);
+    setFitNote(
+      scale
+        ? t.builder.fitDone.replace("{pct}", String(Math.round((1 - scale) * 100)))
+        : t.builder.fitFailed
+    );
+    window.setTimeout(() => setFitNote(null), 6000);
+  }
+
   async function addTextToFilm() {
     try {
       const spec: TextSpec = {
@@ -330,6 +349,19 @@ export function BuilderApp() {
           {filmsCount(jobLengths.length, locale)}
         </span>
         {blocking && <span className="text-xs text-bad">{t.builder.uploadFailed}</span>}
+        {offerFit && (
+          <button
+            type="button"
+            className="btn-soft text-xs text-accent"
+            onClick={fitToWholeMetre}
+            title={t.builder.fitHint}
+          >
+            {t.builder.fitTo
+              .replace("{m}", String((fitTargetMm as number) / 1000))
+              .replace("{save}", (fitSavingMm / 10).toFixed(1))}
+          </button>
+        )}
+        {fitNote && <span className="text-xs text-muted">{fitNote}</span>}
         <div className="ml-auto flex items-center gap-2">
           {added && (
             <Link href={localizedPath(locale, "/checkout")} className="btn btn-ghost">

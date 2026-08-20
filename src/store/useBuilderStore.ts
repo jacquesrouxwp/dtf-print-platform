@@ -13,8 +13,9 @@ import { localImageMeta, persistableSrc, readResponseJson } from "@/lib/local-ar
 import { nest, type PlacedPiece } from "@/lib/nesting";
 import { alignedPosition, duplicateOffset, type AlignEdge } from "@/lib/piece-ops";
 import { rasterizeText, type TextSpec } from "@/lib/raster-text";
+import { fitToLength } from "@/lib/fit-to-length";
 import { rollFromSite } from "@/lib/roll";
-import { clampPieceSize, printSizeFromPixels, usableWidthMm } from "@/lib/units";
+import { clampPieceSize, MIN_PIECE_MM, printSizeFromPixels, usableWidthMm } from "@/lib/units";
 import type { SiteConfig } from "@/lib/site-config";
 
 export type Design = {
@@ -97,6 +98,8 @@ type BuilderState = {
   pastePiece: (config: SiteConfig) => void;
   alignPiece: (id: string, edge: AlignEdge, config: SiteConfig) => void;
   setDesignText: (id: string, spec: TextSpec) => void;
+  /** Shrink every piece just enough to land on `targetMm`. Returns the factor used. */
+  fitFilmTo: (targetMm: number, config: SiteConfig) => number | null;
   updateTextDesign: (
     id: string,
     patch: Partial<TextSpec>,
@@ -575,6 +578,41 @@ export const useBuilderStore = create<BuilderState>()(
           canUndo: true,
           canRedo: false,
         });
+      },
+
+      fitFilmTo: (targetMm, config) => {
+        const designs = get().designs;
+        if (!designs.length) return null;
+        const fit = fitToLength(
+          designs.map((d) => ({
+            designId: d.id,
+            widthMm: d.widthMm,
+            heightMm: d.heightMm,
+            qty: d.qty,
+            allowRotate: d.allowRotate !== false,
+          })),
+          rollFromSite(config),
+          targetMm
+        );
+        if (!fit || fit.scale >= 1) return null;
+
+        const prev = snapOf(get());
+        const resized = designs.map((d) => ({
+          ...d,
+          widthMm: Math.max(MIN_PIECE_MM, Math.round(d.widthMm * fit.scale)),
+          heightMm: Math.max(MIN_PIECE_MM, Math.round(d.heightMm * fit.scale)),
+        }));
+        // Positions were chosen for the old sizes, so everything is laid out
+        // again rather than shrunk around stale coordinates.
+        set({
+          ...applyPack(resized, [], config),
+          selectedId: null,
+          history: [...get().history, prev].slice(-40),
+          future: [],
+          canUndo: true,
+          canRedo: false,
+        });
+        return fit.scale;
       },
 
       setDesignText: (id, spec) =>
