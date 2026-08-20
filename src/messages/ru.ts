@@ -526,6 +526,7 @@ export const ru: typeof en = {
     addText: "Текст на плёнку",
     font: "Шрифт",
     textSize: "Кегль",
+    outline: "Обводка",
   },
   cart: {
     title: "Корзина",

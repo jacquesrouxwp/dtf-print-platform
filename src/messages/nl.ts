@@ -526,6 +526,7 @@ export const nl: typeof en = {
     addText: "Tekst op de film",
     font: "Lettertype",
     textSize: "Formaat",
+    outline: "Contour",
   },
   cart: {
     title: "Winkelwagen",
