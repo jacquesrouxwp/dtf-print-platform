@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { CookieBanner } from "@/components/cookie-banner";
 import { CutoffBar } from "@/components/cutoff-bar";
-import { Footer } from "@/components/footer";
+import { FooterSlot } from "@/components/footer-slot";
 import { Header } from "@/components/header";
 import { HtmlLang } from "@/components/html-lang";
 import { I18nProvider } from "@/components/providers";
@@ -27,11 +27,15 @@ export default async function LocaleLayout({
     <I18nProvider locale={locale} t={t}>
       <HtmlLang locale={locale} />
       <SiteShell>
-        <CutoffBar />
-        <Header />
-        <main>{children}</main>
-        <Footer />
-        <CookieBanner />
+        {/* One column the height of the viewport: whatever the header and the
+            cutoff bar take, `main` gets the rest — no hardcoded offsets. */}
+        <div className="flex min-h-dvh flex-col">
+          <CutoffBar />
+          <Header />
+          <main className="flex min-h-0 flex-1 flex-col">{children}</main>
+          <FooterSlot />
+          <CookieBanner />
+        </div>
       </SiteShell>
     </I18nProvider>
   );
