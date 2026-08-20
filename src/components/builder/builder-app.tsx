@@ -7,6 +7,7 @@ import { Image as ImageIcon, Type } from "lucide-react";
 import { printDpi } from "@/lib/artwork";
 import { makeDemoDesigns } from "@/lib/demo-art";
 import { localizedPath } from "@/lib/i18n-config";
+import { filmsCount } from "@/lib/plural";
 import { metersLabel, money, quoteFilm } from "@/lib/pricing";
 import { layoutAlerts } from "@/lib/layout-alerts";
 import { rasterizeText } from "@/lib/raster-text";
@@ -308,8 +309,36 @@ export function BuilderApp() {
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden px-2 pb-16 pt-2 lg:pb-2">
+      {/* The order lives at the top, always in sight — a customer should never
+          scroll a panel to find out what they are about to pay. */}
+      <div className="mb-2 flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-white/10 bg-black/30 px-3 py-2">
+        <div className="flex items-baseline gap-2">
+          <span className="text-xs text-muted">{t.builder.orderTotal}</span>
+          <span className="num text-xl text-accent">{money(displayJob, locale)}</span>
+        </div>
+        <span className="num text-xs text-muted">
+          {metersLabel(Number(jobBilled.toFixed(2)), locale)} ·{" "}
+          {filmsCount(jobLengths.length, locale)}
+        </span>
+        {blocking && <span className="text-xs text-bad">{t.builder.uploadFailed}</span>}
+        <div className="ml-auto flex items-center gap-2">
+          {added && (
+            <Link href={localizedPath(locale, "/checkout")} className="btn btn-ghost">
+              {t.builder.checkout}
+            </Link>
+          )}
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={added || blocking || (!designs.length && films.length === 0)}
+            onClick={addOrderToCart}
+          >
+            {added ? t.builder.added : t.builder.addAllCart}
+          </button>
+        </div>
+      </div>
       <div className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-white/10 bg-black/30">
-        <nav className="flex w-14 shrink-0 flex-col items-center gap-1 overflow-y-auto no-scrollbar border-r border-white/10 bg-black/40 py-3">
+        <nav className="flex w-14 shrink-0 flex-col items-center gap-1 overflow-y-auto thin-scroll border-r border-white/10 bg-black/40 py-3">
           <RailBtn
             active={tab === "images"}
             label={t.builder.tabImages}
@@ -326,7 +355,7 @@ export function BuilderApp() {
           </RailBtn>
         </nav>
 
-        <aside className="flex w-[280px] min-h-0 shrink-0 flex-col overflow-y-auto no-scrollbar border-r border-white/10 bg-black/20 xl:w-[300px]">
+        <aside className="flex w-[280px] min-h-0 shrink-0 flex-col overflow-y-auto thin-scroll border-r border-white/10 bg-black/20 xl:w-[300px]">
           {tab === "images" ? (
             <>
               <div className="shrink-0 space-y-2 p-3">
@@ -373,7 +402,7 @@ export function BuilderApp() {
               <p className="shrink-0 px-3 pb-1 text-[11px] uppercase tracking-[0.16em] text-muted">
                 {t.builder.uploadedImages}
               </p>
-              <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar px-3 pb-3">
+              <div className="min-h-0 flex-1 overflow-y-auto thin-scroll px-3 pb-3">
                 {!ready && <p className="text-xs text-muted">{t.builder.loading}</p>}
                 {adding && <p className="text-xs text-muted">{t.builder.uploading}</p>}
                 {designs.length === 0 && (
@@ -568,14 +597,14 @@ export function BuilderApp() {
           </div>
         </section>
 
-        <aside className="flex w-[280px] min-h-0 shrink-0 flex-col overflow-y-auto no-scrollbar border-l border-white/10 bg-black/20 xl:w-[300px]">
+        <aside className="flex w-[280px] min-h-0 shrink-0 flex-col overflow-y-auto thin-scroll border-l border-white/10 bg-black/20 xl:w-[300px]">
           <div className="flex shrink-0 items-center justify-between px-3 py-3">
             <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{t.builder.films}</p>
             <button type="button" className="btn-soft" onClick={newFilm}>
               + {t.builder.newFilm}
             </button>
           </div>
-          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto no-scrollbar px-3">
+          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto thin-scroll px-3">
             <FilmCard
               film={liveCard}
               active
@@ -609,29 +638,13 @@ export function BuilderApp() {
               <span className="num text-2xl text-accent">{money(displayJob, locale)}</span>
             </div>
             <p className="num text-xs text-muted">
-              {metersLabel(Number(jobBilled.toFixed(2)), locale)} · {jobLengths.length}{" "}
-              {t.builder.films.toLowerCase()}
+              {metersLabel(Number(jobBilled.toFixed(2)), locale)} ·{" "}
+              {filmsCount(jobLengths.length, locale)}
             </p>
             <label className="flex items-center gap-2 text-xs text-muted">
               <input type="checkbox" checked={trade} onChange={(e) => setTrade(e.target.checked)} />
               {t.checkout.trade}
             </label>
-            <button
-              type="button"
-              className="btn btn-primary w-full"
-              disabled={added || blocking || (!designs.length && films.length === 0)}
-              onClick={addOrderToCart}
-            >
-              {added ? t.builder.added : t.builder.addAllCart}
-            </button>
-            {blocking && (
-              <p className="text-center text-[11px] text-bad">{t.builder.uploadFailed}</p>
-            )}
-            {added && (
-              <Link href={localizedPath(locale, "/checkout")} className="btn btn-ghost w-full">
-                {t.builder.checkout}
-              </Link>
-            )}
           </div>
         </aside>
       </div>
