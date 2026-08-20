@@ -527,6 +527,8 @@ export const ru: typeof en = {
     font: "Шрифт",
     textSize: "Кегль",
     outline: "Обводка",
+    textHint: "Нажмите — надпись появится на плёнке. Дальше правьте её в панели справа.",
+    textDefault: "Ваш текст",
     zoomFit: "По ширине",
     zoomIn: "Крупнее",
     zoomOut: "Мельче",

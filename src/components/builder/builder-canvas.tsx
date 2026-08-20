@@ -183,6 +183,9 @@ export function BuilderCanvas({
   const selectedPieceId = placed.some((p) => p.id === selectedId) ? selectedId : null;
   const usable = usableWidthMm(config.rollWidthMm, config.edgeMm);
   const minPx = MIN_PIECE_MM * drawScale;
+  // Whole metres that fall inside the visible film.
+  const metreMarks: number[] = [];
+  for (let mm = 1000; mm <= viewLength; mm += 1000) metreMarks.push(mm);
 
   useLayoutEffect(() => {
     const tr = trRef.current;
@@ -337,6 +340,28 @@ export function BuilderCanvas({
                       </Group>
                     );
                   })}
+                  {/* Every whole metre of film, marked. A customer buying by the
+                      metre should be able to see where one ends and the next
+                      begins instead of trusting a number in a panel. */}
+                  {metreMarks.map((mm) => (
+                    <Group key={`m${mm}`} listening={false}>
+                      <Line
+                        points={[0, mm * drawScale, stageW, mm * drawScale]}
+                        stroke="#e0623a"
+                        strokeWidth={1}
+                        dash={[2, 5]}
+                        opacity={0.85}
+                      />
+                      <Text
+                        x={stageW - 46}
+                        y={mm * drawScale - 15}
+                        text={`${mm / 1000} m`}
+                        fill="#e0623a"
+                        fontFamily="ui-monospace, monospace"
+                        fontSize={11}
+                      />
+                    </Group>
+                  ))}
                   <Line
                     points={[0, lengthMm * drawScale, stageW, lengthMm * drawScale]}
                     stroke="#7eb6e4"
