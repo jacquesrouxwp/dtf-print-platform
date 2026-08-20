@@ -108,6 +108,15 @@ export function BuilderApp() {
     ? designs.find((d) => d.id === selectedPiece.designId)
     : designs.find((d) => d.id === selectedId);
 
+  // A rehydrated store carries designs but no layout — nothing has run the
+  // packer yet — so the film looks empty and a selected design has no piece to
+  // show properties for. Lay it out once, as soon as the store is ready.
+  useEffect(() => {
+    if (!ready) return;
+    const s = useBuilderStore.getState();
+    if (s.designs.length && !s.placed.length) s.autoArrange(config);
+  }, [ready, config]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
@@ -585,18 +594,18 @@ export function BuilderApp() {
               </label>
             </div>
           </div>
-          {alerts.overlap && (
-            <p className="shrink-0 bg-bad/15 px-3 py-1.5 text-sm text-bad">{t.builder.overlap}</p>
-          )}
-          {alerts.overflow && (
-            <p className="shrink-0 bg-warn/20 px-3 py-1.5 text-sm text-warn">{t.builder.overflow}</p>
-          )}
-          {rejected.length > 0 && (
-            <p className="shrink-0 bg-bad/15 px-3 py-1.5 text-sm text-bad">
-              {rejected.length} {t.builder.warnWide}
-            </p>
-          )}
-          <div className="min-h-0 flex-1 p-2">
+          <div className="relative min-h-0 flex-1 p-2">
+            {/* Over the film, not beside it: a warning about the layout should
+                sit where the layout is. */}
+            <div className="pointer-events-none absolute left-4 top-4 z-20 space-y-1.5">
+              {alerts.overlap && <AlertPill tone="bad">{t.builder.overlap}</AlertPill>}
+              {alerts.overflow && <AlertPill tone="warn">{t.builder.overflow}</AlertPill>}
+              {rejected.length > 0 && (
+                <AlertPill tone="bad">
+                  {rejected.length} {t.builder.warnWide}
+                </AlertPill>
+              )}
+            </div>
             <CanvasGuard>
               <BuilderCanvas interactive zoomPct={zoomPct} />
             </CanvasGuard>
@@ -604,7 +613,7 @@ export function BuilderApp() {
         </section>
 
         <aside className="flex w-[280px] min-h-0 shrink-0 flex-col overflow-y-auto thin-scroll border-l border-white/10 bg-black/20 xl:w-[300px]">
-          {selectedDesign && selectedPiece && (
+          {selectedDesign && (
             <PieceProperties
               design={selectedDesign}
               piece={selectedPiece}
@@ -612,8 +621,8 @@ export function BuilderApp() {
               onResize={(w, h) =>
                 updateDesign(selectedDesign.id, { widthMm: w, heightMm: h }, config)
               }
-              onMove={(x, y) => movePiece(selectedPiece.id, x, y, config)}
-              onDuplicate={() => duplicatePiece(selectedPiece.id, config)}
+              onMove={(x, y) => selectedPiece && movePiece(selectedPiece.id, x, y, config)}
+              onDuplicate={() => selectedPiece && duplicatePiece(selectedPiece.id, config)}
               onFill={(metres) => fillWithDesign(selectedDesign.id, metres * 1000, config)}
               freeCopies={freeCopiesFor(selectedDesign.id, config)}
               onFillFree={(extra) =>
@@ -704,6 +713,19 @@ export function BuilderApp() {
 /** Any colour, not a choice of three: a swatch that opens the OS picker, plus hex. */
 /** The numbers a customer needs before paying: real size, where it sits, and
  *  whether the file has the resolution to print at that size. */
+/** A warning that sits on the film, in the corner, out of the way of the work. */
+function AlertPill({ tone, children }: { tone: "bad" | "warn"; children: ReactNode }) {
+  return (
+    <p
+      className={`rounded-lg px-3 py-1.5 text-sm shadow-lg backdrop-blur ${
+        tone === "bad" ? "bg-bad/90 text-white" : "bg-warn/90 text-black"
+      }`}
+    >
+      {children}
+    </p>
+  );
+}
+
 function PieceProperties({
   design,
   piece,
@@ -717,7 +739,8 @@ function PieceProperties({
   onFillFree,
 }: {
   design: Design;
-  piece: PlacedPiece;
+  /** Absent while a design is rejected or the film has not been laid out yet. */
+  piece: PlacedPiece | null;
   t: ReturnType<typeof useI18n>["t"];
   onResize: (widthMm: number, heightMm: number) => void;
   onMove: (xMm: number, yMm: number) => void;
@@ -759,8 +782,18 @@ function PieceProperties({
         </button>
       </div>
       <div className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
-        <NumField label="X (cm)" value={piece.xMm / 10} onCommit={(cm) => onMove(cm * 10, piece.yMm)} />
-        <NumField label="Y (cm)" value={piece.yMm / 10} onCommit={(cm) => onMove(piece.xMm, cm * 10)} />
+        <NumField
+          label="X (cm)"
+          value={(piece?.xMm ?? 0) / 10}
+          disabled={!piece}
+          onCommit={(cm) => piece && onMove(cm * 10, piece.yMm)}
+        />
+        <NumField
+          label="Y (cm)"
+          value={(piece?.yMm ?? 0) / 10}
+          disabled={!piece}
+          onCommit={(cm) => piece && onMove(piece.xMm, cm * 10)}
+        />
         <span
           className={`num rounded px-2 py-1.5 text-xs ${
             dpiOk ? "bg-ok/20 text-ok" : "bg-warn/20 text-warn"
@@ -815,7 +848,7 @@ function PieceProperties({
         )}
       </div>
       <div className="flex gap-2">
-        <button type="button" className="btn-soft flex-1" onClick={onDuplicate}>
+        <button type="button" className="btn-soft flex-1" disabled={!piece} onClick={onDuplicate}>
           {t.builder.duplicate}
         </button>
         <div className="flex items-center gap-1">
@@ -841,10 +874,12 @@ function NumField({
   label,
   value,
   onCommit,
+  disabled,
 }: {
   label: string;
   value: number;
   onCommit: (n: number) => void;
+  disabled?: boolean;
 }) {
   const [draft, setDraft] = useState(value.toFixed(1));
   useEffect(() => setDraft(value.toFixed(1)), [value]);
@@ -852,8 +887,9 @@ function NumField({
     <label className="grid gap-1 text-xs">
       <span className="text-muted">{label}</span>
       <input
-        className="field num py-1.5 text-sm"
+        className="field num py-1.5 text-sm disabled:opacity-40"
         inputMode="decimal"
+        disabled={disabled}
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={() => {
