@@ -527,6 +527,8 @@ export const nl: typeof en = {
     font: "Lettertype",
     textSize: "Formaat",
     outline: "Contour",
+    textHint: "Druk één keer — de tekst komt op de film. Bewerk hem rechts.",
+    textDefault: "Jouw tekst",
     zoomFit: "Passend",
     zoomIn: "Inzoomen",
     zoomOut: "Uitzoomen",

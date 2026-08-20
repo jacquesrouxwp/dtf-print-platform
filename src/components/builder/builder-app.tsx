@@ -28,12 +28,6 @@ const BuilderCanvas = dynamic(
 type LeftTab = "images" | "text";
 
 const PRESETS_CM = [10, 15, 20, 25, 30];
-const ZOOM_STEPS = [25, 50, 75, 100, 150, 200, 300, 400];
-const TEXT_COLORS = [
-  { id: "white", hex: "#f4f0e6" },
-  { id: "black", hex: "#14110e" },
-  { id: "red", hex: "#e22b12" },
-];
 const TEXT_FONTS = [
   { id: "Sans", family: "system-ui, 'Segoe UI', Roboto, sans-serif" },
   { id: "Grotesk", family: "'Arial Black', 'Helvetica Neue', Arial, sans-serif" },
@@ -52,10 +46,6 @@ export function BuilderApp() {
   const [zoomPct, setZoomPct] = useState(100);
   const [trade, setTrade] = useState(false);
   const [added, setAdded] = useState(false);
-  const [text, setText] = useState("");
-  const [fontPx, setFontPx] = useState(72);
-  const [fontId, setFontId] = useState("sans");
-  const [colorId, setColorId] = useState("white");
 
   useEffect(() => {
     const unsub = useBuilderStore.persist.onFinishHydration(() => setReady(true));
@@ -93,7 +83,6 @@ export function BuilderApp() {
   const duplicatePiece = useBuilderStore((s) => s.duplicatePiece);
   const alignPiece = useBuilderStore((s) => s.alignPiece);
   const setDesignText = useBuilderStore((s) => s.setDesignText);
-  const resizePiece = useBuilderStore((s) => s.resizePiece);
   const movePiece = useBuilderStore((s) => s.movePiece);
   const selectDesign = useBuilderStore((s) => s.select);
   const updateTextDesign = useBuilderStore((s) => s.updateTextDesign);
@@ -290,31 +279,27 @@ export function BuilderApp() {
 
   async function addTextToFilm() {
     try {
-      const font = TEXT_FONTS.find((f) => f.id === fontId) ?? TEXT_FONTS[0];
-      const color = TEXT_COLORS.find((c) => c.id === colorId) ?? TEXT_COLORS[0];
       const spec: TextSpec = {
         ...defaultTextSpec,
-        value: text,
-        fontId: font.id,
-        fontFamily: font.family,
-        fontPx,
-        fill: color.hex,
+        value: t.builder.textDefault,
+        fontId: TEXT_FONTS[0].id,
+        fontFamily: TEXT_FONTS[0].family,
       };
-      const file = await rasterizeText(text, spec);
+      const file = await rasterizeText(spec.value, spec);
       const before = new Set(useBuilderStore.getState().designs.map((d) => d.id));
       await addFiles([file], config);
-      // Keep the copy on the piece so it can be reworded later instead of
-      // deleted and typed again.
+      // The piece lands on the film and the properties panel takes over — the
+      // customer works on the film, not in a side panel next to it.
       const added = useBuilderStore.getState().designs.find((d) => !before.has(d.id));
       if (added) {
         setDesignText(added.id, spec);
         selectDesign(added.id);
       }
-      setText("");
     } catch (err) {
       console.error("addText", err);
     }
   }
+
 
   const filtered = designs.filter((d) =>
     query.trim() ? d.name.toLowerCase().includes(query.trim().toLowerCase()) : true
@@ -458,57 +443,11 @@ export function BuilderApp() {
           ) : (
             <div className="flex min-h-0 flex-1 flex-col gap-3 p-3">
               <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{t.builder.tabText}</p>
-              <textarea
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder={t.builder.textPlaceholder}
-                rows={5}
-                className="field min-h-[8rem] resize-none text-base"
-              />
-              <label className="grid gap-1 text-xs">
-                <span className="text-muted">{t.builder.font}</span>
-                <select
-                  className="field py-2"
-                  value={fontId}
-                  onChange={(e) => setFontId(e.target.value)}
-                >
-                  {TEXT_FONTS.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.id}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="grid gap-1 text-xs">
-                <span className="text-muted">
-                  {t.builder.textSize} · {fontPx}px
-                </span>
-                <input
-                  type="range"
-                  min={28}
-                  max={160}
-                  value={fontPx}
-                  onChange={(e) => setFontPx(Number(e.target.value))}
-                />
-              </label>
-              <div className="flex gap-2">
-                {TEXT_COLORS.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    title={c.id}
-                    onClick={() => setColorId(c.id)}
-                    className={`h-8 w-8 rounded-full border ${
-                      colorId === c.id ? "border-white" : "border-white/20"
-                    }`}
-                    style={{ background: c.hex }}
-                  />
-                ))}
-              </div>
+              <p className="text-sm text-muted">{t.builder.textHint}</p>
               <button
                 type="button"
-                className="btn btn-primary mt-auto w-full"
-                disabled={!text.trim() || adding}
+                className="btn btn-primary w-full"
+                disabled={adding}
                 onClick={() => void addTextToFilm()}
               >
                 {t.builder.addText}
@@ -589,35 +528,19 @@ export function BuilderApp() {
             </button>
             <div className="ml-auto flex items-center gap-3">
               <span className="num text-lg text-accent">{money(displayLive, locale)}</span>
-              <div className="flex items-center gap-1 text-xs text-muted">
-                <button
-                  type="button"
-                  className="btn-soft"
-                  title={t.builder.zoomOut}
-                  onClick={() => setZoomPct((z) => Math.max(25, z - 25))}
-                >
-                  −
-                </button>
-                <select
-                  className="field num w-[5.5rem] py-1 text-center"
-                  value={ZOOM_STEPS.includes(zoomPct) ? zoomPct : 100}
+              <label className="flex items-center gap-2 text-xs text-muted">
+                {t.builder.zoom}
+                <input
+                  type="range"
+                  min={25}
+                  max={100}
+                  step={5}
+                  value={Math.min(100, zoomPct)}
+                  className="w-24"
                   onChange={(e) => setZoomPct(Number(e.target.value))}
-                >
-                  {ZOOM_STEPS.map((z) => (
-                    <option key={z} value={z}>
-                      {z === 100 ? t.builder.zoomFit : `${z}%`}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  className="btn-soft"
-                  title={t.builder.zoomIn}
-                  onClick={() => setZoomPct((z) => Math.min(400, z + 25))}
-                >
-                  +
-                </button>
-              </div>
+                />
+                <span className="num w-10">{Math.min(100, zoomPct)}%</span>
+              </label>
             </div>
           </div>
           {alerts.overlap && (

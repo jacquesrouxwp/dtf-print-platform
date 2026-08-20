@@ -525,6 +525,8 @@ export const en = {
     font: "Font",
     textSize: "Size",
     outline: "Outline",
+    textHint: "Press once — the words land on the film. Edit them in the panel on the right.",
+    textDefault: "Your text",
     zoomFit: "Fit width",
     zoomIn: "Zoom in",
     zoomOut: "Zoom out",
