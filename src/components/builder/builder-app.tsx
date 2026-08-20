@@ -86,6 +86,8 @@ export function BuilderApp() {
   const alignPiece = useBuilderStore((s) => s.alignPiece);
   const setDesignText = useBuilderStore((s) => s.setDesignText);
   const fitFilmTo = useBuilderStore((s) => s.fitFilmTo);
+  const fillWithDesign = useBuilderStore((s) => s.fillWithDesign);
+  const freeCopiesFor = useBuilderStore((s) => s.freeCopiesFor);
   const movePiece = useBuilderStore((s) => s.movePiece);
   const selectDesign = useBuilderStore((s) => s.select);
   const updateTextDesign = useBuilderStore((s) => s.updateTextDesign);
@@ -604,6 +606,11 @@ export function BuilderApp() {
               }
               onMove={(x, y) => movePiece(selectedPiece.id, x, y, config)}
               onDuplicate={() => duplicatePiece(selectedPiece.id, config)}
+              onFill={(metres) => fillWithDesign(selectedDesign.id, metres * 1000, config)}
+              freeCopies={freeCopiesFor(selectedDesign.id, config)}
+              onFillFree={(extra) =>
+                updateDesign(selectedDesign.id, { qty: selectedDesign.qty + extra }, config)
+              }
               onQty={(qty) => updateDesign(selectedDesign.id, { qty }, config)}
             />
           )}
@@ -697,6 +704,9 @@ function PieceProperties({
   onMove,
   onDuplicate,
   onQty,
+  onFill,
+  freeCopies,
+  onFillFree,
 }: {
   design: Design;
   piece: PlacedPiece;
@@ -705,8 +715,13 @@ function PieceProperties({
   onMove: (xMm: number, yMm: number) => void;
   onDuplicate: () => void;
   onQty: (qty: number) => void;
+  onFill: (metres: number) => number;
+  freeCopies: number;
+  onFillFree: (extra: number) => void;
 }) {
   const [lockRatio, setLockRatio] = useState(true);
+  const [fillMetres, setFillMetres] = useState(1);
+  const [filled, setFilled] = useState<number | null>(null);
   const ratio = design.aspectRatio > 0 ? design.aspectRatio : design.widthMm / Math.max(1, design.heightMm);
   const dpi = effectiveDpi(design.pixelW, design.widthMm);
   const dpiOk = dpi >= 150;
@@ -746,6 +761,50 @@ function PieceProperties({
         >
           {Math.round(dpi)} {dpiOk ? t.builder.dpiGood : t.builder.dpiLow}
         </span>
+      </div>
+      <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-2">
+        <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{t.builder.autoFilm}</p>
+        <div className="flex items-center gap-2">
+          <select
+            className="field num w-16 py-1 text-xs"
+            value={fillMetres}
+            onChange={(e) => setFillMetres(Number(e.target.value))}
+          >
+            {[1, 2, 3, 5, 10].map((m) => (
+              <option key={m} value={m}>
+                {m} m
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="btn-soft flex-1 text-xs"
+            onClick={() => {
+              const copies = onFill(fillMetres);
+              setFilled(copies);
+              window.setTimeout(() => setFilled(null), 6000);
+            }}
+          >
+            {t.builder.fillFilm}
+          </button>
+        </div>
+        {filled !== null && (
+          <p className="text-[11px] text-muted">
+            {filled > 0
+              ? t.builder.fillDone.replace("{n}", String(filled))
+              : t.builder.fillNone}
+          </p>
+        )}
+        {freeCopies > 0 && (
+          <button
+            type="button"
+            className="btn-soft w-full text-xs text-accent"
+            onClick={() => onFillFree(freeCopies)}
+            title={t.builder.fillFreeHint}
+          >
+            {t.builder.fillFree.replace("{n}", String(freeCopies))}
+          </button>
+        )}
       </div>
       <div className="flex gap-2">
         <button type="button" className="btn-soft flex-1" onClick={onDuplicate}>

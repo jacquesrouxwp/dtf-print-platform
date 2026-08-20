@@ -14,6 +14,7 @@ import { nest, type PlacedPiece } from "@/lib/nesting";
 import { alignedPosition, duplicateOffset, type AlignEdge } from "@/lib/piece-ops";
 import { rasterizeText, type TextSpec } from "@/lib/raster-text";
 import { fitToLength } from "@/lib/fit-to-length";
+import { autoFill, copiesForLength } from "@/lib/auto-fill";
 import { rollFromSite } from "@/lib/roll";
 import { clampPieceSize, MIN_PIECE_MM, printSizeFromPixels, usableWidthMm } from "@/lib/units";
 import type { SiteConfig } from "@/lib/site-config";
@@ -100,6 +101,10 @@ type BuilderState = {
   setDesignText: (id: string, spec: TextSpec) => void;
   /** Shrink every piece just enough to land on `targetMm`. Returns the factor used. */
   fitFilmTo: (targetMm: number, config: SiteConfig) => number | null;
+  /** Set this design's quantity to as many copies as `targetMm` of film takes. */
+  fillWithDesign: (designId: string, targetMm: number, config: SiteConfig) => number;
+  /** Copies that still fit in film the customer is already paying for. */
+  freeCopiesFor: (designId: string, config: SiteConfig) => number;
   updateTextDesign: (
     id: string,
     patch: Partial<TextSpec>,
@@ -578,6 +583,52 @@ export const useBuilderStore = create<BuilderState>()(
           canUndo: true,
           canRedo: false,
         });
+      },
+
+      fillWithDesign: (designId, targetMm, config) => {
+        const design = get().designs.find((d) => d.id === designId);
+        if (!design) return 0;
+        const copies = copiesForLength(
+          {
+            designId: design.id,
+            widthMm: design.widthMm,
+            heightMm: design.heightMm,
+            allowRotate: design.allowRotate !== false,
+          },
+          rollFromSite(config),
+          targetMm
+        );
+        if (copies < 1) return 0;
+        const prev = snapOf(get());
+        const designs = get().designs.map((d) =>
+          d.id === designId ? { ...d, qty: copies } : d
+        );
+        // Old positions belong to the old quantity; lay the film out afresh.
+        set({
+          ...applyPack(designs, [], config),
+          selectedId: designId,
+          history: [...get().history, prev].slice(-40),
+          future: [],
+          canUndo: true,
+          canRedo: false,
+        });
+        return copies;
+      },
+
+      freeCopiesFor: (designId, config) => {
+        const designs = get().designs;
+        if (!designs.length) return 0;
+        return autoFill(
+          designs.map((d) => ({
+            designId: d.id,
+            widthMm: d.widthMm,
+            heightMm: d.heightMm,
+            qty: d.qty,
+            allowRotate: d.allowRotate !== false,
+          })),
+          designId,
+          rollFromSite(config)
+        ).extraCopies;
       },
 
       fitFilmTo: (targetMm, config) => {
