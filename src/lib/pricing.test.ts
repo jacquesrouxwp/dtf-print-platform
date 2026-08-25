@@ -15,15 +15,15 @@ describe("pricing", () => {
     expect(q.billedMeters).toBe(0.5);
   });
 
-  it("tier boundary 5.0 m and 5.01 m land correctly", () => {
-    expect(rateForMeters(5, defaultConfig).rate).toBe(9.45);
-    expect(rateForMeters(5.01, defaultConfig).rate).toBe(8.95);
+  it("tier boundary 10.0 m and 10.01 m land correctly", () => {
+    expect(rateForMeters(10, defaultConfig).rate).toBe(11.0);
+    expect(rateForMeters(10.01, defaultConfig).rate).toBe(10.45);
   });
 
   it("ignores a client-supplied price — server recomputes", () => {
     const tampered = 0.01;
     const server = quoteFilm(2347, defaultConfig, { includeShipping: false });
     expect(server.subtotalExcl).not.toBe(tampered);
-    expect(server.subtotalExcl).toBeCloseTo(2.4 * 9.45, 2);
+    expect(server.subtotalExcl).toBeCloseTo(2.4 * 11.0, 2);
   });
 });
