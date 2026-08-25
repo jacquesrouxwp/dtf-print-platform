@@ -155,6 +155,7 @@ export const nl: typeof en = {
   },
   home: {
     kicker: "Hilversum · DTF transfers",
+    videoLabel: "Film komt van de printer",
     headline: "Waar kunst industrie ontmoet.",
     sub: "DTF transfers gedrukt in Hilversum. Vandaag besteld, morgen op je pers.",
     lede: "Upload je artwork, betaal alleen voor de film die je echt gebruikt, en pers zelf. Geen minimum, geen opstartkosten, geen week wachten op een proef.",

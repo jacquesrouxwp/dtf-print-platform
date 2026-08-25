@@ -153,6 +153,7 @@ export const en = {
   },
   home: {
     kicker: "Hilversum · DTF transfers",
+    videoLabel: "Film coming off the printer",
     headline: "Where art meets industry.",
     sub: "DTF transfers printed in Hilversum. Ordered today, on your press tomorrow.",
     lede: "Upload your artwork, pay only for the film you actually use, and press it yourself. No minimums, no setup fees, no waiting a week for a proof.",
