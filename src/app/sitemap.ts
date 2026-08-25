@@ -6,6 +6,7 @@ const paths = [
   "",
   "/order",
   "/pricing",
+  "/bundles",
   "/dtf-transfers",
   "/dtf-vs",
   "/how-to-press",

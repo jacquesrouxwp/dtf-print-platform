@@ -37,6 +37,8 @@ export type SiteConfig = {
   minLineMm: number;
   minTextPt: number;
   shippingCost: number;
+  /** Prepaid metre bundles: pay for `meters`, receive `meters + freeMeters`. */
+  bundles: { meters: number; freeMeters: number }[];
   freeShippingFrom: number;
   tradeDiscount: number;
   rushSurcharge: number;
@@ -86,7 +88,14 @@ export const defaultConfig: SiteConfig = {
   minLineMm: 0.5,
   minTextPt: 6,
   shippingCost: 6.95,
-  freeShippingFrom: 75,
+  bundles: [
+    { meters: 5, freeMeters: 0 },
+    { meters: 10, freeMeters: 1 },
+    { meters: 30, freeMeters: 3 },
+    { meters: 50, freeMeters: 5 },
+    { meters: 100, freeMeters: 10 },
+  ],
+  freeShippingFrom: 200,
   tradeDiscount: 0.1,
   rushSurcharge: 0.2,
   pickupEnabled: true,

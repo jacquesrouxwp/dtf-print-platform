@@ -14,6 +14,7 @@ type NavKey = keyof typeof import("@/messages/en").en.nav;
 const primary: { href: string; key: NavKey }[] = [
   { href: "/pricing", key: "pricing" },
   { href: "/trade", key: "trade" },
+  { href: "/bundles", key: "bundles" },
 ];
 
 const more: { href: string; key: NavKey }[] = [
