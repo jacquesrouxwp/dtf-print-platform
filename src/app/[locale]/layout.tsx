@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { ContactDock } from "@/components/contact-dock";
 import { CookieBanner } from "@/components/cookie-banner";
 import { AppFrame, FooterSlot, SiteChrome } from "@/components/app-frame";
 import { HtmlLang } from "@/components/html-lang";
@@ -31,6 +32,7 @@ export default async function LocaleLayout({
           <SiteChrome />
           <main className="flex min-h-0 flex-1 flex-col">{children}</main>
           <FooterSlot />
+          <ContactDock />
           <CookieBanner />
         </AppFrame>
       </SiteShell>

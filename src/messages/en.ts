@@ -62,6 +62,11 @@ export const en = {
     contact: "Contact",
     studio: "Studio",
   },
+  contactDock: {
+    whatsapp: "Message on WhatsApp",
+    phone: "Call us",
+    email: "Send an email",
+  },
   cutoff: {
     within: "Order within {time} for next-day delivery",
     next: "Next cutoff {time} — next-day to Amsterdam & Utrecht",
@@ -330,6 +335,8 @@ export const en = {
       { t: "Transparency", d: "If your design has a white background, that white will print. Our preview shows you exactly what will come out, so check it." },
       { t: "Colour", d: "Send us sRGB. We'll convert CMYK, but you'll have less control over the result." },
       { t: "Fine detail", d: "Lines below roughly {line} mm and text below roughly {text} pt get unreliable. Scale up or thicken." },
+      { t: "Mirroring", d: "Do not mirror the file. Send it the way the print should read on the garment — mirroring happens on our side." },
+      { t: "White-only art", d: "Artwork that is only white is fine. It barely shows in the preview, but the machine prints it correctly — no background needed." },
     ],
     checklist: "Checklist",
     checks: [
@@ -339,8 +346,10 @@ export const en = {
       "No hairline strokes under {line} mm",
       "Text outlined or at least {text} pt",
       "One design per file is easier to size",
+      "Not mirrored — send it as it should read",
     ],
     cta: "Check a file in the builder",
+    cta2: "Send a request",
   },
   samples: {
     kicker: "Lead magnet",
