@@ -39,6 +39,10 @@ export type SiteConfig = {
   shippingCost: number;
   /** Prepaid metre bundles: pay for `meters`, receive `meters + freeMeters`. */
   bundles: { meters: number; freeMeters: number }[];
+  /** Heat-press hire, per hour. The lower rate applies alongside a print order. */
+  pressHirePerHour: number;
+  pressHireWithOrder: number;
+  pressHireMinHours: number;
   freeShippingFrom: number;
   tradeDiscount: number;
   rushSurcharge: number;
@@ -95,6 +99,9 @@ export const defaultConfig: SiteConfig = {
     { meters: 50, freeMeters: 5 },
     { meters: 100, freeMeters: 10 },
   ],
+  pressHirePerHour: 16.5,
+  pressHireWithOrder: 13.2,
+  pressHireMinHours: 0.5,
   freeShippingFrom: 200,
   tradeDiscount: 0.1,
   rushSurcharge: 0.2,
