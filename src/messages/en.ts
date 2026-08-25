@@ -330,7 +330,7 @@ export const en = {
     title: "Getting your file right.",
     lede: "Ninety percent of disappointing prints are decided before the file reaches us. Here's what we need.",
     items: [
-      { t: "Format", d: "PNG with a transparent background is ideal. PDF and TIFF are fine. JPEG works, but it can't hold transparency, so anything that isn't meant to print must be removed first." },
+      { t: "Format", d: "PNG with a transparent background is ideal. TIFF is fine too. We do not take PDF yet — export a PNG at the size you need. JPEG works, but it can't hold transparency, so anything that isn't meant to print must be removed first." },
       { t: "Resolution", d: "300 dpi at the size you want it printed. Our builder checks this for you and warns you if a file won't hold up." },
       { t: "Transparency", d: "If your design has a white background, that white will print. Our preview shows you exactly what will come out, so check it." },
       { t: "Colour", d: "Send us sRGB. We'll convert CMYK, but you'll have less control over the result." },
@@ -454,7 +454,7 @@ export const en = {
   },
   builder: {
     title: "Gang sheet builder",
-    drop: "Drop PNG, PDF, TIFF or JPEG here",
+    drop: "Drop PNG, TIFF, JPEG or WEBP here",
     or: "or",
     browse: "Select files",
     demo: "Load sample designs",

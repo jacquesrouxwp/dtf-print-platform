@@ -332,7 +332,7 @@ export const nl: typeof en = {
     title: "Lever het bestand goed aan.",
     lede: "Negentig procent van tegenvallende prints is al beslist voordat het bestand bij ons is. Dit hebben we nodig.",
     items: [
-      { t: "Formaat", d: "PNG met transparante achtergrond is ideaal. PDF en TIFF zijn prima. JPEG kan, maar houdt geen transparantie, dus alles wat niet mag drukken moet er eerst af." },
+      { t: "Formaat", d: "PNG met transparante achtergrond is ideaal. TIFF is ook prima. PDF nemen we nog niet aan — exporteer een PNG op de maat die je nodig hebt. JPEG kan, maar houdt geen transparantie, dus alles wat niet mag drukken moet er eerst af." },
       { t: "Resolutie", d: "300 dpi op het formaat waarop je het wilt drukken. De bouwer controleert dit en waarschuwt als een bestand het niet houdt." },
       { t: "Transparantie", d: "Zit er een witte achtergrond achter je ontwerp, dan drukt dat wit mee. De preview laat precies zien wat eruit komt." },
       { t: "Kleur", d: "Stuur sRGB. CMYK converteren we, maar je hebt dan minder grip op het resultaat." },
@@ -456,7 +456,7 @@ export const nl: typeof en = {
   },
   builder: {
     title: "Gangsheet-bouwer",
-    drop: "Sleep PNG, PDF, TIFF of JPEG hierheen",
+    drop: "Sleep PNG, TIFF, JPEG of WEBP hierheen",
     or: "of",
     browse: "Kies bestanden",
     demo: "Laad voorbeelddesigns",
