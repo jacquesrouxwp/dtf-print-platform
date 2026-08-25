@@ -64,6 +64,11 @@ export const nl: typeof en = {
     contact: "Contact",
     studio: "Studio",
   },
+  contactDock: {
+    whatsapp: "WhatsApp ons",
+    phone: "Bel ons",
+    email: "Mail ons",
+  },
   cutoff: {
     within: "Bestel binnen {time} voor levering de volgende werkdag",
     next: "Volgende cutoff {time} — next-day naar Amsterdam & Utrecht",
@@ -327,11 +332,13 @@ export const nl: typeof en = {
     title: "Lever het bestand goed aan.",
     lede: "Negentig procent van tegenvallende prints is al beslist voordat het bestand bij ons is. Dit hebben we nodig.",
     items: [
-      { t: "Formaat", d: "PNG met transparante achtergrond is ideaal. PDF en TIFF zijn prima. JPEG kan, maar houdt geen transparantie, dus alles wat niet mag drukken moet er eerst af." },
+      { t: "Formaat", d: "PNG met transparante achtergrond is ideaal. TIFF is ook prima. PDF nemen we nog niet aan — exporteer een PNG op de maat die je nodig hebt. JPEG kan, maar houdt geen transparantie, dus alles wat niet mag drukken moet er eerst af." },
       { t: "Resolutie", d: "300 dpi op het formaat waarop je het wilt drukken. De bouwer controleert dit en waarschuwt als een bestand het niet houdt." },
       { t: "Transparantie", d: "Zit er een witte achtergrond achter je ontwerp, dan drukt dat wit mee. De preview laat precies zien wat eruit komt." },
       { t: "Kleur", d: "Stuur sRGB. CMYK converteren we, maar je hebt dan minder grip op het resultaat." },
       { t: "Fijn detail", d: "Lijnen onder ruwweg {line} mm en tekst onder ruwweg {text} pt worden onbetrouwbaar. Vergroot of verdik." },
+      { t: "Spiegelen", d: "Spiegel het bestand niet. Stuur het zoals de opdruk op het kledingstuk moet staan — spiegelen doen wij." },
+      { t: "Alleen wit", d: "Een ontwerp dat alleen wit is, is prima. In de preview zie je het nauwelijks, maar de machine drukt het correct af." },
     ],
     checklist: "Checklist",
     checks: [
@@ -341,8 +348,10 @@ export const nl: typeof en = {
       "Geen haarlijnen onder {line} mm",
       "Tekst outlined of minstens {text} pt",
       "Eén ontwerp per bestand is makkelijker te schalen",
+      "Niet gespiegeld — stuur zoals het moet staan",
     ],
     cta: "Check een bestand in de bouwer",
+    cta2: "Aanvraag sturen",
   },
   samples: {
     kicker: "Lead",
@@ -447,7 +456,7 @@ export const nl: typeof en = {
   },
   builder: {
     title: "Gangsheet-bouwer",
-    drop: "Sleep PNG, PDF, TIFF of JPEG hierheen",
+    drop: "Sleep PNG, TIFF, JPEG of WEBP hierheen",
     or: "of",
     browse: "Kies bestanden",
     demo: "Laad voorbeelddesigns",

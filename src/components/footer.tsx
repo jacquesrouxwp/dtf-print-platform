@@ -26,7 +26,6 @@ export function Footer() {
           <Link href={L("/pricing")}>{t.nav.pricing}</Link>
           <Link href={L("/trade")}>{t.nav.trade}</Link>
           <Link href={L("/samples")}>{t.nav.samples}</Link>
-          <Link href={L("/studio")}>{t.footer.studio}</Link>
         </div>
         <div className="grid gap-2 text-sm">
           <p className="text-xs uppercase tracking-wider text-muted">{t.footer.legal}</p>

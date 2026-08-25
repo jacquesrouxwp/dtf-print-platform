@@ -12,6 +12,8 @@ export type SiteConfig = {
   countryCode: string;
   email: string;
   phone: string;
+  /** WhatsApp number; falls back to `phone` when empty. */
+  whatsapp: string;
   addressLine: string;
   kvk: string;
   btwNumber: string;
@@ -53,6 +55,7 @@ export const defaultConfig: SiteConfig = {
   countryCode: "NL",
   email: "orders@hlv.film",
   phone: "+31 35 000 0000",
+  whatsapp: "+31 6 0000 0000",
   addressLine: "Hilversum, Netherlands",
   kvk: "00000000",
   btwNumber: "NL000000000B01",

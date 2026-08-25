@@ -45,12 +45,14 @@ export default async function FilesPage({
           </li>
         ))}
       </ul>
-      <Link
-        href={localizedPath(lang, "/order")}
-        className="btn btn-primary mt-10"
-      >
-        {t.files.cta}
-      </Link>
+      <div className="mt-10 flex flex-wrap gap-3">
+        <Link href={localizedPath(lang, "/order")} className="btn btn-primary">
+          {t.files.cta}
+        </Link>
+        <Link href={localizedPath(lang, "/contact")} className="btn btn-ghost">
+          {t.files.cta2}
+        </Link>
+      </div>
     </PageShell>
   );
 }

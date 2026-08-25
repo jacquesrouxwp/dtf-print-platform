@@ -18,8 +18,6 @@ const primary: { href: string; key: NavKey }[] = [
 
 const more: { href: string; key: NavKey }[] = [
   { href: "/dtf-transfers", key: "dtf" },
-  { href: "/uv-dtf", key: "uv" },
-  { href: "/specialty", key: "specialty" },
   { href: "/dtf-vs", key: "vs" },
   { href: "/how-to-press", key: "press" },
   { href: "/file-guidelines", key: "files" },
@@ -28,7 +26,6 @@ const more: { href: string; key: NavKey }[] = [
   { href: "/shipping", key: "shipping" },
   { href: "/faq", key: "faq" },
   { href: "/contact", key: "contact" },
-  { href: "/studio", key: "studio" },
 ];
 
 export function Header() {
