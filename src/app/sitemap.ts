@@ -11,6 +11,7 @@ const paths = [
   "/dtf-vs",
   "/how-to-press",
   "/file-guidelines",
+  "/rental",
   "/samples",
   "/trade",
   "/about",

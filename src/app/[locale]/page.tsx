@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { HomeHero } from "@/components/home-hero";
@@ -139,6 +140,30 @@ export default async function HomePage({
             </p>
           </div>
           <RollDiagram locale={lang} label={t.home.specExample} />
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-8">
+        <div className="glass grid items-center gap-10 rounded-[28px] px-6 py-12 md:grid-cols-2 md:px-12 md:py-16">
+          <div>
+            <p className="num text-xs uppercase tracking-[0.2em] text-muted">{t.home.rentKicker}</p>
+            <h2 className="font-display mt-5 text-3xl md:text-4xl">{t.home.rentTitle}</h2>
+            <p className="mt-6 text-sm leading-relaxed text-muted">{t.home.rentBody}</p>
+            <p className="num mt-6 text-sm">
+              {money(c.pressHirePerHour, lang)} / {t.rental.hour} ·{" "}
+              {money(c.pressHireWithOrder, lang)} {t.home.rentWithOrder}
+            </p>
+            <Link href={localizedPath(lang, "/rental")} className="btn btn-ghost mt-8">
+              {t.home.rentCta}
+            </Link>
+          </div>
+          <Image
+            src="/press-rental.webp"
+            alt={t.rental.photoAlt}
+            width={1536}
+            height={678}
+            className="h-auto w-full rounded-2xl border border-white/10"
+          />
         </div>
       </section>
 

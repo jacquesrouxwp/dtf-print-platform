@@ -22,6 +22,7 @@ const more: { href: string; key: NavKey }[] = [
   { href: "/dtf-vs", key: "vs" },
   { href: "/how-to-press", key: "press" },
   { href: "/file-guidelines", key: "files" },
+  { href: "/rental", key: "rental" },
   { href: "/samples", key: "samples" },
   { href: "/about", key: "about" },
   { href: "/shipping", key: "shipping" },
