@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { localizedPath } from "@/lib/i18n-config";
 import { CosmicGlowButton } from "@/components/ui/spark-button";
+import { HeroVideo } from "./hero-video";
 import { useI18n } from "./providers";
 
 export function HomeHero({ cutoffLine }: { cutoffLine: string }) {
@@ -11,7 +12,8 @@ export function HomeHero({ cutoffLine }: { cutoffLine: string }) {
 
   return (
     <section className="mx-auto max-w-7xl px-4 pb-10 pt-10 md:pb-14 md:pt-12">
-      <div className="glass rounded-[28px] px-6 py-10 md:px-12 md:py-16">
+      <div className="glass grid items-center gap-10 rounded-[28px] px-6 py-10 md:grid-cols-[minmax(0,1fr)_auto] md:px-12 md:py-16">
+        <div>
         <p className="num text-center text-xs uppercase tracking-[0.22em] text-muted md:text-left">
           {t.home.kicker}
         </p>
@@ -39,6 +41,8 @@ export function HomeHero({ cutoffLine }: { cutoffLine: string }) {
           </Link>
         </div>
         <p className="num mt-8 text-center text-sm text-muted md:text-left">{cutoffLine}</p>
+        </div>
+        <HeroVideo label={t.home.videoLabel} />
       </div>
     </section>
   );
