@@ -64,12 +64,12 @@ export const defaultConfig: SiteConfig = {
   cutoffMinute: 0,
   timezone: "Europe/Amsterdam",
   priceTiers: [
-    { upToMeters: 5, pricePerMeter: 9.45 },
-    { upToMeters: 10, pricePerMeter: 8.95 },
-    { upToMeters: 25, pricePerMeter: 8.45 },
-    { upToMeters: 50, pricePerMeter: 7.95 },
-    { upToMeters: 100, pricePerMeter: 7.45 },
-    { upToMeters: null, pricePerMeter: 6.95 },
+    // Benchmarked against the Madrid trade rate, plus 10%.
+    { upToMeters: 10, pricePerMeter: 11.0 },
+    { upToMeters: 30, pricePerMeter: 10.45 },
+    { upToMeters: 50, pricePerMeter: 9.9 },
+    { upToMeters: 100, pricePerMeter: 9.35 },
+    { upToMeters: null, pricePerMeter: 8.25 },
   ],
   btwRate: 0.21,
   minOrderM: 0.5,
