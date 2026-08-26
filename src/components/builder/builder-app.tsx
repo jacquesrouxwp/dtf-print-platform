@@ -19,6 +19,7 @@ import { useBuilderStore, type Design } from "@/store/useBuilderStore";
 import { useCartStore } from "@/store/useCartStore";
 import { useJobStore, type JobFilm } from "@/store/useJobStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
+import { BrandLogo } from "../brand-logo";
 import { useI18n } from "../providers";
 
 const BuilderCanvas = dynamic(
@@ -356,10 +357,11 @@ export function BuilderApp() {
       <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-white/10 bg-black/40 px-3 py-2">
         <Link
           href={localizedPath(locale, "/")}
-          className="font-display text-xl leading-none tracking-tight text-foreground"
+          className="flex items-center"
           title={t.builder.backToSite}
+          aria-label="DTF"
         >
-          HLV
+          <BrandLogo height={24} />
         </Link>
         <span className="hidden text-xs text-muted sm:inline">{t.builder.title}</span>
         <div className="flex items-baseline gap-2 lg:ml-6">

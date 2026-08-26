@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Menu, X, ShoppingBag } from "lucide-react";
 import { locales, localizedPath } from "@/lib/i18n-config";
+import { BrandLogo } from "./brand-logo";
 import { useI18n } from "./providers";
 import { useCartStore } from "@/store/useCartStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
@@ -60,9 +61,10 @@ export function Header() {
       <div className="mx-auto flex max-w-7xl items-center gap-5 px-4 py-3">
         <Link
           href={localizedPath(locale, "/")}
-          className="font-display text-2xl leading-none tracking-tight"
+          className="flex items-center"
+          aria-label="DTF"
         >
-          HLV
+          <BrandLogo height={28} priority />
         </Link>
 
         <nav className="hidden items-center gap-4 md:flex">

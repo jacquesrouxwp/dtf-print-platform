@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   },
   description:
     "DTF transfers printed in Hilversum. Ordered today, on your press tomorrow. Pay per meter. No minimums.",
-  icons: { icon: "/favicon.svg" },
+  icons: { icon: "/favicon.png", apple: "/favicon.png" },
 };
 
 export default function RootLayout({
