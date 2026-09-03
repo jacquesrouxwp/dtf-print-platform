@@ -51,20 +51,20 @@ export type SiteConfig = {
   placeholdersConfirmed: boolean;
 };
 
-/** Working defaults until the client confirms section-14 answers. */
+/** Working defaults. Legal IDs stay empty until paperwork lands. */
 export const defaultConfig: SiteConfig = {
-  brandName: "HLV",
-  legalName: "HLV Transfers",
-  tagline: "Where art meets industry.",
-  city: "Hilversum",
+  brandName: "DTF Studio",
+  legalName: "DTF Studio",
+  tagline: "Pro-quality custom transfers.",
+  city: "Ankeveen",
   country: "Netherlands",
   countryCode: "NL",
-  email: "orders@hlv.film",
-  phone: "+31 35 000 0000",
-  whatsapp: "+31 6 0000 0000",
-  addressLine: "Hilversum, Netherlands",
-  kvk: "00000000",
-  btwNumber: "NL000000000B01",
+  email: "jacqrodtf@gmail.com",
+  phone: "",
+  whatsapp: "",
+  addressLine: "Ankeveen, Netherlands",
+  kvk: "",
+  btwNumber: "",
   rollWidthMm: 550,
   cutoffHour: 16,
   cutoffMinute: 0,
@@ -107,10 +107,10 @@ export const defaultConfig: SiteConfig = {
   rushSurcharge: 0.2,
   pickupEnabled: true,
   uvDtfAtLaunch: false,
-  placeholdersConfirmed: false,
+  placeholdersConfirmed: true,
 };
 
-export const CONFIG_STORAGE_KEY = "hlv-site-config";
+export const CONFIG_STORAGE_KEY = "dtf-site-config";
 
 /** Merge a partial/stale persisted config onto defaults. Empty strings must not win. */
 export function sanitizeConfig(partial?: Partial<SiteConfig> | null): SiteConfig {
@@ -128,6 +128,19 @@ export function sanitizeConfig(partial?: Partial<SiteConfig> | null): SiteConfig
   if (!Number.isFinite(next.cutoffMinute)) next.cutoffMinute = defaultConfig.cutoffMinute;
   if (!Array.isArray(next.priceTiers) || next.priceTiers.length === 0) {
     next.priceTiers = defaultConfig.priceTiers;
+  }
+  const brandBlob = `${next.brandName} ${next.legalName} ${next.email} ${next.tagline}`;
+  if (/hlv|hilversum|jacqro|printify/i.test(brandBlob)) {
+    next.brandName = defaultConfig.brandName;
+    next.legalName = defaultConfig.legalName;
+    next.tagline = defaultConfig.tagline;
+    next.city = defaultConfig.city;
+    next.email = defaultConfig.email;
+    next.addressLine = defaultConfig.addressLine;
+  }
+  if (/00000000/.test(next.kvk) || /NL000000000B01/i.test(next.btwNumber)) {
+    next.kvk = "";
+    next.btwNumber = "";
   }
   return next;
 }

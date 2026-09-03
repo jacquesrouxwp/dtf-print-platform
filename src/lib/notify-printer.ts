@@ -10,7 +10,7 @@ export type PrinterNotice = {
 
 export function printerNoticeText(notice: PrinterNotice): string {
   const lines = [
-    `New paid HLV order ${notice.orderId}`,
+    `New paid DTF Studio order ${notice.orderId}`,
     `Customer: ${notice.customer.name || "—"} <${notice.customer.email || "—"}>`,
     `Charged: €${notice.charged.toFixed(2)} incl. BTW`,
     `Films: ${notice.films.length}`,
@@ -42,7 +42,7 @@ export async function notifyPrinter(notice: PrinterNotice): Promise<{ sent: bool
   }
 
   try {
-    const from = process.env.PRINT_FROM_EMAIL || "HLV <orders@hlv.film>";
+    const from = process.env.PRINT_FROM_EMAIL || "DTF Studio <jacqrodtf@gmail.com>";
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -52,7 +52,7 @@ export async function notifyPrinter(notice: PrinterNotice): Promise<{ sent: bool
       body: JSON.stringify({
         from,
         to: [to],
-        subject: `HLV print queue ${notice.orderId}`,
+        subject: `DTF Studio print queue ${notice.orderId}`,
         text: body,
       }),
     });

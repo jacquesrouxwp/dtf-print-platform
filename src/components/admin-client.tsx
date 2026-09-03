@@ -6,7 +6,7 @@ import { useI18n } from "./providers";
 import { defaultConfig, type SiteConfig } from "@/lib/site-config";
 import { useSettingsStore } from "@/store/useSettingsStore";
 
-const ADMIN_FALLBACK = "hlv-admin";
+const ADMIN_FALLBACK = "dtf-admin";
 
 export function AdminClient() {
   const { t } = useI18n();

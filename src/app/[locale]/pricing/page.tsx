@@ -31,7 +31,7 @@ export default async function PricingPage({
 
   return (
     <PageShell kicker={t.pricing.kicker} title={t.pricing.title} lede={fill(t.pricing.lede, c, lang)} wide>
-      <p className="mb-8 text-2xl">{t.pricing.noMin}</p>
+      <p className="mb-8 text-2xl">{fill(t.pricing.noMin, c, lang)}</p>
       <PricingTable locale={lang} />
       <div className="mt-10 grid gap-3 text-sm text-muted">
         <p>{fill(t.pricing.shipping, c, lang)}</p>

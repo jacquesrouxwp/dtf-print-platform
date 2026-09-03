@@ -54,18 +54,18 @@ export default async function LegalPage({
     slug === "privacy"
       ? locale === "nl"
         ? [
-            "HLV verwerkt persoonsgegevens om orders te drukken, te verzenden en te factureren. Bewaartermijn: zo lang als de orderadministratie wettelijk vereist.",
+            "DTF Studio verwerkt persoonsgegevens om orders te drukken, te verzenden en te factureren. Bewaartermijn: zo lang als de orderadministratie wettelijk vereist.",
             "Verwerkers: hosting (Vercel), betalingen (Mollie, zodra geactiveerd), e-mail. EU-dataresidency waar mogelijk.",
             "Je hebt recht op inzage, rectificatie en verwijdering. Mail daarvoor het shopadres.",
           ]
         : locale === "ru"
           ? [
-              "HLV обрабатывает персональные данные, чтобы печатать, отправлять и выставлять счета. Срок хранения — пока этого требует учёт.",
+              "DTF Studio обрабатывает персональные данные, чтобы печатать, отправлять и выставлять счета. Срок хранения — пока этого требует учёт.",
               "Обработчики: хостинг (Vercel), платежи (Mollie, когда ключ включён), почта. По возможности данные остаются в ЕС.",
               "Можно запросить доступ, правку или удаление — напишите на адрес цеха.",
             ]
           : [
-            "HLV processes personal data to print, ship and invoice orders. Retention follows statutory bookkeeping.",
+            "DTF Studio processes personal data to print, ship and invoice orders. Retention follows statutory bookkeeping.",
             "Processors: hosting (Vercel), payments (Mollie when enabled), email. EU data residency preferred.",
             "You can request access, correction or deletion via the shop email.",
           ]

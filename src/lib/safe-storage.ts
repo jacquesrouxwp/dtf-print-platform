@@ -1,4 +1,15 @@
 /** localStorage wrapper that never throws QuotaExceededError out of a click handler. */
+export function migrateStorageKey(from: string, to: string) {
+  if (typeof window === "undefined" || from === to) return;
+  try {
+    if (window.localStorage.getItem(to)) return;
+    const old = window.localStorage.getItem(from);
+    if (old) window.localStorage.setItem(to, old);
+  } catch {
+    /* ignore */
+  }
+}
+
 export const safeStorage = {
   getItem(name: string): string | null {
     if (typeof window === "undefined") return null;

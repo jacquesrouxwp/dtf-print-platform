@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
+import { Geist_Mono, Source_Sans_3 } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const sourceSans = Source_Sans_3({
+  variable: "--font-source-sans",
+  subsets: ["latin", "cyrillic"],
+  weight: ["400", "600", "700"],
 });
 
 const geistMono = Geist_Mono({
@@ -12,21 +13,15 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const display = Playfair_Display({
-  variable: "--font-display",
-  subsets: ["latin", "cyrillic"],
-  weight: ["400", "500"],
-});
-
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://hlv.film"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://dtfstudio.site"),
   title: {
-    default: "HLV — DTF transfers printed in Hilversum",
-    template: "%s · HLV",
+    default: "DTF Studio — DTF transfers printed in Ankeveen",
+    template: "%s · DTF Studio",
   },
   description:
-    "DTF transfers printed in Hilversum. Ordered today, on your press tomorrow. Pay per meter. No minimums.",
-  icons: { icon: "/favicon.png", apple: "/favicon.png" },
+    "DTF transfers printed in Ankeveen. Ordered today, on your press tomorrow. Pay per meter.",
+  icons: { icon: "/favicon.svg", apple: "/favicon.png" },
 };
 
 export default function RootLayout({
@@ -35,8 +30,9 @@ export default function RootLayout({
   return (
     <html lang="nl" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${display.variable} min-h-screen bg-background text-foreground antialiased`}
+        className={`${sourceSans.variable} ${geistMono.variable} min-h-screen bg-background text-foreground antialiased`}
       >
+        <div className="page-rail" aria-hidden />
         {children}
       </body>
     </html>

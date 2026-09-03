@@ -26,7 +26,7 @@ export function makeDemoDesigns(): Design[] {
     ctx.font = "700 220px ui-monospace, monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("HLV", w / 2, h / 2 + 10);
+    ctx.fillText("DTF", w / 2, h / 2 + 10);
   });
 
   const word = canvasPng(1400, 420, (ctx, w, h) => {
@@ -76,10 +76,10 @@ export function makeDemoDesigns(): Design[] {
   });
 
   const specs: Array<Pick<Design, "name" | "src" | "pixelW" | "pixelH" | "widthMm" | "heightMm" | "qty">> = [
-    { name: "hlv-mark.png", src: mark, pixelW: 900, pixelH: 900, widthMm: 80, heightMm: 80, qty: 4 },
+    { name: "dtf-mark.png", src: mark, pixelW: 900, pixelH: 900, widthMm: 80, heightMm: 80, qty: 4 },
     { name: "atelier.png", src: word, pixelW: 1400, pixelH: 420, widthMm: 180, heightMm: 54, qty: 2 },
     { name: "badge-55.png", src: badge, pixelW: 700, pixelH: 700, widthMm: 60, heightMm: 60, qty: 3 },
-    { name: "hilversum.png", src: banner, pixelW: 1600, pixelH: 360, widthMm: 220, heightMm: 50, qty: 2 },
+    { name: "ankeveen.png", src: banner, pixelW: 1600, pixelH: 360, widthMm: 220, heightMm: 50, qty: 2 },
     { name: "88.png", src: number, pixelW: 800, pixelH: 1000, widthMm: 70, heightMm: 88, qty: 6 },
   ];
 

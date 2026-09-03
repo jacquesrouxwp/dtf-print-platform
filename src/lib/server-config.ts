@@ -14,7 +14,7 @@ export function adminPassword() {
   const fromEnv = process.env.ADMIN_PASSWORD;
   if (fromEnv && fromEnv.length > 0) return fromEnv;
   if (process.env.VERCEL) return "";
-  return "hlv-admin";
+  return "dtf-admin";
 }
 
 export function checkAdmin(request: Request) {

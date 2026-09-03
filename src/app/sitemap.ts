@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const site = process.env.NEXT_PUBLIC_SITE_URL || "https://hlv.film";
+const site = process.env.NEXT_PUBLIC_SITE_URL || "https://dtfstudio.site";
 
 const paths = [
   "",
