@@ -13,7 +13,10 @@ const STALE_V1 = JSON.stringify({
 
 function installStorage(blob: string | null) {
   const map = new Map<string, string>();
-  if (blob) map.set("hlv-builder", blob);
+  if (blob) {
+    map.set("dtf-builder", blob);
+    map.set("hlv-builder", blob);
+  }
   vi.stubGlobal("window", {
     localStorage: {
       getItem: (k: string) => map.get(k) ?? null,

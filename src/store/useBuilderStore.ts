@@ -837,12 +837,13 @@ export const useBuilderStore = create<BuilderState>()(
       },
     }),
     {
-      name: "hlv-builder",
+      name: "dtf-builder",
       version: PERSIST_VERSION,
       skipHydration: true,
       storage: createJSONStorage(() => ({
         getItem(name: string) {
-          const raw = safeStorage.getItem(name);
+          let raw = safeStorage.getItem(name);
+          if (!raw && name === "dtf-builder") raw = safeStorage.getItem("hlv-builder");
           if (!raw) return raw;
           try {
             const parsed = JSON.parse(raw) as { version?: unknown; state?: unknown };

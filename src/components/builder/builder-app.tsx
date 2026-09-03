@@ -16,7 +16,7 @@ import { layoutAlerts } from "@/lib/layout-alerts";
 import { defaultTextSpec, rasterizeText, type TextAlign, type TextSpec } from "@/lib/raster-text";
 import { fill } from "@/lib/tokens";
 import { useBuilderStore, type Design } from "@/store/useBuilderStore";
-import { useCartStore } from "@/store/useCartStore";
+import { cartFingerprint, useCartStore } from "@/store/useCartStore";
 import { useJobStore, type JobFilm } from "@/store/useJobStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
 import { BrandLogo } from "../brand-logo";
@@ -24,7 +24,7 @@ import { useI18n } from "../providers";
 
 const BuilderCanvas = dynamic(
   () => import("./builder-canvas").then((m) => m.BuilderCanvas),
-  { ssr: false, loading: () => <div className="h-full min-h-[420px] rounded-xl bg-white/5" /> }
+  { ssr: false, loading: () => <div className="h-full min-h-[420px] rounded-sm bg-surface" /> }
 );
 
 type LeftTab = "images" | "text";
@@ -47,7 +47,6 @@ export function BuilderApp() {
   const [query, setQuery] = useState("");
   const [zoomPct, setZoomPct] = useState(100);
   const [fitNote, setFitNote] = useState<string | null>(null);
-  const [trade, setTrade] = useState(false);
   const [added, setAdded] = useState(false);
 
   useEffect(() => {
@@ -101,7 +100,6 @@ export function BuilderApp() {
   const upsertFilm = useJobStore((s) => s.upsert);
   const removeFilm = useJobStore((s) => s.remove);
   const setActiveFilm = useJobStore((s) => s.setActive);
-  const clearJob = useJobStore((s) => s.clear);
   const addLine = useCartStore((s) => s.addLine);
 
   const selectedPieceExact = placed.find((p) => p.id === selectedId) ?? null;
@@ -156,8 +154,8 @@ export function BuilderApp() {
   }, [config]);
 
   const liveQuote = useMemo(
-    () => quoteFilm(designs.length ? lengthMm : 0, config, { trade, includeShipping: false }),
-    [designs.length, lengthMm, config, trade]
+    () => quoteFilm(designs.length ? lengthMm : 0, config, { trade: false, includeShipping: false }),
+    [designs.length, lengthMm, config]
   );
 
   const otherFilms = films.filter((f) => f.id !== activeId);
@@ -166,11 +164,11 @@ export function BuilderApp() {
     ...otherFilms.map((f) => f.lengthMm),
   ].filter((n) => n > 0);
   const jobSubtotal = jobLengths.reduce(
-    (sum, mm) => sum + quoteFilm(mm, config, { trade, includeShipping: false }).subtotalExcl,
+    (sum, mm) => sum + quoteFilm(mm, config, { trade: false, includeShipping: false }).subtotalExcl,
     0
   );
   const jobBilled = jobLengths.reduce(
-    (sum, mm) => sum + quoteFilm(mm, config, { trade, includeShipping: false }).billedMeters,
+    (sum, mm) => sum + quoteFilm(mm, config, { trade: false, includeShipping: false }).billedMeters,
     0
   );
   const shipping =
@@ -239,15 +237,35 @@ export function BuilderApp() {
     }
   }
 
+  function filmFingerprint(film: JobFilm): string {
+    try {
+      const parsed = JSON.parse(film.payload) as {
+        designs?: { id: string; qty: number; widthMm: number; heightMm: number }[];
+      };
+      return cartFingerprint({
+        lengthMm: film.lengthMm,
+        designs: parsed.designs ?? [],
+      });
+    } catch {
+      return film.id;
+    }
+  }
+
   function addOrderToCart() {
     if (added || blocking) return;
     const shot = captureCurrent(activeId);
+    if (shot) upsertFilm(shot);
     const all: JobFilm[] = [];
-    if (shot) all.push(shot);
-    for (const f of films) {
-      if (!all.some((x) => x.id === f.id)) all.push(f);
+    const seen = new Set<string>();
+    for (const film of [shot, ...useJobStore.getState().films]) {
+      if (!film || film.designCount <= 0 || film.lengthMm <= 0) continue;
+      const fp = filmFingerprint(film);
+      if (seen.has(fp) || seen.has(film.id)) continue;
+      seen.add(fp);
+      seen.add(film.id);
+      all.push(film);
     }
-    const usable = all.filter((f) => f.designCount > 0 && f.lengthMm > 0);
+    const usable = all;
     if (!usable.length) return;
     if (
       usable.some((f) => {
@@ -267,14 +285,14 @@ export function BuilderApp() {
         placed: typeof placed;
         lengthMm: number;
       };
-      const q = quoteFilm(film.lengthMm, config, { trade, includeShipping: false });
+      const q = quoteFilm(film.lengthMm, config, { trade: false, includeShipping: false });
       addLine({
         id: crypto.randomUUID(),
         lengthMm: film.lengthMm,
         billedMeters: q.billedMeters,
         rate: q.rate,
         subtotalExcl: q.subtotalExcl,
-        trade,
+        trade: false,
         rush: false,
         gapMm: gapMm ?? config.gapMm,
         designs: (parsed.designs ?? []).map((d) => ({
@@ -290,8 +308,6 @@ export function BuilderApp() {
         createdAt: new Date().toISOString(),
       });
     }
-    clearJob();
-    reset();
     setAdded(true);
   }
 
@@ -354,7 +370,7 @@ export function BuilderApp() {
     <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden">
       {/* The builder owns the window, so it carries its own bar: the way back
           to the site on the left, the money and the order on the right. */}
-      <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-white/10 bg-black/40 px-3 py-2">
+      <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-line bg-paper px-3 py-2">
         <Link
           href={localizedPath(locale, "/")}
           className="flex items-center"
@@ -371,6 +387,8 @@ export function BuilderApp() {
         <span className="num text-xs text-muted">
           {metersLabel(Number(jobBilled.toFixed(2)), locale)} ·{" "}
           {filmsCount(jobLengths.length, locale)}
+          {" · "}
+          {fill(t.builder.billedHint, config, locale)}
         </span>
         {blocking && <span className="text-xs text-bad">{t.builder.uploadFailed}</span>}
         {offerFit && (
@@ -402,8 +420,8 @@ export function BuilderApp() {
           </button>
         </div>
       </div>
-      <div className="flex min-h-0 flex-1 overflow-hidden border border-white/10 bg-black/30">
-        <nav className="flex w-14 shrink-0 flex-col items-center gap-1 overflow-y-auto thin-scroll border-r border-white/10 bg-black/40 py-3">
+      <div className="flex min-h-0 flex-1 overflow-hidden border border-line bg-surface">
+        <nav className="flex w-14 shrink-0 flex-col items-center gap-1 overflow-y-auto thin-scroll border-r border-line bg-paper py-3">
           <RailBtn
             active={tab === "images"}
             label={t.builder.tabImages}
@@ -420,7 +438,7 @@ export function BuilderApp() {
           </RailBtn>
         </nav>
 
-        <aside className="flex w-[280px] min-h-0 shrink-0 flex-col overflow-y-auto thin-scroll border-r border-white/10 bg-black/20 xl:w-[300px]">
+        <aside className="flex w-[280px] min-h-0 shrink-0 flex-col overflow-y-auto thin-scroll border-r border-line bg-paper xl:w-[300px]">
           {tab === "images" ? (
             <>
               <div className="shrink-0 space-y-2 p-3">
@@ -520,7 +538,7 @@ export function BuilderApp() {
             void onFiles(e.dataTransfer.files);
           }}
         >
-          <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-white/10 px-3 py-2">
+          <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-line px-3 py-2">
             <button type="button" className="btn-soft" disabled={!canUndo} onClick={undo}>
               {t.builder.undo}
             </button>
@@ -555,7 +573,7 @@ export function BuilderApp() {
             >
               {t.builder.duplicate}
             </button>
-            <span className="mx-0.5 h-5 w-px bg-white/10" aria-hidden />
+            <span className="mx-0.5 h-5 w-px bg-line" aria-hidden />
             {(["left", "center", "right"] as const).map((edge) => (
               <button
                 key={edge}
@@ -627,7 +645,7 @@ export function BuilderApp() {
           </div>
         </section>
 
-        <aside className="flex w-[280px] min-h-0 shrink-0 flex-col overflow-y-auto thin-scroll border-l border-white/10 bg-black/20 xl:w-[300px]">
+        <aside className="flex w-[280px] min-h-0 shrink-0 flex-col overflow-y-auto thin-scroll border-l border-line bg-paper xl:w-[300px]">
           {selectedDesign && (
             <PieceProperties
               design={selectedDesign}
@@ -664,7 +682,7 @@ export function BuilderApp() {
               film={liveCard}
               active
               locale={locale}
-              trade={trade}
+              trade={false}
               onOpen={() => undefined}
               onRemove={
                 designs.length
@@ -681,13 +699,13 @@ export function BuilderApp() {
                 film={f}
                 active={false}
                 locale={locale}
-                trade={trade}
+                trade={false}
                 onOpen={() => openFilm(f)}
                 onRemove={() => dropFilm(f.id)}
               />
             ))}
           </div>
-          <div className="shrink-0 space-y-3 border-t border-white/10 p-3">
+          <div className="shrink-0 space-y-3 border-t border-line p-3">
             <div className="flex items-baseline justify-between">
               <span className="text-xs text-muted">{t.builder.orderTotal}</span>
               <span className="num text-2xl text-accent">{money(displayJob, locale)}</span>
@@ -696,10 +714,7 @@ export function BuilderApp() {
               {metersLabel(Number(jobBilled.toFixed(2)), locale)} ·{" "}
               {filmsCount(jobLengths.length, locale)}
             </p>
-            <label className="flex items-center gap-2 text-xs text-muted">
-              <input type="checkbox" checked={trade} onChange={(e) => setTrade(e.target.checked)} />
-              {t.checkout.trade}
-            </label>
+            <p className="text-[11px] text-muted">{fill(t.builder.billedHint, config, locale)}</p>
           </div>
         </aside>
       </div>
@@ -782,7 +797,7 @@ function PieceProperties({
   }
 
   return (
-    <div className="shrink-0 space-y-3 border-b border-white/10 px-3 py-3">
+    <div className="shrink-0 space-y-3 border-b border-line px-3 py-3">
       <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{t.builder.properties}</p>
       <div className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
         <NumField label={`${t.builder.width} (cm)`} value={design.widthMm / 10} onCommit={setWidthCm} />
@@ -818,7 +833,7 @@ function PieceProperties({
           {Math.round(dpi)} {dpiOk ? t.builder.dpiGood : t.builder.dpiLow}
         </span>
       </div>
-      <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-2">
+      <div className="space-y-2 rounded-lg border border-line bg-surface p-2">
         <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{t.builder.autoFilm}</p>
         <div className="flex items-center gap-2">
           <select
@@ -945,7 +960,7 @@ function ColorField({
         type="color"
         value={/^#[0-9a-fA-F]{6}$/.test(value) ? value : "#ffffff"}
         onChange={(e) => onChange(e.target.value)}
-        className="h-7 w-9 cursor-pointer rounded border border-white/20 bg-transparent p-0"
+        className="h-7 w-9 cursor-pointer rounded border border-line bg-transparent p-0"
         title={label}
       />
       <input
@@ -983,7 +998,7 @@ function TextProperties({
   }
 
   return (
-    <div className="shrink-0 space-y-3 border-b border-white/10 px-3 py-3">
+    <div className="shrink-0 space-y-3 border-b border-line px-3 py-3">
       <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{t.builder.tabText}</p>
       <textarea
         value={draft}
@@ -1096,7 +1111,7 @@ function RailBtn({
       type="button"
       onClick={onClick}
       className={`flex w-12 flex-col items-center gap-1 rounded-xl py-2 text-[10px] ${
-        active ? "bg-white/10 text-foreground" : "text-muted hover:text-foreground"
+        active ? "bg-line text-foreground" : "text-muted hover:text-foreground"
       }`}
     >
       {children}
@@ -1131,7 +1146,7 @@ function FilmCard({
     : q.subtotalExcl;
   return (
     <div
-      className={`flex gap-2 rounded-2xl p-2 ${active ? "ring-1 ring-accent bg-white/5" : "bg-white/5"}`}
+      className={`flex gap-2 rounded-sm border border-line p-2 ${active ? "ring-1 ring-accent bg-surface" : "bg-surface"}`}
     >
       <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 gap-2 text-left">
         <div className="checker h-14 w-14 shrink-0 overflow-hidden rounded-xl">
@@ -1183,7 +1198,7 @@ function LibraryItem({ design, selected }: { design: Design; selected: boolean }
   const config = useSettingsStore((s) => s.config);
   return (
     <li
-      className={`flex items-stretch gap-1 rounded-2xl bg-white/5 p-2 ${
+      className={`flex items-stretch gap-1 rounded-sm border border-line bg-surface p-2 ${
         selected ? "ring-1 ring-accent" : ""
       }`}
     >
@@ -1272,7 +1287,7 @@ function Inspector({
   }
 
   return (
-    <div className="mt-3 rounded-2xl bg-white/5 p-3">
+    <div className="mt-3 rounded-sm border border-line bg-surface p-3">
       <p className="num text-[11px] uppercase tracking-[0.16em] text-muted">{t.builder.properties}</p>
       <p className={`num mt-1 text-xs ${dpi < 150 ? "text-bad" : dpi < 200 ? "text-warn" : "text-muted"}`}>
         {t.builder.dpi} {dpi}

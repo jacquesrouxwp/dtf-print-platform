@@ -38,7 +38,10 @@ function persistedWith(src: string, previewUrl?: string) {
 }
 
 function installStorage(blob: string) {
-  const map = new Map<string, string>([["hlv-builder", blob]]);
+  const map = new Map<string, string>([
+    ["dtf-builder", blob],
+    ["hlv-builder", blob],
+  ]);
   vi.stubGlobal("window", {
     localStorage: {
       getItem: (k: string) => map.get(k) ?? null,
@@ -84,7 +87,7 @@ describe("artwork preview across navigation", () => {
     const { useBuilderStore } = await import("./useBuilderStore");
     await useBuilderStore.persist.rehydrate();
     useBuilderStore.getState().select("d1");
-    const written = JSON.parse(map.get("hlv-builder") as string);
+    const written = JSON.parse(map.get("dtf-builder") as string);
     expect(written.state.designs[0].src).toBe(SERVER_PREVIEW);
     expect(written.state.designs[0].src.startsWith("blob:")).toBe(false);
   });
