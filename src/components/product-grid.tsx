@@ -17,7 +17,7 @@ export function ProductGrid({ products }: { products: ProductTile[] }) {
         <li key={p.id}>
           <Link
             href={p.ctaHref}
-            className="glass block h-full rounded-[24px] px-6 py-8 transition hover:border-white/25"
+            className="glass block h-full rounded-sm px-6 py-8 transition hover:border-ink"
           >
             <p className="num text-xs uppercase tracking-[0.2em] text-muted">{p.tag}</p>
             <h3 className="font-display mt-5 text-2xl md:text-3xl">{p.title}</h3>

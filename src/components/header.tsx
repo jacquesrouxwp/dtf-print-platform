@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Menu, X, ShoppingBag } from "lucide-react";
 import { locales, localizedPath } from "@/lib/i18n-config";
 import { BrandLogo } from "./brand-logo";
@@ -13,9 +13,9 @@ import { useSettingsStore } from "@/store/useSettingsStore";
 type NavKey = keyof typeof import("@/messages/en").en.nav;
 
 const primary: { href: string; key: NavKey }[] = [
+  { href: "/dtf-transfers", key: "film" },
+  { href: "/order", key: "order" },
   { href: "/pricing", key: "pricing" },
-  { href: "/trade", key: "trade" },
-  { href: "/bundles", key: "bundles" },
 ];
 
 const more: { href: string; key: NavKey }[] = [
@@ -39,6 +39,10 @@ export function Header() {
   const btwInclusive = useSettingsStore((s) => s.btwInclusive);
   const setBtwInclusive = useSettingsStore((s) => s.setBtwInclusive);
 
+  useEffect(() => {
+    void useCartStore.persist.rehydrate();
+  }, []);
+
   const rest = pathname.replace(/^\/(nl|en|ru)/, "") || "/";
 
   const NavLink = ({ href, label }: { href: string; label: string }) => {
@@ -57,7 +61,7 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-neutral-950/55 backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-line bg-paper">
       <div className="mx-auto flex max-w-7xl items-center gap-5 px-4 py-3">
         <Link
           href={localizedPath(locale, "/")}
@@ -79,7 +83,7 @@ export function Header() {
             className="btn btn-primary"
             onClick={() => setOpen(false)}
           >
-            {t.nav.order}
+            {t.nav.start}
           </Link>
           <button
             type="button"
@@ -90,14 +94,14 @@ export function Header() {
             {btwInclusive ? t.common.inclBtw : t.common.exclBtw}
           </button>
 
-          <nav className="hidden items-center rounded-full border border-white/12 p-0.5 md:flex" aria-label={t.nav.language}>
+          <nav className="hidden items-center rounded-full border border-line p-0.5 md:flex" aria-label={t.nav.language}>
             {locales.map((code) => (
               <Link
                 key={code}
                 href={localizedPath(code, rest)}
                 hrefLang={code}
                 className={`num rounded-full px-2.5 py-1 text-xs uppercase tracking-wider ${
-                  code === locale ? "bg-white/12 text-foreground" : "text-muted hover:text-foreground"
+                  code === locale ? "bg-line text-foreground" : "text-muted hover:text-foreground"
                 }`}
               >
                 {code}
@@ -114,7 +118,7 @@ export function Header() {
 
           <Link
             href={localizedPath(locale, "/checkout")}
-            className="relative grid h-10 w-10 place-items-center rounded-full border border-white/12 text-foreground"
+            className="relative grid h-10 w-10 place-items-center rounded-full border border-line text-foreground"
             aria-label={t.nav.cart}
           >
             <ShoppingBag size={18} />
@@ -127,7 +131,7 @@ export function Header() {
 
           <button
             type="button"
-            className="grid h-10 w-10 place-items-center rounded-full border border-white/12 md:hidden"
+            className="grid h-10 w-10 place-items-center rounded-full border border-line md:hidden"
             onClick={() => setOpen((v) => !v)}
             aria-label={t.nav.menu}
           >
@@ -136,7 +140,7 @@ export function Header() {
         </div>
       </div>
 
-      <div className="hidden border-t border-white/10 md:block">
+      <div className="hidden border-t border-line md:block">
         <nav className="mx-auto flex max-w-7xl items-center gap-4 overflow-x-auto px-4 py-2 text-xs text-muted">
           {more.map((item) => (
             <NavLink key={item.href} href={item.href} label={t.nav[item.key]} />
@@ -145,7 +149,7 @@ export function Header() {
       </div>
 
       {open && (
-        <nav className="grid gap-2 border-t border-white/10 px-4 py-4 md:hidden">
+        <nav className="grid gap-2 border-t border-line px-4 py-4 md:hidden">
           {primary.concat(more).map((item) => (
             <NavLink key={item.href} href={item.href} label={t.nav[item.key]} />
           ))}
@@ -162,7 +166,7 @@ export function Header() {
                 key={code}
                 href={localizedPath(code, rest)}
                 className={`num rounded-full px-3 py-1.5 text-xs uppercase tracking-wider ${
-                  code === locale ? "bg-white/12 text-foreground" : "text-muted"
+                  code === locale ? "bg-line text-foreground" : "text-muted"
                 }`}
                 onClick={() => setOpen(false)}
               >

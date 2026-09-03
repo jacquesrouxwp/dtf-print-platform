@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { FrameCmyk } from "@/components/frame-cmyk";
 import { HomeHero } from "@/components/home-hero";
 import { ProductGrid } from "@/components/product-grid";
 import { getDict, isLocale } from "@/lib/i18n";
@@ -49,12 +50,12 @@ export default async function HomePage({
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
-    name: "HLV",
+    name: "DTF Studio",
     description: t.meta.homeDesc,
-    url: "https://hlv.film",
+    url: "https://dtfstudio.site",
     address: {
       "@type": "PostalAddress",
-      addressLocality: "Hilversum",
+      addressLocality: "Ankeveen",
       addressCountry: "NL",
     },
     areaServed: ["Amsterdam", "Utrecht", "Netherlands"],
@@ -89,7 +90,7 @@ export default async function HomePage({
           <h2 className="font-display mt-5 text-3xl md:text-4xl">{t.home.howTitle}</h2>
           <div className="mt-10 grid gap-8 md:grid-cols-3">
             {t.home.steps.map((step) => (
-              <div key={step.n} className="rounded-2xl border border-white/10 bg-white/4 p-5">
+              <div key={step.n} className="rounded-sm border border-line bg-surface p-5">
                 <p className="num text-xs text-accent">{step.n}</p>
                 <h3 className="mt-3 text-xl">{step.t}</h3>
                 <p className="mt-3 text-sm leading-relaxed text-muted">{fill(step.d, c, lang)}</p>
@@ -105,7 +106,7 @@ export default async function HomePage({
           <h2 className="font-display mt-5 max-w-3xl text-3xl md:text-4xl">{t.home.whyTitle}</h2>
           <div className="mt-10 grid gap-8 md:grid-cols-2">
             {t.home.why.map((item) => (
-              <div key={item.t} className="rounded-2xl border border-white/10 p-5">
+              <div key={item.t} className="rounded-sm border border-line p-5">
                 <h3 className="text-xl">{item.t}</h3>
                 <p className="mt-3 text-sm leading-relaxed text-muted">{fill(item.d, c, lang)}</p>
               </div>
@@ -118,7 +119,7 @@ export default async function HomePage({
         <div className="glass rounded-[28px] px-6 py-12 md:px-12 md:py-16">
           <p className="num text-xs uppercase tracking-[0.2em] text-muted">{t.home.whoKicker}</p>
           <h2 className="font-display mt-5 text-3xl md:text-4xl">{t.home.whoTitle}</h2>
-          <div className="mt-8 divide-y divide-white/10">
+          <div className="mt-8 divide-y divide-line">
             {t.home.who.map((item) => (
               <div key={item.t} className="grid gap-2 py-5 md:grid-cols-3">
                 <h3 className="text-base">{item.t}</h3>
@@ -157,13 +158,15 @@ export default async function HomePage({
               {t.home.rentCta}
             </Link>
           </div>
-          <Image
-            src="/press-rental.webp"
-            alt={t.rental.photoAlt}
-            width={1536}
-            height={678}
-            className="h-auto w-full rounded-2xl border border-white/10"
-          />
+          <FrameCmyk>
+            <Image
+              src="/press-rental.webp"
+              alt={t.rental.photoAlt}
+              width={1536}
+              height={678}
+              className="h-auto w-full"
+            />
+          </FrameCmyk>
         </div>
       </section>
 
@@ -182,7 +185,7 @@ export default async function HomePage({
 
 function RollDiagram({ locale, label }: { locale: string; label: string }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/12 bg-white/5 p-5">
+    <FrameCmyk className="overflow-hidden bg-surface p-5">
       <p className="num mb-4 text-xs uppercase tracking-[0.18em] text-muted">{label}</p>
       <svg viewBox="0 0 550 320" className="w-full" role="img" aria-label="55 cm roll">
         <rect x="1" y="1" width="548" height="318" fill="#f3efe6" stroke="#12110e" />
@@ -208,6 +211,6 @@ function RollDiagram({ locale, label }: { locale: string; label: string }) {
           55 cm
         </text>
       </svg>
-    </div>
+    </FrameCmyk>
   );
 }

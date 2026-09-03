@@ -11,7 +11,7 @@ export function PageShell({
   title: string;
   lede?: string;
   wide?: boolean;
-  children: ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <article className={`mx-auto px-4 py-16 md:py-24 ${wide ? "max-w-6xl" : "max-w-3xl"}`}>
