@@ -1,8 +1,8 @@
-# HLV — DTF Print Platform
+# DTF Studio — print platform
 
-Storefront and order intake for a Hilversum DTF transfer house. Phase 1 from the development brief: public site (NL/EN), gang sheet builder billed **per running meter**, checkout (iDEAL via Mollie when a key is set, otherwise demo), lead forms, and an admin panel for prices and cutoff.
+Storefront and order intake for DTF Studio (Netherlands · Ankeveen). Public site (NL/EN/RU), gang sheet builder billed **per running meter**, checkout (iDEAL via Mollie when a key is set; otherwise payments are blocked), lead forms, and an admin panel for prices and cutoff.
 
-**Working brand:** HLV. The real name and domain are still open (brief §14).
+**Brand:** DTF Studio. Customer-facing UI never uses HLV, Jacqro, or Printify.
 
 ## Non-negotiable product rule
 
@@ -31,7 +31,7 @@ Handover and the live status overlay: [`docs/STATUS.md`](docs/STATUS.md). Origin
 
 ## Admin
 
-`/nl/admin` — header `x-admin-password`. Local default `hlv-admin`. On Vercel set `ADMIN_PASSWORD`; there is no default in production. Config is stored in Vercel Blob when `BLOB_READ_WRITE_TOKEN` is set.
+`/nl/admin` — header `x-admin-password`. Local default `dtf-admin`. On Vercel set `ADMIN_PASSWORD`; there is no default in production. Config is stored in Vercel Blob when `BLOB_READ_WRITE_TOKEN` is set.
 
 ## Payments
 

@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
+import localFont from "next/font/local";
+import { Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const liberationSans = localFont({
+  src: [
+    { path: "../fonts/LiberationSans-Regular.ttf", weight: "400", style: "normal" },
+    { path: "../fonts/LiberationSans-Bold.ttf", weight: "700", style: "normal" },
+  ],
+  variable: "--font-liberation-sans",
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
@@ -12,21 +17,20 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const display = Playfair_Display({
-  variable: "--font-display",
-  subsets: ["latin", "cyrillic"],
-  weight: ["400", "500"],
-});
-
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://hlv.film"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://dtfstudio.site"),
   title: {
-    default: "HLV — DTF transfers printed in Hilversum",
-    template: "%s · HLV",
+    default: "DTF Studio — Custom DTF transfers and merch",
+    template: "%s · DTF Studio",
   },
-  description:
-    "DTF transfers printed in Hilversum. Ordered today, on your press tomorrow. Pay per meter. No minimums.",
-  icons: { icon: "/favicon.png", apple: "/favicon.png" },
+  description: "DTF Studio. Custom DTF transfers and merch. Bestel film. Pers zelf. Ankeveen, Netherlands.",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: "/favicon-180.png",
+  },
 };
 
 export default function RootLayout({
@@ -35,8 +39,9 @@ export default function RootLayout({
   return (
     <html lang="nl" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${display.variable} min-h-screen bg-background text-foreground antialiased`}
+        className={`${liberationSans.variable} ${geistMono.variable} min-h-screen bg-background text-foreground antialiased`}
       >
+        <div className="page-rail" aria-hidden />
         {children}
       </body>
     </html>

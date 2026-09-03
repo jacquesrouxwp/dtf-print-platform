@@ -3,6 +3,21 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { safeStorage } from "@/lib/safe-storage";
+
+/** One-shot: keep a real unpaid cart, then drop the old key so it cannot double-count. */
+function adoptLegacyCart() {
+  if (typeof window === "undefined") return;
+  try {
+    if (!window.localStorage.getItem("dtf-cart")) {
+      const prev = window.localStorage.getItem("hlv-cart");
+      if (prev) window.localStorage.setItem("dtf-cart", prev);
+    }
+    window.localStorage.removeItem("hlv-cart");
+  } catch {
+    /* ignore */
+  }
+}
+adoptLegacyCart();
 import type { PlacedPiece } from "@/lib/nesting";
 
 export type CartLine = {
@@ -45,6 +60,13 @@ type CartState = {
   removeDraft: (id: string) => void;
 };
 
+export function cartFingerprint(line: {
+  lengthMm: number;
+  designs: { id: string; qty: number; widthMm: number; heightMm: number }[];
+}): string {
+  return `${line.lengthMm}|${line.designs.map((d) => `${d.id}:${d.qty}:${d.widthMm}x${d.heightMm}`).join(",")}`;
+}
+
 function slimPayload(payload: string): string {
   try {
     const parsed = JSON.parse(payload) as {
@@ -71,16 +93,8 @@ export const useCartStore = create<CartState>()(
       drafts: [],
       addLine: (line) =>
         set((s) => {
-          const last = s.lines[s.lines.length - 1];
-          if (
-            last &&
-            last.lengthMm === line.lengthMm &&
-            last.designs.length === line.designs.length &&
-            last.designs.every((d, i) => d.id === line.designs[i]?.id && d.qty === line.designs[i]?.qty) &&
-            Date.now() - Date.parse(last.createdAt) < 1500
-          ) {
-            return s;
-          }
+          const fp = cartFingerprint(line);
+          if (s.lines.some((l) => cartFingerprint(l) === fp)) return s;
           return {
             lines: [
               ...s.lines,
@@ -105,7 +119,8 @@ export const useCartStore = create<CartState>()(
         set((s) => ({ drafts: s.drafts.filter((d) => d.id !== id) })),
     }),
     {
-      name: "hlv-cart",
+      name: "dtf-cart",
+      skipHydration: true,
       storage: createJSONStorage(() => safeStorage),
     }
   )

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getDict } from "./i18n";
 import { localizedPath } from "./i18n-config";
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://hlv.film";
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://dtfstudio.site";
 
 export function pageMetadata(
   locale: string,
@@ -13,7 +13,7 @@ export function pageMetadata(
   const t = getDict(locale);
   const url = `${SITE}${localizedPath(locale, path)}`;
   return {
-    title: `${title} · HLV`,
+    title: `${title} · DTF Studio`,
     description,
     alternates: {
       canonical: url,
@@ -25,14 +25,14 @@ export function pageMetadata(
       },
     },
     openGraph: {
-      title: `${title} · HLV`,
+      title: `${title} · DTF Studio`,
       description,
       url,
       locale: locale === "nl" ? "nl_NL" : locale === "ru" ? "ru_RU" : "en_GB",
-      siteName: "HLV",
+      siteName: "DTF Studio",
       type: "website",
     },
-    twitter: { card: "summary_large_image", title: `${title} · HLV`, description },
+    twitter: { card: "summary_large_image", title: `${title} · DTF Studio`, description },
     keywords: [
       "DTF transfers bestellen",
       "DTF drukwerk Nederland",

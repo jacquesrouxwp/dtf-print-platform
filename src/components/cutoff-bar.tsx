@@ -35,7 +35,7 @@ export function CutoffBar() {
   }, [config, locale, t]);
 
   return (
-    <div className="bg-accent text-white">
+    <div className="border-b border-line bg-paper text-mute">
       <p className="mx-auto max-w-7xl px-4 py-1.5 text-center text-xs tracking-wide">
         <span className="num">{label}</span>
       </p>

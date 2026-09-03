@@ -2,7 +2,9 @@
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { safeStorage } from "@/lib/safe-storage";
+import { migrateStorageKey, safeStorage } from "@/lib/safe-storage";
+
+migrateStorageKey("hlv-session", "dtf-session");
 
 export type LocalOrder = {
   id: string;
@@ -31,6 +33,6 @@ export const useSessionStore = create<SessionState>()(
       addOrder: (order) =>
         set((s) => ({ orders: [order, ...s.orders].slice(0, 40) })),
     }),
-    { name: "hlv-session", storage: createJSONStorage(() => safeStorage) }
+    { name: "dtf-session", storage: createJSONStorage(() => safeStorage) }
   )
 );

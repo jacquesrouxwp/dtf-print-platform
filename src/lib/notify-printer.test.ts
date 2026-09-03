@@ -5,19 +5,19 @@ import { deferPrintUntilPaid, fulfillmentClaim } from "./pending-order";
 describe("printer notice", () => {
   it("names the order, the customer and every film file", () => {
     const text = printerNoticeText({
-      orderId: "HLV-TEST",
+      orderId: "DTF-TEST",
       customer: { name: "Jan", email: "jan@shop.nl" },
       charged: 9.44,
       films: [
-        { filmId: "HLV-TEST-1", billedLengthMm: 500 },
-        { filmId: "HLV-TEST-2", billedLengthMm: 500 },
+        { filmId: "DTF-TEST-1", billedLengthMm: 500 },
+        { filmId: "DTF-TEST-2", billedLengthMm: 500 },
       ],
-      blobKeys: ["queue/HLV-TEST-1.png", "queue/HLV-TEST-2.png"],
+      blobKeys: ["queue/DTF-TEST-1.png", "queue/DTF-TEST-2.png"],
     });
-    expect(text).toContain("HLV-TEST");
+    expect(text).toContain("DTF-TEST");
     expect(text).toContain("jan@shop.nl");
-    expect(text).toContain("HLV-TEST-1");
-    expect(text).toContain("HLV-TEST-2");
+    expect(text).toContain("DTF-TEST-1");
+    expect(text).toContain("DTF-TEST-2");
     expect(text).toContain("€9.44");
   });
 });
@@ -27,7 +27,7 @@ describe("deferPrintUntilPaid", () => {
     expect(deferPrintUntilPaid("live_key", "ideal")).toBe(true);
   });
 
-  it("prints immediately in demo checkout with no Mollie key", () => {
+  it("does not treat a missing Mollie key as a paid print job", () => {
     expect(deferPrintUntilPaid(undefined, "ideal")).toBe(false);
     expect(deferPrintUntilPaid("", "ideal")).toBe(false);
   });

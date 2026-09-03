@@ -52,7 +52,7 @@ export const useJobStore = create<JobState>()(
       clear: () => set({ films: [], activeId: null }),
     }),
     {
-      name: "hlv-job",
+      name: "dtf-job",
       storage: createJSONStorage(() => safeStorage),
       partialize: (s) => ({
         films: s.films.map((f) => ({ ...f, previewSrc: slimSrc(f.previewSrc) })),

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { FrameCmyk } from "./frame-cmyk";
 
 /**
  * A clip of film coming off the printer, next to the headline.
@@ -46,9 +47,10 @@ export function HeroVideo({ label }: { label: string }) {
 
   return (
     <figure className="relative mx-auto w-full max-w-[210px] sm:max-w-[260px] md:mx-0 md:max-w-[320px]">
+      <FrameCmyk>
       <video
         ref={ref}
-        className="aspect-[9/16] w-full rounded-2xl border border-white/10 object-cover"
+        className="aspect-[9/16] w-full object-cover"
         src="/hero.mp4"
         poster="/hero-poster.webp"
         muted
@@ -61,13 +63,14 @@ export function HeroVideo({ label }: { label: string }) {
         <button
           type="button"
           onClick={start}
-          className="absolute inset-0 grid place-items-center rounded-2xl bg-black/30 text-sm text-white"
+          className="absolute inset-0 grid place-items-center bg-ink/30 text-sm text-paper"
         >
           <span className="rounded-full border border-white/40 px-4 py-2 backdrop-blur-sm">
             ▶ {label}
           </span>
         </button>
       )}
+      </FrameCmyk>
     </figure>
   );
 }

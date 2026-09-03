@@ -11,11 +11,11 @@ export function PageShell({
   title: string;
   lede?: string;
   wide?: boolean;
-  children: ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <article className={`mx-auto px-4 py-16 md:py-24 ${wide ? "max-w-6xl" : "max-w-3xl"}`}>
-      <div className="glass rounded-[28px] px-6 py-10 md:px-10 md:py-14">
+      <div className="glass px-6 py-10 md:px-10 md:py-14">
         {kicker && (
           <p className="num text-xs uppercase tracking-[0.2em] text-muted">{kicker}</p>
         )}

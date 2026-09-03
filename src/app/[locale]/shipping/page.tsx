@@ -52,7 +52,7 @@ function NlMap() {
       />
       <circle cx="95" cy="118" r="6" fill="#7eb6e4" />
       <text x="108" y="122" fill="#f3efe6" fontSize="10" fontFamily="ui-monospace, monospace">
-        HLV
+        DTF
       </text>
       <text x="70" y="95" fill="#7eb6e4" fontSize="8" fontFamily="ui-monospace, monospace">
         AMS

@@ -1,16 +1,23 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #0c1118;
-  --surface: #151c26;
-  --text: #eef3f8;
-  --text-dim: #8b98a8;
-  --line: rgba(255, 255, 255, 0.12);
-  --accent: #7eb6e4;
-  --accent-strong: #9cc9ee;
+  --paper: #fdfdfd;
+  --ink: #111111;
+  --mute: #5a5a5a;
+  --line: #e6e6e6;
+  --cmyk-c: #00aeef;
+  --cmyk-m: #ec008c;
+  --cmyk-y: #fff200;
+  --cmyk-k: #000000;
+  --bg: var(--paper);
+  --surface: #ffffff;
+  --text: var(--ink);
+  --text-dim: var(--mute);
+  --accent: var(--cmyk-c);
+  --accent-strong: var(--cmyk-m);
   --ok: #2d8a58;
   --warn: #c9a227;
-  --bad: #e24a4a;
+  --bad: #c41e3a;
 }
 
 @theme inline {
@@ -23,36 +30,13 @@
   --color-ok: var(--ok);
   --color-warn: var(--warn);
   --color-bad: var(--bad);
-  --color-paper: var(--text);
+  --color-paper: var(--paper);
   --color-paper-2: var(--surface);
-  --color-ink: var(--bg);
+  --color-ink: var(--ink);
   --color-rule: var(--line);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-liberation-sans);
   --font-mono: var(--font-geist-mono);
-  --font-display: var(--font-display);
-  --animate-glow-scale: glow-scale 5s ease-in-out infinite;
-  --animate-glow-slide: glow-slide 5s linear infinite;
-}
-
-@keyframes glow-scale {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 0.4;
-  }
-  50% {
-    transform: scale(1.15);
-    opacity: 0.7;
-  }
-}
-
-@keyframes glow-slide {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
+  --font-display: var(--font-liberation-sans);
 }
 
 html,
@@ -62,12 +46,76 @@ body {
 }
 
 body {
-  font-family: var(--font-geist-sans), system-ui, "Segoe UI", sans-serif;
+  font-family: var(--font-liberation-sans), "Liberation Sans", Arial, Helvetica, sans-serif;
   text-rendering: optimizeLegibility;
+  padding-left: 8px;
 }
 
 .font-display {
-  font-family: var(--font-display), ui-serif, Georgia, "Times New Roman", serif;
+  font-family: var(--font-liberation-sans), "Liberation Sans", Arial, Helvetica, sans-serif;
+  font-weight: 700;
+}
+
+.page-rail {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  z-index: 60;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    var(--cmyk-c) 0 25%,
+    var(--cmyk-m) 25% 50%,
+    var(--cmyk-y) 50% 75%,
+    var(--cmyk-k) 75% 100%
+  );
+}
+
+.frame-cmyk {
+  position: relative;
+}
+.frame-cmyk::before,
+.frame-cmyk::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+  z-index: 2;
+}
+.frame-cmyk::before {
+  top: 0;
+  left: 0;
+  border-top: 2px solid var(--cmyk-c);
+  border-left: 2px solid var(--cmyk-c);
+}
+.frame-cmyk::after {
+  top: 0;
+  right: 0;
+  border-top: 2px solid var(--cmyk-m);
+  border-right: 2px solid var(--cmyk-m);
+}
+.frame-cmyk > .frame-cmyk-br,
+.frame-cmyk > .frame-cmyk-bl {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+  z-index: 2;
+}
+.frame-cmyk-br {
+  right: 0;
+  bottom: 0;
+  border-right: 2px solid var(--cmyk-y);
+  border-bottom: 2px solid var(--cmyk-y);
+}
+.frame-cmyk-bl {
+  left: 0;
+  bottom: 0;
+  border-left: 2px solid var(--cmyk-k);
+  border-bottom: 2px solid var(--cmyk-k);
 }
 
 .num {
@@ -76,7 +124,7 @@ body {
 }
 
 ::selection {
-  background: var(--accent);
+  background: var(--cmyk-c);
   color: #fff;
 }
 
@@ -110,10 +158,28 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 
 .glass {
-  background: rgba(12, 18, 26, 0.62);
-  border: 1px solid rgba(126, 182, 228, 0.14);
-  backdrop-filter: blur(20px) saturate(1.25);
-  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  position: relative;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.glass::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(
+    to bottom,
+    var(--cmyk-c) 0 25%,
+    var(--cmyk-m) 25% 50%,
+    var(--cmyk-y) 50% 75%,
+    var(--cmyk-k) 75% 100%
+  );
 }
 
 .btn {
@@ -125,11 +191,12 @@ input[type="number"]::-webkit-inner-spin-button {
   text-align: center;
   gap: 0.4rem;
   overflow: hidden;
-  border-radius: 1rem;
+  border-radius: 0;
   font-size: 0.875rem;
+  font-weight: 700;
   line-height: 1.1;
-  padding: 0.7rem 1.15rem;
-  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+  padding: 0.7rem 1.15rem 0.7rem 1.35rem;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
 }
 
 .btn:disabled {
@@ -138,72 +205,65 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 
 .btn-primary {
-  background: linear-gradient(90deg, #121a24 0%, #1c2836 50%, #121a24 100%);
-  color: #fff;
-  box-shadow:
-    0 10px 24px rgba(0, 0, 0, 0.4),
-    0 0 22px color-mix(in srgb, var(--accent) 38%, transparent);
+  background: var(--ink);
+  color: var(--paper);
 }
 
 .btn-primary::before {
   content: "";
   position: absolute;
-  inset: -35%;
-  z-index: -1;
-  background: radial-gradient(circle at center, var(--accent) 10%, transparent 62%);
-  opacity: 0.45;
-  filter: blur(14px);
-  animation: glow-scale 5s ease-in-out infinite;
-}
-
-.btn-primary::after {
-  content: "";
-  position: absolute;
-  inset: -40%;
-  z-index: -1;
-  background: conic-gradient(from 90deg at 50% 50%, transparent 0deg, var(--accent) 120deg, transparent 240deg);
-  opacity: 0.22;
-  animation: glow-slide 6s linear infinite;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: linear-gradient(
+    to bottom,
+    var(--cmyk-c) 0 25%,
+    var(--cmyk-m) 25% 50%,
+    var(--cmyk-y) 50% 75%,
+    var(--cmyk-k) 75% 100%
+  );
 }
 
 .btn-primary:hover:not(:disabled) {
-  box-shadow:
-    0 12px 28px rgba(0, 0, 0, 0.45),
-    0 0 28px color-mix(in srgb, var(--accent) 55%, transparent);
+  background: #2a2a2a;
 }
 
 .btn-ghost {
-  border: 1px solid color-mix(in srgb, var(--accent) 28%, rgba(255, 255, 255, 0.14));
-  background: rgba(126, 182, 228, 0.06);
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
 }
 
 .btn-ghost:hover:not(:disabled) {
-  background: rgba(126, 182, 228, 0.14);
+  background: #f4f4f4;
 }
 
 .btn-soft {
-  border: 1px solid color-mix(in srgb, var(--accent) 18%, rgba(255, 255, 255, 0.1));
-  background: rgba(126, 182, 228, 0.07);
-  border-radius: 0.75rem;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 0;
   padding: 0.45rem 0.7rem;
   font-size: 0.75rem;
+  font-weight: 600;
 }
 
 .btn-soft:hover:not(:disabled) {
-  background: rgba(126, 182, 228, 0.16);
+  background: #f4f4f4;
 }
 
 .field {
   width: 100%;
-  border-radius: 0.85rem;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text);
+  border-radius: 0;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
   padding: 0.55rem 0.75rem;
 }
 
 .field:focus {
-  outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  outline: 2px solid var(--cmyk-c);
   outline-offset: 1px;
 }
 
@@ -232,9 +292,7 @@ input[type="number"]::-webkit-inner-spin-button {
 
 @media (prefers-reduced-motion: reduce) {
   .btn-primary::before,
-  .btn-primary::after,
-  .animate-glow-scale,
-  .animate-glow-slide {
+  .btn-primary::after {
     animation: none !important;
   }
 }
@@ -243,7 +301,7 @@ input[type="number"]::-webkit-inner-spin-button {
    instead of looking truncated. Slim enough not to weigh the panel down. */
 .thin-scroll {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+  scrollbar-color: #c8c8c8 transparent;
 }
 .thin-scroll::-webkit-scrollbar {
   width: 8px;
@@ -253,12 +311,12 @@ input[type="number"]::-webkit-inner-spin-button {
   background: transparent;
 }
 .thin-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.18);
+  background: #c8c8c8;
   border-radius: 999px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 .thin-scroll:hover::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.32);
+  background: #8a8a8a;
   background-clip: content-box;
 }

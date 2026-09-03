@@ -27,12 +27,16 @@ export default async function ContactPage({
 
   return (
     <PageShell kicker={t.contact.kicker} title={t.contact.title} lede={t.contact.lede}>
-      <p className="num mb-8 text-sm">
-        {c.email}
-        <br />
-        {c.phone}
-        <br />
-        {c.addressLine}
+      <p className="mb-8 grid gap-1 text-sm">
+        <a href={`mailto:${c.email}`}>{c.email}</a>
+        {c.phone ? <a href={`tel:${c.phone}`}>{c.phone}</a> : null}
+        <span>{c.addressLine}</span>
+        <a href="https://www.instagram.com/dtf_print_studio/" target="_blank" rel="noopener noreferrer">
+          {t.footer.socialStudio}
+        </a>
+        <a href="https://www.instagram.com/dtf_print_eu/" target="_blank" rel="noopener noreferrer">
+          {t.footer.socialEu}
+        </a>
       </p>
       <LeadForm
         endpoint="/api/contact"

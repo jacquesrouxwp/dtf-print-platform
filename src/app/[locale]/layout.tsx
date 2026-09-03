@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { ContactDock } from "@/components/contact-dock";
+import { PersistHydrate } from "@/components/persist-hydrate";
 import { CookieBanner } from "@/components/cookie-banner";
 import { AppFrame, FooterSlot, SiteChrome } from "@/components/app-frame";
 import { HtmlLang } from "@/components/html-lang";
@@ -24,6 +25,7 @@ export default async function LocaleLayout({
 
   return (
     <I18nProvider locale={locale} t={t}>
+      <PersistHydrate />
       <HtmlLang locale={locale} />
       <SiteShell>
         {/* One column the height of the viewport: whatever the header and the
