@@ -59,6 +59,14 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
   const [mollie, setMollie] = useState(false);
   const [confirmNeeded, setConfirmNeeded] = useState<PriceBreakdown | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [cartReady, setCartReady] = useState(useCartStore.persist.hasHydrated());
+
+  useEffect(() => {
+    const unsub = useCartStore.persist.onFinishHydration(() => setCartReady(true));
+    void useCartStore.persist.rehydrate();
+    if (useCartStore.persist.hasHydrated()) setCartReady(true);
+    return unsub;
+  }, []);
 
   useEffect(() => {
     fetch("/api/config")
@@ -85,6 +93,10 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
   }, [lines, trade, rush, pickup]);
 
   async function submit(confirm = false) {
+    if (!mollie) {
+      setError(t.checkout.paymentsSoon);
+      return;
+    }
     if (!lines.length || !quote) return;
     setSending(true);
     setError(null);
@@ -96,7 +108,7 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
     const data = form
       ? Object.fromEntries(new FormData(form).entries())
       : {};
-    const orderId = `HLV-${Date.now().toString(36).toUpperCase()}`;
+    const orderId = `DTF-${Date.now().toString(36).toUpperCase()}`;
     const films = cartFilms(lines);
     const res = await fetch("/api/checkout", {
       method: "POST",
@@ -163,24 +175,17 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
   }
 
   if (done) {
-    const blob =
-      typeof window !== "undefined"
-        ? URL.createObjectURL(new Blob([done.manifest], { type: "application/json" }))
-        : "#";
     return (
       <PageShell title={t.checkout.successTitle} lede={t.checkout.successBody}>
         <p className="num text-sm">
           {t.checkout.orderId} {done.id}
         </p>
-        <a
-          href={blob}
-          download={`${done.id}.json`}
-          className="btn btn-primary mt-6"
-        >
-          {t.checkout.manifest}
-        </a>
       </PageShell>
     );
+  }
+
+  if (!cartReady) {
+    return <PageShell title={t.checkout.title} lede={t.checkout.lede} />;
   }
 
   if (!lines.length) {
@@ -228,46 +233,58 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
           {interpolate(t.checkout.rush, { pct: Math.round(config.rushSurcharge * 100) })}
         </label>
         {trade && <p className="text-sm text-muted">{t.checkout.trade}</p>}
-        <fieldset className="grid gap-2 text-sm">
-          <legend>{t.checkout.method}</legend>
-          {[
-            ["ideal", t.checkout.ideal],
-            ["bancontact", t.checkout.bancontact],
-            ["card", t.checkout.card],
-            ["invoice", t.checkout.invoice],
-          ].map(([id, label]) => (
-            <label key={id} className="flex items-center gap-2">
+        {mollie && (
+          <fieldset className="grid gap-2 text-sm">
+            <legend>{t.checkout.method}</legend>
+            <label className="flex items-center gap-2">
               <input
                 type="radio"
                 name="method"
-                checked={method === id}
-                onChange={() => setMethod(id)}
+                checked={method === "ideal"}
+                onChange={() => setMethod("ideal")}
               />
-              {label}
+              {t.checkout.ideal}
             </label>
-          ))}
-        </fieldset>
-        <p className="num text-2xl text-accent">
-          {display ? money(display.totalIncl, locale) : "…"}
-        </p>
+          </fieldset>
+        )}
+        {display && (
+          <dl className="grid gap-2 text-sm">
+            <div className="flex justify-between gap-3">
+              <dt>{t.builder.subtotal}</dt>
+              <dd className="num">{money(display.subtotalExcl, locale)}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt>{t.builder.shipping}</dt>
+              <dd className="num">{money(display.shipping, locale)}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt>{interpolate(t.builder.btw, { pct: String(Math.round(config.btwRate * 100)) })}</dt>
+              <dd className="num">{money(display.btw, locale)}</dd>
+            </div>
+            <div className="flex justify-between gap-3 border-t border-line pt-2 text-lg">
+              <dt>{t.builder.total}</dt>
+              <dd className="num">{money(display.totalIncl, locale)}</dd>
+            </div>
+          </dl>
+        )}
         {confirmNeeded && (
           <p className="text-sm text-accent">
             Price updated to {money(confirmNeeded.totalIncl, locale)}. Confirm to continue.
           </p>
         )}
         {error && <p className="text-sm text-bad">{error}</p>}
-        {!mollie && <p className="text-xs text-muted">{t.checkout.demoNote}</p>}
+        {!mollie && <p className="text-sm text-muted">{t.checkout.paymentsSoon}</p>}
         {confirmNeeded ? (
           <button
             type="button"
-            disabled={sending}
+            disabled={sending || !mollie}
             onClick={() => submit(true)}
             className="btn btn-primary"
           >
             Confirm {money(confirmNeeded.totalIncl, locale)}
           </button>
         ) : (
-          <button type="submit" disabled={sending || !display} className="btn btn-primary">
+          <button type="submit" disabled={sending || !display || !mollie} className="btn btn-primary">
             {mollie ? t.checkout.payIdeal : t.checkout.payDemo}
           </button>
         )}

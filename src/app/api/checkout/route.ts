@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerConfig } from "@/lib/server-config";
 import { authoritativeOrderQuote, type OrderFilm } from "@/lib/order-quote";
-import { fulfillPaidOrder } from "@/lib/fulfill-order";
-import {
-  deferPrintUntilPaid,
-  savePendingOrder,
-  type PendingFilm,
-} from "@/lib/pending-order";
+import { savePendingOrder, type PendingFilm } from "@/lib/pending-order";
 import type { NestSource } from "@/lib/nesting";
 
 export const runtime = "nodejs";
@@ -98,9 +93,9 @@ export async function POST(request: Request) {
   }
 
   const orderId =
-    typeof body.orderId === "string" && body.orderId.startsWith("HLV-")
+    typeof body.orderId === "string" && /^(DTF|HLV)-/.test(body.orderId)
       ? body.orderId
-      : `HLV-${Date.now().toString(36).toUpperCase()}`;
+      : `DTF-${Date.now().toString(36).toUpperCase()}`;
 
   const pendingFilms: PendingFilm[] = films.map((f) => ({
     id: f.id,
@@ -123,56 +118,45 @@ export async function POST(request: Request) {
     createdAt: new Date().toISOString(),
   };
 
-  await savePendingOrder(pending);
-
   const key = process.env.MOLLIE_API_KEY;
-  const site = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-  const method = typeof body.method === "string" ? body.method : "ideal";
-
-  if (deferPrintUntilPaid(key, method)) {
-    const res = await fetch("https://api.mollie.com/v2/payments", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        amount: { currency: "EUR", value: charged.toFixed(2) },
-        description: `HLV ${orderId}`,
-        redirectUrl: `${site}/nl/checkout?paid=${orderId}`,
-        webhookUrl: `${site}/api/mollie`,
-        method: "ideal",
-        metadata: { orderId },
-      }),
-    });
-    const payment = await res.json();
-    if (payment?._links?.checkout?.href) {
-      return NextResponse.json({
-        redirectUrl: payment._links.checkout.href,
-        orderId,
-        quote,
-        mollie: true,
-        pending: true,
-      });
-    }
+  if (!key) {
+    return NextResponse.json(
+      { error: "payments_unavailable", message: "Payments coming soon." },
+      { status: 503 }
+    );
   }
 
-  const written = await fulfillPaidOrder({ ...pending, status: "paid" });
+  await savePendingOrder(pending);
 
-  return NextResponse.json({
-    ok: true,
-    orderId,
-    demo: !key,
-    mollie: Boolean(key),
-    quote,
-    billedLengthMm: quote.lengthMm,
-    films: written.films,
-    files: written.films[0]
-      ? {
-          printWidthPx: undefined,
-          printHeightPx: undefined,
-          manifestPath: `queue/${written.films[0].filmId}.json`,
-        }
-      : undefined,
+  const site = process.env.NEXT_PUBLIC_SITE_URL || "https://dtfstudio.site";
+  const res = await fetch("https://api.mollie.com/v2/payments", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      amount: { currency: "EUR", value: charged.toFixed(2) },
+      description: `DTF Studio ${orderId}`,
+      redirectUrl: `${site}/nl/checkout?paid=${orderId}`,
+      webhookUrl: `${site}/api/mollie`,
+      method: "ideal",
+      metadata: { orderId },
+    }),
   });
+  const payment = await res.json();
+  if (payment?._links?.checkout?.href) {
+    return NextResponse.json({
+      redirectUrl: payment._links.checkout.href,
+      orderId,
+      quote,
+      mollie: true,
+      pending: true,
+    });
+  }
+
+  return NextResponse.json(
+    { error: "mollie_failed", orderId, quote },
+    { status: 502 }
+  );
 }
