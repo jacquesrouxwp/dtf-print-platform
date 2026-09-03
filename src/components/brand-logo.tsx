@@ -16,7 +16,7 @@ export function BrandLogo({
   return (
     <Image
       src="/logo.png"
-      alt="DTF"
+      alt="DTF Studio"
       width={width}
       height={height}
       priority={priority}

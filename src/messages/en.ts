@@ -1,8 +1,8 @@
 export const en = {
   meta: {
-    homeTitle: "DTF transfers printed in Ankeveen",
+    homeTitle: "DTF Studio — Order film. Press it yourself.",
     homeDesc:
-      "DTF transfers printed in Ankeveen. Ordered today, on your press tomorrow. Pay per meter. No minimums. Next-day delivery to Amsterdam and Utrecht.",
+      "DTF Studio. Custom DTF transfers and merch. Order film. Press it yourself. Printed in Ankeveen. From 0.5 m.",
     orderTitle: "Gang sheet builder",
     orderDesc: "Upload artwork, auto-nest on the roll, see the live price, check out.",
     pricingTitle: "Pricing",
@@ -153,10 +153,10 @@ export const en = {
     placeholderNote: "",
   },
   home: {
-    kicker: "Ankeveen · DTF transfers",
-    videoLabel: "Film coming off the printer",
-    headline: "Where art meets industry.",
-    sub: "DTF transfers printed in Ankeveen. Ordered today, on your press tomorrow.",
+    kicker: "DTF Studio · Netherlands · Ankeveen",
+    videoLabel: "DTF Studio",
+    headline: "Order film. Press it yourself.",
+    sub: "Custom DTF transfers and merch.",
     lede: "Upload your artwork, pay only for the film you actually use, and press it yourself. Minimum 0.5 m, no setup fees, no waiting a week for a proof.",
     cutoffLine:
       "Order before {cutoff} on working days — next-day delivery to Amsterdam, Utrecht and most of the Netherlands.",
@@ -676,10 +676,12 @@ export const en = {
     reject: "Necessary only",
   },
   footer: {
-    blurb: "DTF transfers printed in Ankeveen.",
+    blurb: "Custom DTF transfers and merch. Order film. Press it yourself.",
     legal: "Legal",
     studio: "Studio",
     imprint: "KVK {kvk} · BTW {btw}",
     legalSoon: "KVK and BTW numbers follow with the paperwork.",
+    socialStudio: "@dtf_print_studio",
+    socialEu: "@dtf_print_eu",
   },
 };

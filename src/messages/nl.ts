@@ -2,9 +2,9 @@ import type { en } from "./en";
 
 export const nl: typeof en = {
   meta: {
-    homeTitle: "DTF transfers gedrukt in Ankeveen",
+    homeTitle: "DTF Studio — Bestel film. Pers zelf.",
     homeDesc:
-      "DTF transfers gedrukt in Ankeveen. Vandaag besteld, morgen op je pers. Betalen per meter. Geen minimum. Levering de volgende werkdag in Amsterdam en Utrecht.",
+      "DTF Studio. Custom DTF transfers and merch. Bestel film. Pers zelf. Gedrukt in Ankeveen. Vanaf 0,5 m.",
     orderTitle: "Gangsheet-bouwer",
     orderDesc: "Upload artwork, nest automatisch op de rol, zie de prijs live, reken af.",
     pricingTitle: "Prijzen",
@@ -129,7 +129,7 @@ export const nl: typeof en = {
   common: {
     exclBtw: "excl. btw",
     inclBtw: "incl. btw",
-    startOrder: "Open de builder",
+    startOrder: "Open de bouwer",
     samples: "Gratis samplepakket",
     requestSamples: "Vraag samples aan",
     learn: "Lees verder",
@@ -155,10 +155,10 @@ export const nl: typeof en = {
     placeholderNote: "",
   },
   home: {
-    kicker: "Ankeveen · DTF transfers",
-    videoLabel: "Film komt van de printer",
-    headline: "Waar kunst industrie ontmoet.",
-    sub: "DTF transfers gedrukt in Ankeveen. Vandaag besteld, morgen op je pers.",
+    kicker: "DTF Studio · Nederland · Ankeveen",
+    videoLabel: "DTF Studio",
+    headline: "Bestel film. Pers zelf.",
+    sub: "Custom DTF transfers and merch.",
     lede: "Upload je artwork, betaal alleen voor de film die je echt gebruikt, en pers zelf. Minimum 0,5 m, geen opstartkosten, geen week wachten op een proef.",
     cutoffLine:
       "Bestel vóór {cutoff} op werkdagen — levering de volgende werkdag in Amsterdam, Utrecht en een groot deel van Nederland.",
@@ -678,10 +678,12 @@ export const nl: typeof en = {
     reject: "Alleen noodzakelijk",
   },
   footer: {
-    blurb: "DTF transfers gedrukt in Ankeveen.",
+    blurb: "Custom DTF transfers and merch. Bestel film. Pers zelf.",
     legal: "Juridisch",
     studio: "Studio",
     imprint: "KVK {kvk} · BTW {btw}",
     legalSoon: "KVK- en btw-nummer volgen met de papieren.",
+    socialStudio: "@dtf_print_studio",
+    socialEu: "@dtf_print_eu",
   },
 };

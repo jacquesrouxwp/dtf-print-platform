@@ -55,7 +55,7 @@ export type SiteConfig = {
 export const defaultConfig: SiteConfig = {
   brandName: "DTF Studio",
   legalName: "DTF Studio",
-  tagline: "Pro-quality custom transfers.",
+  tagline: "Custom DTF transfers and merch.",
   city: "Ankeveen",
   country: "Netherlands",
   countryCode: "NL",

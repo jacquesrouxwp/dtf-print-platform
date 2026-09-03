@@ -50,8 +50,8 @@ export function Header() {
     return (
       <Link
         href={localizedPath(locale, href)}
-        className={`rounded-full px-2 py-1 text-sm tracking-wide ${
-          active ? "text-foreground" : "text-muted hover:text-foreground"
+        className={`text-sm tracking-wide ${
+          active ? "text-ink" : "text-muted hover:text-ink"
         }`}
         onClick={() => setOpen(false)}
       >
@@ -66,18 +66,20 @@ export function Header() {
         <Link
           href={localizedPath(locale, "/")}
           className="flex items-center"
-          aria-label="DTF"
+          aria-label="DTF Studio"
         >
-          <BrandLogo height={28} priority />
+          <BrandLogo height={32} priority />
         </Link>
 
-        <nav className="hidden items-center gap-4 md:flex">
-          {primary.map((item) => (
-            <NavLink key={item.href} href={item.href} label={t.nav[item.key]} />
-          ))}
-        </nav>
-
-        <div className="ml-auto flex items-center gap-2 md:gap-3">
+        <div className="ml-auto flex items-center gap-3 md:gap-5">
+          <nav className="hidden items-center text-sm md:flex" aria-label="Primary">
+            {primary.map((item, i) => (
+              <span key={item.href} className="flex items-center">
+                {i > 0 && <span className="px-2 text-muted">·</span>}
+                <NavLink href={item.href} label={t.nav[item.key]} />
+              </span>
+            ))}
+          </nav>
           <Link
             href={localizedPath(locale, "/order")}
             className="btn btn-primary"
@@ -94,14 +96,14 @@ export function Header() {
             {btwInclusive ? t.common.inclBtw : t.common.exclBtw}
           </button>
 
-          <nav className="hidden items-center rounded-full border border-line p-0.5 md:flex" aria-label={t.nav.language}>
+          <nav className="hidden items-center border border-line md:flex" aria-label={t.nav.language}>
             {locales.map((code) => (
               <Link
                 key={code}
                 href={localizedPath(code, rest)}
                 hrefLang={code}
-                className={`num rounded-full px-2.5 py-1 text-xs uppercase tracking-wider ${
-                  code === locale ? "bg-line text-foreground" : "text-muted hover:text-foreground"
+                className={`num px-2.5 py-1 text-xs uppercase tracking-wider ${
+                  code === locale ? "bg-line text-ink" : "text-muted hover:text-ink"
                 }`}
               >
                 {code}
@@ -110,20 +112,13 @@ export function Header() {
           </nav>
 
           <Link
-            href={localizedPath(locale, "/account")}
-            className="hidden rounded-full px-2 py-1 text-sm text-muted hover:text-foreground md:inline"
-          >
-            {t.nav.account}
-          </Link>
-
-          <Link
             href={localizedPath(locale, "/checkout")}
-            className="relative grid h-10 w-10 place-items-center rounded-full border border-line text-foreground"
+            className="relative grid h-10 w-10 place-items-center border border-line text-ink"
             aria-label={t.nav.cart}
           >
             <ShoppingBag size={18} />
             {cartCount > 0 && (
-              <span className="num absolute -right-1 -top-1 min-w-4 rounded-full bg-accent px-1 text-center text-[10px] leading-4 text-white">
+              <span className="num absolute -right-1 -top-1 min-w-4 bg-ink px-1 text-center text-[10px] leading-4 text-paper">
                 {cartCount}
               </span>
             )}
@@ -131,7 +126,7 @@ export function Header() {
 
           <button
             type="button"
-            className="grid h-10 w-10 place-items-center rounded-full border border-line md:hidden"
+            className="grid h-10 w-10 place-items-center border border-line md:hidden"
             onClick={() => setOpen((v) => !v)}
             aria-label={t.nav.menu}
           >
@@ -155,7 +150,7 @@ export function Header() {
           ))}
           <Link
             href={localizedPath(locale, "/account")}
-            className="rounded-full px-2 py-1"
+            className="px-2 py-1"
             onClick={() => setOpen(false)}
           >
             {t.nav.account}
@@ -165,8 +160,8 @@ export function Header() {
               <Link
                 key={code}
                 href={localizedPath(code, rest)}
-                className={`num rounded-full px-3 py-1.5 text-xs uppercase tracking-wider ${
-                  code === locale ? "bg-line text-foreground" : "text-muted"
+                className={`num border border-line px-3 py-1.5 text-xs uppercase tracking-wider ${
+                  code === locale ? "bg-line text-ink" : "text-muted"
                 }`}
                 onClick={() => setOpen(false)}
               >

@@ -2,9 +2,9 @@ import type { en } from "./en";
 
 export const ru: typeof en = {
   meta: {
-    homeTitle: "DTF-трансферы, печать в Анкевене",
+    homeTitle: "DTF Studio — Закажи плёнку. Пресс сам.",
     homeDesc:
-      "DTF-трансферы печатаем в Анкевене. Сегодня заказ — завтра на вашем прессе. Оплата за погонный метр. Без минималки. На следующий рабочий день в Амстердам и Утрехт.",
+      "DTF Studio. Custom DTF transfers and merch. Закажи плёнку. Пресс сам. Печать в Анкевене. От 0,5 м.",
     orderTitle: "Раскладка на рулон",
     orderDesc: "Загрузите макеты, система разложит их на рулоне, цена считается сразу, дальше оплата.",
     pricingTitle: "Цены",
@@ -155,10 +155,10 @@ export const ru: typeof en = {
     placeholderNote: "",
   },
   home: {
-    kicker: "Анкевен · DTF-трансферы",
-    videoLabel: "Печать плёнки",
-    headline: "Где искусство встречается с цехом.",
-    sub: "DTF-трансферы печатаем в Анкевене. Сегодня заказ — завтра на вашем прессе.",
+    kicker: "DTF Studio · Нидерланды · Анкевен",
+    videoLabel: "DTF Studio",
+    headline: "Закажи плёнку. Пресс сам.",
+    sub: "Custom DTF transfers and merch.",
     lede: "Загрузите макеты, платите только за плёнку, которую реально займёте, и прессуйте сами. Минимум 0,5 м, без приладки, без недели на цветопробу.",
     cutoffLine:
       "Заказ до {cutoff} в рабочий день — на следующий рабочий день в Амстердам, Утрехт и большую часть Нидерландов.",
@@ -678,10 +678,12 @@ export const ru: typeof en = {
     reject: "Только необходимые",
   },
   footer: {
-    blurb: "DTF-трансферы печатаем в Анкевене.",
+    blurb: "Custom DTF transfers and merch. Закажи плёнку. Пресс сам.",
     legal: "Правовое",
     studio: "Студия",
     imprint: "KVK {kvk} · BTW {btw}",
     legalSoon: "Номера KVK и BTW появятся вместе с документами.",
+    socialStudio: "@dtf_print_studio",
+    socialEu: "@dtf_print_eu",
   },
 };

@@ -30,7 +30,7 @@ export default async function RentalPage({
 
   return (
     <PageShell kicker={t.rental.kicker} title={t.rental.title} lede={t.rental.lede} wide>
-      <div className="overflow-hidden rounded-2xl border border-rule">
+      <div className="overflow-hidden border border-rule">
         <Image
           src="/press-rental.webp"
           alt={t.rental.photoAlt}

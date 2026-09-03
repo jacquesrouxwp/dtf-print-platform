@@ -18,6 +18,15 @@ export function Footer() {
         <div className="md:col-span-2">
           <BrandLogo height={44} />
           <p className="mt-3 max-w-sm text-sm text-muted">{t.footer.blurb}</p>
+          <p className="mt-4 grid gap-1 text-sm">
+            <a href={`mailto:${config.email}`}>{config.email}</a>
+            <a href="https://www.instagram.com/dtf_print_studio/" target="_blank" rel="noopener noreferrer">
+              {t.footer.socialStudio}
+            </a>
+            <a href="https://www.instagram.com/dtf_print_eu/" target="_blank" rel="noopener noreferrer">
+              {t.footer.socialEu}
+            </a>
+          </p>
           {config.kvk && config.btwNumber ? (
             <p className="num mt-6 text-xs text-muted">
               {interpolate(t.footer.imprint, { kvk: config.kvk, btw: config.btwNumber })}
