@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { getServerConfig } from "@/lib/server-config";
 import { authoritativeOrderQuote, type OrderFilm } from "@/lib/order-quote";
+import { fulfillPaidOrder } from "@/lib/fulfill-order";
 import { savePendingOrder, type PendingFilm } from "@/lib/pending-order";
 import type { NestSource } from "@/lib/nesting";
+import { testKeyFromRequest, testOrderKeyOk } from "@/lib/test-order";
 
 export const runtime = "nodejs";
 
@@ -92,10 +94,11 @@ export async function POST(request: Request) {
     );
   }
 
+  const staffTest = testOrderKeyOk(testKeyFromRequest(request, body));
   const orderId =
     typeof body.orderId === "string" && /^(DTF|HLV)-/.test(body.orderId)
       ? body.orderId
-      : `DTF-${Date.now().toString(36).toUpperCase()}`;
+      : `${staffTest ? "DTF-TEST-" : "DTF-"}${Date.now().toString(36).toUpperCase()}`;
 
   const pendingFilms: PendingFilm[] = films.map((f) => ({
     id: f.id,
@@ -116,7 +119,24 @@ export async function POST(request: Request) {
     pickup: Boolean(body.pickup),
     charged,
     createdAt: new Date().toISOString(),
+    test: staffTest,
   };
+
+  if (staffTest) {
+    await savePendingOrder({ ...pending, status: "paid" });
+    const written = await fulfillPaidOrder({ ...pending, status: "paid" });
+    return NextResponse.json({
+      ok: true,
+      test: true,
+      orderId,
+      quote,
+      films: written.films,
+      files: written.films[0]
+        ? { manifestPath: `queue/${written.films[0].filmId}.json` }
+        : undefined,
+      airtable: "airtable" in written ? written.airtable : undefined,
+    });
+  }
 
   const key = process.env.MOLLIE_API_KEY;
   if (!key) {

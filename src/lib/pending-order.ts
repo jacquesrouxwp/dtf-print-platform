@@ -26,6 +26,7 @@ export type PendingOrder = {
   charged: number;
   createdAt: string;
   fulfilledAt?: string;
+  test?: boolean;
 };
 
 export type ClaimResult =

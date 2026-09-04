@@ -42,7 +42,13 @@ function cartFilms(lines: ReturnType<typeof useCartStore.getState>["lines"]) {
   return lines.map((line) => ({ id: line.id, gapMm: line.gapMm, items: filmItems(line) }));
 }
 
-export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
+export function CheckoutClient({
+  paidOrderId,
+  testKey: testKeyProp,
+}: {
+  paidOrderId?: string;
+  testKey?: string;
+}) {
   const { locale, t } = useI18n();
   const lines = useCartStore((s) => s.lines);
   const removeLine = useCartStore((s) => s.removeLine);
@@ -57,6 +63,12 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
   const [sending, setSending] = useState(false);
   const [quote, setQuote] = useState<PriceBreakdown | null>(null);
   const [mollie, setMollie] = useState(false);
+  const [testOrder, setTestOrder] = useState(false);
+  const testKey =
+    testKeyProp ||
+    (typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("test") || ""
+      : "");
   const [confirmNeeded, setConfirmNeeded] = useState<PriceBreakdown | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cartReady, setCartReady] = useState(useCartStore.persist.hasHydrated());
@@ -69,11 +81,19 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
   }, []);
 
   useEffect(() => {
-    fetch("/api/config")
+    const headers: HeadersInit = {};
+    if (testKey) headers["x-test-order-key"] = testKey;
+    fetch("/api/config", { headers })
       .then((r) => r.json())
-      .then((d) => setMollie(Boolean(d.mollie)))
-      .catch(() => setMollie(false));
-  }, []);
+      .then((d) => {
+        setMollie(Boolean(d.mollie));
+        setTestOrder(Boolean(d.testOrder));
+      })
+      .catch(() => {
+        setMollie(false);
+        setTestOrder(false);
+      });
+  }, [testKey]);
 
   useEffect(() => {
     if (!lines.length) return;
@@ -93,7 +113,7 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
   }, [lines, trade, rush, pickup]);
 
   async function submit(confirm = false) {
-    if (!mollie) {
+    if (!mollie && !testOrder) {
       setError(t.checkout.paymentsSoon);
       return;
     }
@@ -123,6 +143,7 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
         confirm,
         films,
         customer: { name: data.name, email: data.email },
+        testKey: testOrder ? testKey : undefined,
       }),
     });
     const payload = await res.json();
@@ -273,19 +294,24 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
           </p>
         )}
         {error && <p className="text-sm text-bad">{error}</p>}
-        {!mollie && <p className="text-sm text-muted">{t.checkout.paymentsSoon}</p>}
+        {testOrder && <p className="text-sm text-muted">{t.checkout.testNote}</p>}
+        {!mollie && !testOrder && <p className="text-sm text-muted">{t.checkout.paymentsSoon}</p>}
         {confirmNeeded ? (
           <button
             type="button"
-            disabled={sending || !mollie}
+            disabled={sending || (!mollie && !testOrder)}
             onClick={() => submit(true)}
             className="btn btn-primary"
           >
             Confirm {money(confirmNeeded.totalIncl, locale)}
           </button>
         ) : (
-          <button type="submit" disabled={sending || !display || !mollie} className="btn btn-primary">
-            {mollie ? t.checkout.payIdeal : t.checkout.payDemo}
+          <button
+            type="submit"
+            disabled={sending || !display || (!mollie && !testOrder)}
+            className="btn btn-primary"
+          >
+            {testOrder ? t.checkout.testConfirm : mollie ? t.checkout.payIdeal : t.checkout.payDemo}
           </button>
         )}
       </form>

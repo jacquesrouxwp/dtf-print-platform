@@ -629,6 +629,8 @@ export const en = {
     payDemo: "Payments coming soon",
     demoNote: "Online payment is not live yet. You can still lay out film and save a draft — iDEAL follows once Mollie is connected.",
     paymentsSoon: "Payments are coming soon. Your layout stays in the cart; we cannot take iDEAL on this site yet.",
+    testConfirm: "Confirm test order",
+    testNote: "Staff test — no payment. Same print queue as a paid order.",
     successTitle: "Payment received.",
     successBody: "The film is in the studio print queue. We will produce it from the files you uploaded — you do not need to download anything.",
     manifest: "Download manifest",
