@@ -1,7 +1,8 @@
 import Image from "next/image";
+import { branded } from "@/lib/asset-version";
 import { cn } from "@/lib/utils";
 
-const RATIO = 1400 / 766;
+const RATIO = 428 / 98;
 
 export function BrandLogo({
   className,
@@ -15,7 +16,7 @@ export function BrandLogo({
   const width = Math.round(height * RATIO);
   return (
     <Image
-      src="/logo-trim.png"
+      src={branded("/logo-trim.png")}
       alt="DTF Studio"
       width={width}
       height={height}

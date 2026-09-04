@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Geist_Mono } from "next/font/google";
+import { branded } from "@/lib/asset-version";
 import "./globals.css";
 
 const liberationSans = localFont({
@@ -26,10 +27,10 @@ export const metadata: Metadata = {
   description: "DTF Studio. Custom DTF transfers and merch. Bestel film. Pers zelf. Ankeveen, Netherlands.",
   icons: {
     icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: branded("/favicon.svg"), type: "image/svg+xml" },
+      { url: branded("/favicon-32.png"), sizes: "32x32", type: "image/png" },
     ],
-    apple: "/favicon-180.png",
+    apple: branded("/favicon-180.png"),
   },
 };
 
