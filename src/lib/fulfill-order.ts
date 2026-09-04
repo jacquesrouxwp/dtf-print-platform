@@ -11,6 +11,7 @@ import { writeProductionQueue } from "./print-output";
 import { rollFromSite } from "./roll";
 import { getServerConfig } from "./server-config";
 import { getObject } from "./storage";
+import { recordFilmOrder } from "./airtable-order";
 
 export async function fulfillPaidOrder(order: PendingOrder) {
   const claimed = await claimForFulfillment(order.orderId);
@@ -74,13 +75,31 @@ export async function fulfillPaidOrder(order: PendingOrder) {
       blobKeys: written.flatMap((f) => f.blobKeys),
     });
 
+    const billedMeters = Number(
+      (quoted.films.reduce((sum, f) => sum + f.layout.billedLengthMm, 0) / 1000).toFixed(3)
+    );
+    let airtable: { ok: boolean; id?: string; via: string } = { ok: false, via: "skipped" };
+    try {
+      airtable = await recordFilmOrder({
+        orderId: working.orderId,
+        status: working.test ? "тест/ожидает" : "ожидает",
+        customer: working.customer,
+        charged: working.charged,
+        billedMeters,
+        files: written.flatMap((f) => f.blobKeys),
+        test: Boolean(working.test),
+      });
+    } catch (err) {
+      airtable = { ok: false, via: err instanceof Error ? err.message : "airtable_failed" };
+    }
+
     await savePendingOrder({
       ...working,
       status: "fulfilled",
       fulfilledAt: new Date().toISOString(),
     });
 
-    return { orderId: working.orderId, already: false, films: written };
+    return { orderId: working.orderId, already: false, films: written, airtable };
   } catch (err) {
     await releaseFulfillmentClaim(working);
     throw err;
