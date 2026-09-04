@@ -19,6 +19,7 @@ describe("print output", () => {
     expect(meta.height).toBe(mmToPx(layout.billedLengthMm, roll.outputDpi));
     expect(meta.channels).toBe(4);
     expect(meta.hasAlpha).toBe(true);
+    expect(meta.density).toBe(300);
 
     const { data } = await sharp(buf)
       .ensureAlpha()
