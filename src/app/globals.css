@@ -222,6 +222,36 @@ input[type="number"]::-webkit-inner-spin-button {
   background: #f4f4f4;
 }
 
+.conveyor-loop {
+  --conveyor-c: #00aeef;
+  --conveyor-m: #e6007e;
+  --conveyor-y: #ffd100;
+  --conveyor-track: #e8e8e8;
+}
+.conveyor-glyph-c {
+  color: var(--conveyor-c);
+}
+.conveyor-glyph-m {
+  color: var(--conveyor-m);
+}
+.conveyor-glyph-y {
+  color: var(--conveyor-y);
+}
+.conveyor-glyph-track {
+  color: var(--conveyor-track);
+}
+@keyframes conveyor-loop {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.conveyor-loop-track {
+  animation: conveyor-loop 1.15s linear infinite;
+}
+
 .btn-soft {
   border: 1px solid var(--line);
   background: var(--paper);
