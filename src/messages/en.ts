@@ -631,6 +631,8 @@ export const en = {
     paymentsSoon: "Payments are coming soon. Your layout stays in the cart; we cannot take iDEAL on this site yet.",
     testConfirm: "Confirm test order",
     testNote: "Test order — no iDEAL. The film goes to the print queue.",
+    processing: "Order is being processed…",
+    processingWait: "Please wait — don't click again.",
     successTitle: "Payment received.",
     successBody: "The film is in the studio print queue. We will produce it from the files you uploaded — you do not need to download anything.",
     manifest: "Download manifest",

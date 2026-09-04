@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
+import { FrameCmyk } from "./frame-cmyk";
 import { PageShell } from "./page-shell";
 import { useI18n } from "./providers";
+import { ConveyorLoop } from "./ui/conveyor-loop";
 import { localizedPath } from "@/lib/i18n-config";
 import { money, type PriceBreakdown } from "@/lib/pricing";
 import { interpolate } from "@/lib/interpolate";
@@ -62,6 +64,7 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
   const [confirmNeeded, setConfirmNeeded] = useState<PriceBreakdown | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cartReady, setCartReady] = useState(useCartStore.persist.hasHydrated());
+  const inflight = useRef(false);
 
   useEffect(() => {
     const unsub = useCartStore.persist.onFinishHydration(() => setCartReady(true));
@@ -108,16 +111,19 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
   }, [lines, trade, rush, pickup]);
 
   async function submit(confirm = false) {
+    if (inflight.current || sending) return;
     if (!configReady) return;
     if (!mollie && !testOrder) {
       setError(t.checkout.paymentsSoon);
       return;
     }
     if (!lines.length || !quote) return;
+    inflight.current = true;
     setSending(true);
     setError(null);
     const form = document.querySelector("form");
     if (!form && !confirm) {
+      inflight.current = false;
       setSending(false);
       return;
     }
@@ -125,59 +131,67 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
       ? Object.fromEntries(new FormData(form).entries())
       : {};
     const films = cartFilms(lines);
-    const res = await fetch("/api/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        amount: quote.totalIncl,
-        method,
-        rush,
-        pickup,
-        confirm,
-        locale,
-        films,
-        customer: {
-          name: data.name,
-          email: data.email,
-          company: data.company,
-          address: data.address,
-          postcode: data.postcode,
-          city: data.city,
-        },
-      }),
-    });
-    const payload = await res.json();
-    if (res.status === 409 && payload.requiresConfirmation) {
-      setConfirmNeeded(payload.quote);
-      setQuote(payload.quote);
-      setSending(false);
-      return;
+    let stayBusy = false;
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: quote.totalIncl,
+          method,
+          rush,
+          pickup,
+          confirm,
+          locale,
+          films,
+          customer: {
+            name: data.name,
+            email: data.email,
+            company: data.company,
+            address: data.address,
+            postcode: data.postcode,
+            city: data.city,
+          },
+        }),
+      });
+      const payload = await res.json();
+      if (res.status === 409 && payload.requiresConfirmation) {
+        setConfirmNeeded(payload.quote);
+        setQuote(payload.quote);
+        return;
+      }
+      if (!res.ok) {
+        setError(payload.error || "checkout failed");
+        return;
+      }
+      if (payload.redirectUrl) {
+        stayBusy = true;
+        window.location.href = payload.redirectUrl as string;
+        return;
+      }
+      const manifest = JSON.stringify(
+        { orderId: payload.orderId, quote: payload.quote, films, files: payload.files },
+        null,
+        2
+      );
+      addOrder({
+        id: payload.orderId,
+        email: String(data.email || ""),
+        createdAt: new Date().toISOString(),
+        totalIncl: payload.quote?.totalIncl ?? quote.totalIncl,
+        billedMeters: payload.quote?.billedMeters ?? quote.billedMeters,
+        manifest,
+      });
+      clear();
+      setDone({ id: String(payload.orderId || ""), manifest });
+    } catch {
+      setError(t.checkout.paymentsSoon);
+    } finally {
+      if (!stayBusy) {
+        inflight.current = false;
+        setSending(false);
+      }
     }
-    if (!res.ok) {
-      setError(payload.error || "checkout failed");
-      setSending(false);
-      return;
-    }
-    if (payload.redirectUrl) {
-      window.location.href = payload.redirectUrl as string;
-      return;
-    }
-    const manifest = JSON.stringify(
-      { orderId: payload.orderId, quote: payload.quote, films, files: payload.files },
-      null,
-      2
-    );
-    addOrder({
-      id: payload.orderId,
-      email: String(data.email || ""),
-      createdAt: new Date().toISOString(),
-      totalIncl: payload.quote?.totalIncl ?? quote.totalIncl,
-      billedMeters: payload.quote?.billedMeters ?? quote.billedMeters,
-      manifest,
-    });
-    clear();
-    setDone({ id: String(payload.orderId || ""), manifest });
-    setSending(false);
   }
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -226,6 +240,21 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
 
   return (
     <PageShell title={t.checkout.title} lede={t.checkout.lede}>
+      {sending && (
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center px-4"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <div className="absolute inset-0 bg-ink/40" aria-hidden />
+          <FrameCmyk className="relative z-[1] w-full max-w-md bg-paper px-8 py-10">
+            <ConveyorLoop />
+            <p className="mt-6 text-center text-base text-ink">{t.checkout.processing}</p>
+            <p className="mt-2 text-center text-sm text-muted">{t.checkout.processingWait}</p>
+          </FrameCmyk>
+        </div>
+      )}
       <ul className="mb-8 grid gap-3">
         {lines.map((line) => (
           <li key={line.id} className="flex justify-between gap-3 border border-rule px-3 py-3 text-sm">
@@ -239,7 +268,7 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
         ))}
       </ul>
 
-      <form onSubmit={onSubmit} className="grid gap-4">
+      <form onSubmit={onSubmit} className={`grid gap-4 ${sending ? "pointer-events-none" : ""}`}>
         <input name="name" required placeholder={t.common.name} className="field" />
         <input name="email" type="email" required placeholder={t.common.email} className="field" />
         <input name="company" placeholder={t.common.company} className="field" />

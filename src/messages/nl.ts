@@ -633,6 +633,8 @@ export const nl: typeof en = {
     paymentsSoon: "Betalen komt eraan. Je layout blijft in de wagen; we kunnen hier nog geen iDEAL aannemen.",
     testConfirm: "Bevestig testorder",
     testNote: "Testorder — geen iDEAL. Film gaat in de printwachtrij.",
+    processing: "Bestelling wordt verwerkt…",
+    processingWait: "Even geduld — niet opnieuw klikken.",
     successTitle: "Betaling ontvangen.",
     successBody: "De film staat in de printwachtrij van de studio. Wij drukken vanaf de bestanden die je hebt geüpload — je hoeft niets te downloaden.",
     manifest: "Download manifest",
