@@ -68,7 +68,7 @@ export function Header() {
           className="flex items-center"
           aria-label="DTF Studio"
         >
-          <BrandLogo height={32} priority />
+          <BrandLogo height={44} priority />
         </Link>
 
         <div className="ml-auto flex items-center gap-3 md:gap-5">

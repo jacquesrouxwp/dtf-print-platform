@@ -2,7 +2,7 @@ import Image from "next/image";
 import { branded } from "@/lib/asset-version";
 import { cn } from "@/lib/utils";
 
-const RATIO = 428 / 98;
+const RATIO = 535 / 401;
 
 export function BrandLogo({
   className,
