@@ -217,23 +217,35 @@ function recomputeWarnings(d: Design, config: SiteConfig): ArtworkWarning[] {
   return warnings;
 }
 
+function samplePlaced(
+  placed: PlacedPiece[],
+  designId: string,
+  selectedId: string | null
+): PlacedPiece | undefined {
+  return (
+    placed.find((p) => p.id === selectedId && p.designId === designId) ??
+    placed.find((p) => p.designId === designId)
+  );
+}
+
 function syncPlaced(designs: Design[], existing: PlacedPiece[]): PlacedPiece[] {
   const next: PlacedPiece[] = [];
   for (const d of designs) {
     const copies = existing.filter((p) => p.designId === d.id);
+    const template = copies[0];
     const qty = Math.max(1, d.qty);
     for (let i = 0; i < qty; i++) {
       const prev = copies[i];
       next.push({
         id: prev?.id ?? `${d.id}:${i}`,
         designId: d.id,
-        widthMm: prev?.locked ? prev.widthMm : d.widthMm,
-        heightMm: prev?.locked ? prev.heightMm : d.heightMm,
+        widthMm: prev?.widthMm ?? template?.widthMm ?? d.widthMm,
+        heightMm: prev?.heightMm ?? template?.heightMm ?? d.heightMm,
         xMm: prev?.xMm ?? 0,
         yMm: prev?.yMm ?? 0,
-        rotation: prev?.rotation ?? 0,
+        rotation: prev?.rotation ?? template?.rotation ?? 0,
         locked: prev?.locked ?? false,
-        flipX: prev?.flipX,
+        flipX: prev?.flipX ?? template?.flipX,
       });
     }
   }
@@ -435,7 +447,18 @@ export const useBuilderStore = create<BuilderState>()(
           patch.widthMm !== undefined ||
           patch.heightMm !== undefined ||
           patch.qty !== undefined;
-        if (shouldRepack) set(applyPack(designs, get().placed, config, get().gapMm));
+        let placed = get().placed;
+        if (patch.widthMm !== undefined || patch.heightMm !== undefined) {
+          const next = designs.find((d) => d.id === id);
+          if (next) {
+            placed = placed.map((p) =>
+              p.designId === id
+                ? { ...p, widthMm: next.widthMm, heightMm: next.heightMm }
+                : p
+            );
+          }
+        }
+        if (shouldRepack) set(applyPack(designs, placed, config, get().gapMm));
         else
           set({
             designs: designs.map((d) => ({ ...d, warnings: recomputeWarnings(d, config) })),
@@ -625,24 +648,49 @@ export const useBuilderStore = create<BuilderState>()(
       fillWithDesign: (designId, targetMm, config) => {
         const design = get().designs.find((d) => d.id === designId);
         if (!design) return 0;
+        const sample = samplePlaced(get().placed, designId, get().selectedId);
+        const widthMm = sample?.widthMm ?? design.widthMm;
+        const heightMm = sample?.heightMm ?? design.heightMm;
+        const rotation = sample?.rotation ?? 0;
+        const flipX = sample?.flipX;
+        const gapMm = get().gapMm;
         const copies = copiesForLength(
           {
             designId: design.id,
-            widthMm: design.widthMm,
-            heightMm: design.heightMm,
-            allowRotate: design.allowRotate !== false,
+            widthMm,
+            heightMm,
+            allowRotate: design.allowRotate !== false && rotation !== 90,
           },
-          rollFromSite(config),
+          rollFromSite(config, gapMm == null ? undefined : { gapMm }),
           targetMm
         );
         if (copies < 1) return 0;
         const prev = snapOf(get());
         const designs = get().designs.map((d) =>
-          d.id === designId ? { ...d, qty: copies } : d
+          d.id === designId
+            ? {
+                ...d,
+                qty: copies,
+                widthMm,
+                heightMm,
+                aspectRatio: widthMm / Math.max(1, heightMm),
+              }
+            : d
         );
-        // Old positions belong to the old quantity; lay the film out afresh.
+        const others = get().placed.filter((p) => p.designId !== designId);
+        const seeds: PlacedPiece[] = Array.from({ length: copies }, (_, i) => ({
+          id: `${designId}:${i}`,
+          designId,
+          widthMm,
+          heightMm,
+          xMm: 0,
+          yMm: 0,
+          rotation,
+          locked: false,
+          flipX,
+        }));
         set({
-          ...applyPack(designs, [], config, get().gapMm),
+          ...applyPack(designs, [...others, ...seeds], config, get().gapMm),
           selectedId: designId,
           history: [...get().history, prev].slice(-40),
           future: [],
@@ -655,16 +703,18 @@ export const useBuilderStore = create<BuilderState>()(
       freeCopiesFor: (designId, config) => {
         const designs = get().designs;
         if (!designs.length) return 0;
+        const sample = samplePlaced(get().placed, designId, get().selectedId);
+        const gapMm = get().gapMm;
         return autoFill(
           designs.map((d) => ({
             designId: d.id,
-            widthMm: d.widthMm,
-            heightMm: d.heightMm,
+            widthMm: d.id === designId && sample ? sample.widthMm : d.widthMm,
+            heightMm: d.id === designId && sample ? sample.heightMm : d.heightMm,
             qty: d.qty,
             allowRotate: d.allowRotate !== false,
           })),
           designId,
-          rollFromSite(config)
+          rollFromSite(config, gapMm == null ? undefined : { gapMm })
         ).extraCopies;
       },
 

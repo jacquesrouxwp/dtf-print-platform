@@ -69,6 +69,30 @@ describe("nesting", () => {
     }
   });
 
+  it("unlocked instances keep a custom size instead of the design default", () => {
+    const layout = nest(
+      [
+        {
+          designId: "a",
+          widthMm: 100,
+          heightMm: 50,
+          qty: 2,
+          instances: [
+            { id: "a:0", locked: false, widthMm: 80, heightMm: 40, rotation: 0 },
+            { id: "a:1", locked: false, widthMm: 80, heightMm: 40, rotation: 0, flipX: true },
+          ],
+        },
+      ],
+      roll
+    );
+    expect(layout.items).toHaveLength(2);
+    for (const item of layout.items) {
+      expect(item.widthMm).toBe(80);
+      expect(item.heightMm).toBe(40);
+    }
+    expect(layout.items.some((i) => i.flipX)).toBe(true);
+  });
+
   it("locked copies keep distinct positions", () => {
     const layout = nest(
       [

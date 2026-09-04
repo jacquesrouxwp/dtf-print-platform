@@ -174,10 +174,30 @@ function bestFit(
 }
 
 function packMaxRects(
-  pieces: { id: string; designId: string; w: number; h: number; allowRotate: boolean }[],
+  pieces: {
+    id: string;
+    designId: string;
+    w: number;
+    h: number;
+    allowRotate: boolean;
+    flipX?: boolean;
+    rotation?: 0 | 90;
+  }[],
   binW: number,
   occupied: Rect[]
-): { placed: { id: string; designId: string; x: number; y: number; w: number; h: number; rot: 0 | 90 }[]; rejected: string[] } {
+): {
+  placed: {
+    id: string;
+    designId: string;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    rot: 0 | 90;
+    flipX?: boolean;
+  }[];
+  rejected: string[];
+} {
   let free: Rect[] = [{ x: 0, y: 0, w: binW, h: TALL }];
   const placed: {
     id: string;
@@ -187,6 +207,7 @@ function packMaxRects(
     w: number;
     h: number;
     rot: 0 | 90;
+    flipX?: boolean;
   }[] = [];
   const rejected: string[] = [];
 
@@ -210,7 +231,8 @@ function packMaxRects(
       y: fit.y,
       w: fit.w,
       h: fit.h,
-      rot: fit.rot,
+      rot: piece.rotation === 90 ? 90 : fit.rot,
+      flipX: piece.flipX,
     });
     const next: Rect[] = [];
     for (const fr of free) next.push(...splitByPlaced(fr, used));
@@ -268,6 +290,8 @@ export function nest(sources: NestSource[], config: RollConfig): Layout {
     w: number;
     h: number;
     allowRotate: boolean;
+    flipX?: boolean;
+    rotation: 0 | 90;
   }[] = [];
 
   sources.forEach((src) => {
@@ -310,12 +334,17 @@ export function nest(sources: NestSource[], config: RollConfig): Layout {
         });
         continue;
       }
+      const instW = inst.widthMm && inst.widthMm > 0 ? inst.widthMm : src.widthMm;
+      const instH = inst.heightMm && inst.heightMm > 0 ? inst.heightMm : src.heightMm;
+      const instRot: 0 | 90 = inst.rotation === 90 ? 90 : 0;
       unlocked.push({
         id: inst.id,
         designId: src.designId,
-        w: src.widthMm + gap,
-        h: src.heightMm + gap,
-        allowRotate: src.allowRotate !== false,
+        w: instW + gap,
+        h: instH + gap,
+        allowRotate: src.allowRotate !== false && instRot === 0,
+        flipX: inst.flipX,
+        rotation: instRot,
       });
     }
   });
@@ -344,6 +373,7 @@ export function nest(sources: NestSource[], config: RollConfig): Layout {
         yMm: p.y + edge,
         rotation: p.rot,
         locked: false,
+        flipX: p.flipX,
       })),
     ];
     const used = usedFromItems(items, edge);
