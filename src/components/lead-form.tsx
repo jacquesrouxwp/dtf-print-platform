@@ -52,7 +52,7 @@ export function LeadForm({
   };
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-4">
+    <form onSubmit={onSubmit} className="grid min-w-0 w-full gap-4">
       {fields.map((field) =>
         field === "message" ? (
           <label key={field} className="grid gap-1 text-sm">
@@ -61,17 +61,17 @@ export function LeadForm({
               name={field}
               required
               rows={5}
-              className="border border-rule bg-paper px-3 py-2"
+              className="field min-h-11 w-full min-w-0"
             />
           </label>
         ) : (
-          <label key={field} className="grid gap-1 text-sm">
+          <label key={field} className="grid min-w-0 gap-1 text-sm">
             {labels[field]}
             <input
               name={field}
               type={field === "email" ? "email" : "text"}
               required={field === "name" || field === "email"}
-              className="border border-rule bg-paper px-3 py-2"
+              className="field min-h-11 w-full min-w-0"
             />
           </label>
         )

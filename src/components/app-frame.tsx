@@ -24,8 +24,8 @@ export function AppFrame({ children }: { children: ReactNode }) {
     <div
       className={
         isBuilder
-          ? "flex h-dvh flex-col overflow-hidden"
-          : "flex min-h-dvh flex-col"
+          ? "flex h-dvh max-w-full flex-col overflow-hidden"
+          : "flex min-h-dvh max-w-full flex-col overflow-x-clip"
       }
     >
       {children}

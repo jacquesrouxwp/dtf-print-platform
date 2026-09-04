@@ -43,6 +43,9 @@ html,
 body {
   background: var(--bg);
   color: var(--text);
+  overflow-x: clip;
+  max-width: 100%;
+  overscroll-behavior-x: none;
 }
 
 body {
@@ -185,6 +188,16 @@ input[type="number"]::-webkit-inner-spin-button {
 .btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+@media (max-width: 767px), (max-height: 560px) and (max-width: 960px) {
+  .btn,
+  .btn-primary,
+  .btn-ghost,
+  .btn-soft {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }
 
 .btn-primary {

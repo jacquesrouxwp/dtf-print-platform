@@ -31,7 +31,7 @@ export default async function LocaleLayout({
             cutoff bar take, `main` gets the rest — no hardcoded offsets. */}
         <AppFrame>
           <SiteChrome />
-          <main className="flex min-h-0 flex-1 flex-col">{children}</main>
+          <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-clip">{children}</main>
           <FooterSlot />
           {/* WhatsApp FAB omitted until a business wa.me exists. */}
           <CookieBanner />
