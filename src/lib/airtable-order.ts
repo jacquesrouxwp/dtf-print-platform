@@ -115,16 +115,7 @@ export async function recordFilmOrder(row: FilmOrderRow): Promise<{ ok: boolean;
   if (!token()) return { ok: false, via: "skipped" };
   const base = baseId();
   const wanted = tableName();
-  let fieldNames: AirtableField[] = [];
-  try {
-    const meta = await airtable(`meta/bases/${base}/tables`);
-    const table = meta?.tables?.find((t) => t.name === wanted);
-    fieldNames = table?.fields ?? [];
-  } catch {
-    fieldNames = FALLBACK_FIELDS;
-  }
-  if (!fieldNames.length) fieldNames = FALLBACK_FIELDS;
-  const fields = fieldsForFilmOrder(fieldNames, {
+  const fields = fieldsForFilmOrder(FALLBACK_FIELDS, {
     ...row,
     status: row.test ? TEST_STATUS : row.status || "ожидает",
   });
@@ -132,9 +123,29 @@ export async function recordFilmOrder(row: FilmOrderRow): Promise<{ ok: boolean;
     fields["№"] = row.orderId;
     fields["Статус"] = TEST_STATUS;
   }
-  const created = await airtable(`${base}/${encodeURIComponent(wanted)}`, {
-    method: "POST",
-    body: JSON.stringify({ fields, typecast: true }),
-  });
-  return { ok: true, id: created?.id, via: "airtable" };
+  try {
+    const created = await airtable(`${base}/${encodeURIComponent(wanted)}`, {
+      method: "POST",
+      body: JSON.stringify({ fields, typecast: true }),
+    });
+    return { ok: true, id: created?.id, via: "airtable" };
+  } catch (first) {
+    let fieldNames: AirtableField[] = FALLBACK_FIELDS;
+    try {
+      const meta = await airtable(`meta/bases/${base}/tables`);
+      const table = meta?.tables?.find((t) => t.name === wanted);
+      fieldNames = table?.fields?.length ? table.fields : FALLBACK_FIELDS;
+    } catch {
+      throw first;
+    }
+    const retry = fieldsForFilmOrder(fieldNames, {
+      ...row,
+      status: row.test ? TEST_STATUS : row.status || "ожидает",
+    });
+    const created = await airtable(`${base}/${encodeURIComponent(wanted)}`, {
+      method: "POST",
+      body: JSON.stringify({ fields: retry, typecast: true }),
+    });
+    return { ok: true, id: created?.id, via: "airtable" };
+  }
 }

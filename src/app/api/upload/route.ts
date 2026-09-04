@@ -38,10 +38,14 @@ export async function POST(request: Request) {
     }
 
     const id = randomUUID();
-    const trimmed = await trimToPng(buf, inspect.trimBox);
-    const storageKey = await putObject(`${id}.png`, trimmed);
-    const previewKey = await putObject(`${id}-preview.png`, inspect.previewPng);
-    const config = await getServerConfig();
+    const [trimmed, config] = await Promise.all([
+      trimToPng(buf, inspect.trimBox),
+      getServerConfig(),
+    ]);
+    const [storageKey] = await Promise.all([
+      putObject(`${id}.png`, trimmed),
+      putObject(`${id}-preview.png`, inspect.previewPng),
+    ]);
     const usable = usableWidthMm(config.rollWidthMm, config.edgeMm);
     const size = printSizeFromTrim(inspect.trimBox, config.outputDpi);
     const widthMm = Math.min(usable, size.widthMm);
@@ -51,8 +55,8 @@ export async function POST(request: Request) {
       id,
       name: filename,
       storageKey,
-      previewKey,
-      previewUrl: `/api/files?key=${encodeURIComponent(previewKey)}`,
+      previewKey: `${id}-preview.png`,
+      previewUrl: `/api/files?key=${id}-preview.png`,
       mime: file.type || "image/png",
       pixelW: inspect.trimBox.w,
       pixelH: inspect.trimBox.h,

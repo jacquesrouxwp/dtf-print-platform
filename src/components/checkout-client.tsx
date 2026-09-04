@@ -115,13 +115,11 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
     const data = form
       ? Object.fromEntries(new FormData(form).entries())
       : {};
-    const orderId = `DTF-${Date.now().toString(36).toUpperCase()}`;
     const films = cartFilms(lines);
     const res = await fetch("/api/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        orderId,
         amount: quote.totalIncl,
         method,
         trade,
@@ -149,12 +147,12 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
       return;
     }
     const manifest = JSON.stringify(
-      { orderId: payload.orderId ?? orderId, quote: payload.quote, films, files: payload.files },
+      { orderId: payload.orderId, quote: payload.quote, films, files: payload.files },
       null,
       2
     );
     addOrder({
-      id: payload.orderId ?? orderId,
+      id: payload.orderId,
       email: String(data.email || ""),
       createdAt: new Date().toISOString(),
       totalIncl: payload.quote?.totalIncl ?? quote.totalIncl,
@@ -162,7 +160,7 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
       manifest,
     });
     clear();
-    setDone({ id: payload.orderId ?? orderId, manifest });
+    setDone({ id: String(payload.orderId || ""), manifest });
     setSending(false);
   }
 

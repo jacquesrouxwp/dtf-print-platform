@@ -53,40 +53,43 @@ export async function renderPrintPng(
     return finalizePrintPng(printCanvas(widthPx, heightPx));
   }
 
-  const composites: { input: Buffer; left: number; top: number }[] = [];
-  for (const item of items) {
-    const src = images.get(item.designId);
-    if (!src) continue;
-    const w = Math.max(1, mmToPx(item.widthMm, roll.outputDpi));
-    const h = Math.max(1, mmToPx(item.heightMm, roll.outputDpi));
-    let img = sharp(src);
-    const trim = trims?.get(item.designId);
-    if (trim && trim.w > 0 && trim.h > 0) {
-      const meta = await sharp(src).metadata();
-      const nw = meta.width ?? 0;
-      const nh = meta.height ?? 0;
-      if (nw > trim.w + 2 || nh > trim.h + 2) {
-        img = sharp(src).extract({
-          left: Math.max(0, trim.x),
-          top: Math.max(0, trim.y),
-          width: Math.min(trim.w, Math.max(1, nw - trim.x)),
-          height: Math.min(trim.h, Math.max(1, nh - trim.y)),
-        });
+  const prepared = await Promise.all(
+    items.map(async (item) => {
+      const src = images.get(item.designId);
+      if (!src) return null;
+      const w = Math.max(1, mmToPx(item.widthMm, roll.outputDpi));
+      const h = Math.max(1, mmToPx(item.heightMm, roll.outputDpi));
+      let img = sharp(src, { failOn: "none" });
+      const trim = trims?.get(item.designId);
+      if (trim && trim.w > 0 && trim.h > 0) {
+        const meta = await sharp(src, { failOn: "none" }).metadata();
+        const nw = meta.width ?? 0;
+        const nh = meta.height ?? 0;
+        if (nw > trim.w + 2 || nh > trim.h + 2) {
+          img = sharp(src, { failOn: "none" }).extract({
+            left: Math.max(0, trim.x),
+            top: Math.max(0, trim.y),
+            width: Math.min(trim.w, Math.max(1, nw - trim.x)),
+            height: Math.min(trim.h, Math.max(1, nh - trim.y)),
+          });
+        }
       }
-    }
-    if (item.flipX) img = img.flop();
-    const resized = await img
-      .rotate(item.rotation || 0)
-      .resize(w, h, { fit: "fill" })
-      .ensureAlpha()
-      .png()
-      .toBuffer();
-    composites.push({
-      input: resized,
-      left: mmToPx(item.xMm, roll.outputDpi),
-      top: mmToPx(item.yMm, roll.outputDpi),
-    });
-  }
+      if (item.flipX) img = img.flop();
+      const { data, info } = await img
+        .rotate(item.rotation || 0)
+        .resize(w, h, { fit: "fill" })
+        .ensureAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+      return {
+        input: data,
+        raw: { width: info.width, height: info.height, channels: 4 as const },
+        left: mmToPx(item.xMm, roll.outputDpi),
+        top: mmToPx(item.yMm, roll.outputDpi),
+      };
+    })
+  );
+  const composites = prepared.filter((c): c is NonNullable<typeof c> => c !== null);
 
   if (composites.length === 0) return finalizePrintPng(printCanvas(widthPx, heightPx));
   return finalizePrintPng(printCanvas(widthPx, heightPx).composite(composites));
@@ -205,16 +208,17 @@ export async function writeProductionQueue(args: {
 }): Promise<ProductionFiles> {
   const root = process.env.VERCEL ? "/tmp" : process.cwd();
   const dir = path.join(root, ".data", "queue", args.orderId);
-  await mkdir(dir, { recursive: true });
   const { widthPx, heightPx } = printSizePx(args.roll, args.layout.billedLengthMm);
-  const png = await renderPrintPng(
-    args.roll,
-    args.layout.billedLengthMm,
-    args.layout.items,
-    args.images,
-    args.trims
-  );
-  const pdf = await renderOperatorPdf(args.orderId, args.roll, args.layout);
+  const [png, pdf] = await Promise.all([
+    renderPrintPng(
+      args.roll,
+      args.layout.billedLengthMm,
+      args.layout.items,
+      args.images,
+      args.trims
+    ),
+    renderOperatorPdf(args.orderId, args.roll, args.layout),
+  ]);
   const manifest = buildManifest({
     orderId: args.orderId,
     customer: args.customer,
@@ -222,22 +226,25 @@ export async function writeProductionQueue(args: {
     layout: args.layout,
     priceExVat: args.priceExVat,
   });
+  const manifestJson = JSON.stringify(manifest, null, 2);
   const printPngPath = path.join(dir, `${args.orderId}.png`);
   const operatorPdfPath = path.join(dir, `${args.orderId}-operator.pdf`);
   const manifestPath = path.join(dir, `${args.orderId}.json`);
-  await writeFile(printPngPath, png);
-  await writeFile(operatorPdfPath, pdf);
-  await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
-  try {
-    await putObject(`queue/${args.orderId}.png`, png);
-    await putObject(`queue/${args.orderId}-operator.pdf`, Buffer.from(pdf));
-    await putObject(
-      `queue/${args.orderId}.json`,
-      Buffer.from(JSON.stringify(manifest, null, 2), "utf8")
-    );
-  } catch {
-    /* local fs is enough when blob is unset */
-  }
+  const writeLocal = !(process.env.VERCEL && process.env.BLOB_READ_WRITE_TOKEN);
+  await Promise.all([
+    writeLocal
+      ? mkdir(dir, { recursive: true }).then(() =>
+          Promise.all([
+            writeFile(printPngPath, png),
+            writeFile(operatorPdfPath, pdf),
+            writeFile(manifestPath, manifestJson),
+          ])
+        )
+      : Promise.resolve(),
+    putObject(`queue/${args.orderId}.png`, png),
+    putObject(`queue/${args.orderId}-operator.pdf`, Buffer.from(pdf)),
+    putObject(`queue/${args.orderId}.json`, Buffer.from(manifestJson, "utf8")),
+  ]);
   return {
     orderId: args.orderId,
     printPngPath,
