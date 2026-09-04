@@ -492,9 +492,14 @@ export const useBuilderStore = create<BuilderState>()(
 
       loadSnapshot: (json, config) => {
         try {
-          const parsed = JSON.parse(json) as { designs: Design[]; placed?: PlacedPiece[] };
+          const parsed = JSON.parse(json) as {
+            designs: Design[];
+            placed?: PlacedPiece[];
+            gapMm?: number | null;
+          };
           if (!Array.isArray(parsed.designs)) return;
-          set(applyPack(parsed.designs, parsed.placed ?? [], config, get().gapMm));
+          const gap = parsed.gapMm === undefined ? get().gapMm : parsed.gapMm;
+          set({ ...applyPack(parsed.designs, parsed.placed ?? [], config, gap), gapMm: gap });
         } catch {
           /* ignore */
         }
@@ -508,6 +513,7 @@ export const useBuilderStore = create<BuilderState>()(
           })),
           placed: get().placed,
           lengthMm: get().lengthMm,
+          gapMm: get().gapMm,
         }),
 
       reset: () =>
@@ -880,6 +886,12 @@ export const useBuilderStore = create<BuilderState>()(
               ? p.placed.filter((x) => x && typeof x.id === "string" && ids.has(x.designId))
               : current.placed,
             lengthMm: Number.isFinite(p.lengthMm) ? Number(p.lengthMm) : current.lengthMm,
+            gapMm:
+              p.gapMm === null
+                ? null
+                : Number.isFinite(Number(p.gapMm))
+                  ? Number(p.gapMm)
+                  : current.gapMm,
             rejected: Array.isArray(p.rejected) ? p.rejected.filter((x) => typeof x === "string") : [],
             selectedId: null,
             adding: false,
@@ -900,6 +912,7 @@ export const useBuilderStore = create<BuilderState>()(
         placed: s.placed,
         lengthMm: s.lengthMm,
         rejected: s.rejected,
+        gapMm: s.gapMm,
       }),
     }
   )

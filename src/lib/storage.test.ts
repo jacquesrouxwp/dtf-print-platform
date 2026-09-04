@@ -9,7 +9,8 @@ describe("storage", () => {
 
   it("round-trips a png into local storage", async () => {
     const key = await putObject("audit-probe.png", Buffer.from([1, 2, 3, 4]));
-    expect(key.startsWith("fs:") || key.startsWith("http")).toBe(true);
+    expect(key).toBe("audit-probe.png");
+    await expect(getObject("https://evil.example/steal")).resolves.toBeNull();
     const got = await getObject(key);
     expect(got?.equals(Buffer.from([1, 2, 3, 4]))).toBe(true);
   });
