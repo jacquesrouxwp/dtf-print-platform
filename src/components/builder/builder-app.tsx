@@ -49,6 +49,7 @@ export function BuilderApp() {
   const [zoomPct, setZoomPct] = useState(100);
   const [fitNote, setFitNote] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
+  const [cartNote, setCartNote] = useState<string | null>(null);
 
   useEffect(() => {
     const unsub = useBuilderStore.persist.onFinishHydration(() => setReady(true));
@@ -253,12 +254,12 @@ export function BuilderApp() {
   }
 
   function addOrderToCart() {
-    if (added || blocking) return;
+    if (added || blocking || adding || !ready) return;
     const shot = captureCurrent(activeId);
     if (shot) upsertFilm(shot);
     const all: JobFilm[] = [];
     const seen = new Set<string>();
-    for (const film of [shot, ...useJobStore.getState().films]) {
+    for (const film of useJobStore.getState().films) {
       if (!film || film.designCount <= 0 || film.lengthMm <= 0) continue;
       const fp = filmFingerprint(film);
       if (seen.has(fp) || seen.has(film.id)) continue;
@@ -278,6 +279,7 @@ export function BuilderApp() {
         }
       })
     ) {
+      setCartNote(t.builder.uploadFailed);
       return;
     }
     for (const film of usable) {
@@ -285,6 +287,7 @@ export function BuilderApp() {
         designs: Design[];
         placed: typeof placed;
         lengthMm: number;
+        gapMm?: number | null;
       };
       const q = quoteFilm(film.lengthMm, config, { trade: false, includeShipping: false });
       addLine({
@@ -295,7 +298,7 @@ export function BuilderApp() {
         subtotalExcl: q.subtotalExcl,
         trade: false,
         rush: false,
-        gapMm: gapMm ?? config.gapMm,
+        gapMm: parsed.gapMm ?? gapMm ?? config.gapMm,
         designs: (parsed.designs ?? []).map((d) => ({
           id: d.id,
           name: d.name,
@@ -309,6 +312,7 @@ export function BuilderApp() {
         createdAt: new Date().toISOString(),
       });
     }
+    setCartNote(null);
     setAdded(true);
   }
 
@@ -405,6 +409,7 @@ export function BuilderApp() {
           </button>
         )}
         {fitNote && <span className="text-xs text-muted">{fitNote}</span>}
+        {cartNote && <span className="text-xs text-bad">{cartNote}</span>}
         <div className="ml-auto flex items-center gap-2">
           {added && (
             <Link href={localizedPath(locale, "/checkout")} className="btn btn-ghost">
@@ -414,7 +419,7 @@ export function BuilderApp() {
           <button
             type="button"
             className="btn btn-primary"
-            disabled={added || blocking || (!designs.length && films.length === 0)}
+            disabled={added || blocking || adding || !ready || (!designs.length && films.length === 0)}
             onClick={addOrderToCart}
           >
             {added ? t.builder.added : t.builder.addAllCart}
@@ -732,7 +737,7 @@ export function BuilderApp() {
           <p className="num text-lg text-accent">{money(displayJob, locale)}</p>
           <button
             type="button"
-            disabled={added || blocking || (!designs.length && films.length === 0)}
+            disabled={added || blocking || adding || !ready || (!designs.length && films.length === 0)}
             onClick={addOrderToCart}
             className="btn btn-primary"
           >

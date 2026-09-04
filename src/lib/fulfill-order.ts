@@ -47,7 +47,11 @@ export async function fulfillPaidOrder(order: PendingOrder) {
       })
     );
 
-    if (images.size === 0) {
+    const needed = new Set<string>();
+    for (const film of working.films) {
+      for (const src of film.sources) needed.add(src.designId);
+    }
+    if (![...needed].every((id) => images.has(id))) {
       throw new Error("artwork_missing");
     }
 

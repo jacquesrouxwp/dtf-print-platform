@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
+import { contentTypeForQueueKey } from "./queue-files";
 
 const DIR = path.join(
   process.env.VERCEL ? "/tmp" : process.cwd(),
@@ -11,29 +12,40 @@ function blobToken() {
   return process.env.BLOB_READ_WRITE_TOKEN;
 }
 
+function isOwnBlobUrl(ref: string): boolean {
+  try {
+    const u = new URL(ref);
+    return u.protocol === "https:" && u.hostname.endsWith(".blob.vercel-storage.com");
+  } catch {
+    return false;
+  }
+}
+
 export async function putObject(key: string, data: Buffer): Promise<string> {
   const token = blobToken();
   if (token) {
     const { put } = await import("@vercel/blob");
-    const blob = await put(`hlv/${key}`, data, {
+    await put(`hlv/${key}`, data, {
       access: "private",
       token,
       addRandomSuffix: false,
       allowOverwrite: true,
+      contentType: contentTypeForQueueKey(key),
     });
-    return blob.url;
+    return key;
   }
   await mkdir(DIR, { recursive: true });
   const safe = key.replace(/[^a-zA-Z0-9._/-]/g, "_");
   const full = path.join(DIR, safe);
   await mkdir(path.dirname(full), { recursive: true });
   await writeFile(full, data);
-  return `fs:${safe}`;
+  return key;
 }
 
 export async function getObject(ref: string): Promise<Buffer | null> {
   try {
     if (ref.startsWith("http")) {
+      if (!isOwnBlobUrl(ref)) return null;
       const headers: Record<string, string> = {};
       const token = blobToken();
       if (token) headers.Authorization = `Bearer ${token}`;
