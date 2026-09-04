@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { CheckoutProcessing } from "./checkout-processing";
 import { PageShell } from "./page-shell";
 import { useI18n } from "./providers";
@@ -119,8 +120,10 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
     }
     if (!lines.length || !quote) return;
     inflight.current = true;
-    setSending(true);
-    setError(null);
+    flushSync(() => {
+      setSending(true);
+      setError(null);
+    });
     const form = formRef.current;
     if (!form && !confirm) {
       inflight.current = false;
@@ -203,44 +206,40 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
     <CheckoutProcessing title={t.checkout.processing} wait={t.checkout.processingWait} />
   ) : null;
 
+  let page: ReactNode | null = null;
   if (paidOrderId && !done) {
-    return (
+    page = (
       <PageShell title={t.checkout.successTitle} lede={t.checkout.successBody}>
         <p className="num text-sm">
           {t.checkout.orderId} {paidOrderId}
         </p>
       </PageShell>
     );
-  }
-
-  if (done) {
-    return (
+  } else if (done) {
+    page = (
       <PageShell title={t.checkout.successTitle} lede={t.checkout.successBody}>
         <p className="num text-sm">
           {t.checkout.orderId} {done.id}
         </p>
       </PageShell>
     );
-  }
-
-  if (!cartReady) {
-    return (
-      <>
-        {processing}
-        <PageShell title={t.checkout.title} lede={t.checkout.lede} />
-      </>
+  } else if (!cartReady) {
+    page = <PageShell title={t.checkout.title} lede={t.checkout.lede} />;
+  } else if (!lines.length) {
+    page = (
+      <PageShell title={t.checkout.title} lede={t.cart.empty}>
+        <Link href={localizedPath(locale, "/order")} className="underline">
+          {t.common.startOrder}
+        </Link>
+      </PageShell>
     );
   }
 
-  if (!lines.length) {
+  if (page) {
     return (
       <>
         {processing}
-        <PageShell title={t.checkout.title} lede={t.cart.empty}>
-          <Link href={localizedPath(locale, "/order")} className="underline">
-            {t.common.startOrder}
-          </Link>
-        </PageShell>
+        {page}
       </>
     );
   }
@@ -251,8 +250,9 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
     : 0;
 
   return (
-    <PageShell title={t.checkout.title} lede={t.checkout.lede}>
+    <>
       {processing}
+      <PageShell title={t.checkout.title} lede={t.checkout.lede}>
       <ul className="mb-8 grid gap-3">
         {lines.map((line) => (
           <li key={line.id} className="flex justify-between gap-3 border border-rule px-3 py-3 text-sm">
@@ -365,5 +365,6 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
         )}
       </form>
     </PageShell>
+    </>
   );
 }

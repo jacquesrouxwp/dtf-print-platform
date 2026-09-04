@@ -43,7 +43,6 @@ html,
 body {
   background: var(--bg);
   color: var(--text);
-  overflow-x: clip;
   max-width: 100%;
   overscroll-behavior-x: none;
 }
@@ -233,6 +232,11 @@ input[type="number"]::-webkit-inner-spin-button {
 
 .btn-ghost:hover:not(:disabled) {
   background: #f4f4f4;
+}
+
+#dtf-checkout-overlay {
+  position: relative;
+  z-index: 2147483646;
 }
 
 .conveyor-loop {

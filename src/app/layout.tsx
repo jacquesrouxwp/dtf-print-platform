@@ -38,9 +38,9 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="nl" className="overflow-x-clip" suppressHydrationWarning>
+    <html lang="nl" suppressHydrationWarning>
       <body
-        className={`${liberationSans.variable} ${geistMono.variable} min-h-screen max-w-full overflow-x-clip bg-background text-foreground antialiased`}
+        className={`${liberationSans.variable} ${geistMono.variable} min-h-screen max-w-full bg-background text-foreground antialiased`}
       >
         <div className="page-rail" aria-hidden />
         {children}
