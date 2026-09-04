@@ -45,8 +45,11 @@ export function fulfillmentClaim(status: OrderStatus): "claim" | "busy" | "done"
  * only shrinks the race — a second webhook that already read `paid` can still
  * slip through, but not one that arrives after this write.
  */
-export async function claimForFulfillment(orderId: string): Promise<ClaimResult> {
-  const current = await loadPendingOrder(orderId);
+export async function claimForFulfillment(
+  orderId: string,
+  known?: PendingOrder
+): Promise<ClaimResult> {
+  const current = known?.orderId === orderId ? known : await loadPendingOrder(orderId);
   if (!current) return { ok: false, reason: "missing" };
   const gate = fulfillmentClaim(current.status);
   if (gate === "done") return { ok: false, reason: "done" };

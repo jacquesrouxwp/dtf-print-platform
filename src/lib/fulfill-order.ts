@@ -15,7 +15,7 @@ import { recordFilmOrder } from "./airtable-order";
 import { queueFileUrl } from "./queue-files";
 
 export async function fulfillPaidOrder(order: PendingOrder) {
-  const claimed = await claimForFulfillment(order.orderId);
+  const claimed = await claimForFulfillment(order.orderId, order);
   if (!claimed.ok) {
     return { orderId: order.orderId, already: true, films: [] as { filmId: string }[] };
   }
@@ -31,15 +31,21 @@ export async function fulfillPaidOrder(order: PendingOrder) {
 
     const images = new Map<string, Buffer>();
     const trims = new Map<string, { x: number; y: number; w: number; h: number }>();
+    const fetches = new Map<string, Promise<Buffer | null>>();
     for (const film of working.films) {
       for (const src of film.sources) {
-        if (src.storageKey && !images.has(src.designId)) {
-          const buf = await getObject(src.storageKey);
-          if (buf) images.set(src.designId, buf);
+        if (src.storageKey && !fetches.has(src.designId)) {
+          fetches.set(src.designId, getObject(src.storageKey));
         }
         if (src.trimBox && src.trimBox.w > 0) trims.set(src.designId, src.trimBox);
       }
     }
+    await Promise.all(
+      [...fetches.entries()].map(async ([id, pending]) => {
+        const buf = await pending;
+        if (buf) images.set(id, buf);
+      })
+    );
 
     if (images.size === 0) {
       throw new Error("artwork_missing");
@@ -70,20 +76,19 @@ export async function fulfillPaidOrder(order: PendingOrder) {
 
     const fileUrls = written.flatMap((f) => f.blobKeys.map(queueFileUrl));
 
-    await notifyPrinter({
-      orderId: working.orderId,
-      customer: working.customer,
-      charged: working.charged,
-      films: written.map((f) => ({ filmId: f.filmId, billedLengthMm: f.billedLengthMm })),
-      blobKeys: fileUrls,
-    });
-
     const billedMeters = Number(
       (quoted.films.reduce((sum, f) => sum + f.layout.billedLengthMm, 0) / 1000).toFixed(3)
     );
-    let airtable: { ok: boolean; id?: string; via: string } = { ok: false, via: "skipped" };
-    try {
-      airtable = await recordFilmOrder({
+
+    const [, airtable] = await Promise.all([
+      notifyPrinter({
+        orderId: working.orderId,
+        customer: working.customer,
+        charged: working.charged,
+        films: written.map((f) => ({ filmId: f.filmId, billedLengthMm: f.billedLengthMm })),
+        blobKeys: fileUrls,
+      }),
+      recordFilmOrder({
         orderId: working.orderId,
         status: working.test ? "тест/ожидает" : "ожидает",
         customer: working.customer,
@@ -91,10 +96,11 @@ export async function fulfillPaidOrder(order: PendingOrder) {
         billedMeters,
         files: fileUrls,
         test: Boolean(working.test),
-      });
-    } catch (err) {
-      airtable = { ok: false, via: err instanceof Error ? err.message : "airtable_failed" };
-    }
+      }).catch((err) => ({
+        ok: false as const,
+        via: err instanceof Error ? err.message : "airtable_failed",
+      })),
+    ]);
 
     await savePendingOrder({
       ...working,

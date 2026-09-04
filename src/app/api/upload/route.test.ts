@@ -24,7 +24,8 @@ describe("POST /api/upload", () => {
     const text = await res.text();
     expect(text.length).toBeGreaterThan(0);
     if (res.status !== 200) throw new Error(`upload ${res.status}: ${text}`);
-    const body = JSON.parse(text) as { widthMm?: number; error?: string };
+    const body = JSON.parse(text) as { widthMm?: number; error?: string; previewUrl?: string };
     expect(body.widthMm).toBeGreaterThan(0);
+    expect(body.previewUrl).toMatch(/^\/api\/files\?key=[a-z0-9-]+-preview\.png$/i);
   });
 });

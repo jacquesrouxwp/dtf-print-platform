@@ -4,9 +4,10 @@ import { authoritativeOrderQuote, type OrderFilm } from "@/lib/order-quote";
 import { fulfillPaidOrder } from "@/lib/fulfill-order";
 import { savePendingOrder, type PendingFilm } from "@/lib/pending-order";
 import type { NestSource } from "@/lib/nesting";
-import { testOrdersEnabled } from "@/lib/test-order";
+import { assignOrderId, testOrdersEnabled } from "@/lib/test-order";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 type CheckoutItem = NestSource & {
   storageKey?: string;
@@ -87,7 +88,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (sources.every((s) => !s.storageKey)) {
+  if (sources.some((s) => !s.storageKey)) {
     return NextResponse.json(
       { error: "artwork_missing", message: "No stored originals. Re-upload designs." },
       { status: 422 }
@@ -95,10 +96,10 @@ export async function POST(request: Request) {
   }
 
   const staffTest = testOrdersEnabled();
-  const orderId =
-    typeof body.orderId === "string" && /^(DTF|HLV)-/.test(body.orderId)
-      ? body.orderId
-      : `${staffTest ? "DTF-TEST-" : "DTF-"}${Date.now().toString(36).toUpperCase()}`;
+  const orderId = assignOrderId(
+    staffTest,
+    typeof body.orderId === "string" ? body.orderId : undefined
+  );
 
   const pendingFilms: PendingFilm[] = films.map((f) => ({
     id: f.id,
