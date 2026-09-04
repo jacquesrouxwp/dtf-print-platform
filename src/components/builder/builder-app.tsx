@@ -14,6 +14,7 @@ import { filmsCount } from "@/lib/plural";
 import { metersLabel, money, quoteFilm } from "@/lib/pricing";
 import { layoutAlerts } from "@/lib/layout-alerts";
 import { defaultTextSpec, rasterizeText, type TextAlign, type TextSpec } from "@/lib/raster-text";
+import { persistableSrc } from "@/lib/local-artwork";
 import { fill } from "@/lib/tokens";
 import { useBuilderStore, type Design } from "@/store/useBuilderStore";
 import { cartFingerprint, useCartStore } from "@/store/useCartStore";
@@ -25,8 +26,37 @@ import { useI18n } from "../providers";
 
 const BuilderCanvas = dynamic(
   () => import("./builder-canvas").then((m) => m.BuilderCanvas),
-  { ssr: false, loading: () => <div className="h-full min-h-[420px] rounded-sm bg-surface" /> }
+  { ssr: false, loading: () => <div className="h-full min-h-0 rounded-sm bg-surface md:min-h-[420px]" /> }
 );
+
+/** Stable preview URL, then a live blob: for the current session. Never a dead blob. */
+function liveThumb(src?: string, previewUrl?: string) {
+  const stable = persistableSrc(src) || persistableSrc(previewUrl);
+  if (stable) return stable;
+  if (src && src.startsWith("blob:")) return src;
+  if (previewUrl && previewUrl.startsWith("blob:")) return previewUrl;
+  return "";
+}
+
+/** Portrait phone, or landscape phone: no permanent side columns. */
+function useCompactBuilder() {
+  const [compact, setCompact] = useState(true);
+  useEffect(() => {
+    const read = () =>
+      window.matchMedia(
+        "(max-width: 767.98px), (max-height: 560px) and (max-width: 960px)"
+      ).matches;
+    const on = () => setCompact(read());
+    on();
+    window.addEventListener("resize", on);
+    window.addEventListener("orientationchange", on);
+    return () => {
+      window.removeEventListener("resize", on);
+      window.removeEventListener("orientationchange", on);
+    };
+  }, []);
+  return compact;
+}
 
 type LeftTab = "images" | "text";
 
@@ -50,6 +80,9 @@ export function BuilderApp() {
   const [fitNote, setFitNote] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
   const [cartNote, setCartNote] = useState<string | null>(null);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [inspectOpen, setInspectOpen] = useState(false);
+  const compact = useCompactBuilder();
 
   useEffect(() => {
     const unsub = useBuilderStore.persist.onFinishHydration(() => setReady(true));
@@ -120,6 +153,12 @@ export function BuilderApp() {
     const s = useBuilderStore.getState();
     if (s.designs.length && !s.placed.length) s.autoArrange(config);
   }, [ready, config]);
+
+  useEffect(() => {
+    if (!selectedId) return;
+    setLibraryOpen(false);
+    setInspectOpen(true);
+  }, [selectedId]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -381,7 +420,7 @@ export function BuilderApp() {
   };
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+    <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden">
       {/* The builder owns the window, so it carries its own bar: the way back
           to the site on the left, the money and the order on the right. */}
       <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-line bg-paper px-3 py-2">
@@ -398,7 +437,7 @@ export function BuilderApp() {
           <span className="text-xs text-muted">{t.builder.orderTotal}</span>
           <span className="num text-xl text-accent">{money(displayJob, locale)}</span>
         </div>
-        <span className="num text-xs text-muted">
+        <span className="num hidden text-xs text-muted sm:inline">
           {metersLabel(Number(jobBilled.toFixed(2)), locale)} ·{" "}
           {filmsCount(jobLengths.length, locale)}
           {" · "}
@@ -422,7 +461,7 @@ export function BuilderApp() {
         )}
         {fitNote && <span className="text-xs text-muted">{fitNote}</span>}
         {cartNote && <span className="text-xs text-bad">{cartNote}</span>}
-        <div className="ml-auto flex items-center gap-2">
+        <div className={`ml-auto items-center gap-2 ${compact ? "hidden" : "flex"}`}>
           {added && (
             <Link href={localizedPath(locale, "/checkout")} className="btn btn-ghost">
               {t.builder.checkout}
@@ -438,8 +477,65 @@ export function BuilderApp() {
           </button>
         </div>
       </div>
-      <div className="flex min-h-0 flex-1 overflow-hidden border border-line bg-surface">
-        <nav className="flex w-14 shrink-0 flex-col items-center gap-1 overflow-y-auto thin-scroll border-r border-line bg-paper py-3">
+      <div className={`shrink-0 items-center gap-1 overflow-x-auto border-b border-line px-2 py-1 ${compact ? "flex" : "hidden"}`}>
+        <button
+          type="button"
+          className="btn-soft shrink-0 text-xs"
+          onClick={() => {
+            setInspectOpen(false);
+            setTab("images");
+            setLibraryOpen(true);
+          }}
+        >
+          {t.builder.tabImages}
+        </button>
+        <button
+          type="button"
+          className="btn-soft shrink-0 text-xs"
+          onClick={() => {
+            setInspectOpen(false);
+            setTab("text");
+            setLibraryOpen(true);
+          }}
+        >
+          {t.builder.tabText}
+        </button>
+        <button type="button" className="btn-soft shrink-0 text-xs" onClick={() => autoArrange(config)}>
+          {t.builder.nest}
+        </button>
+        <button
+          type="button"
+          className="btn-soft shrink-0 text-xs"
+          disabled={!selectedPiece}
+          onClick={() => selectedPiece && rotatePiece(selectedPiece.id)}
+        >
+          {t.builder.rotate}
+        </button>
+        <button
+          type="button"
+          className="btn-soft shrink-0 text-xs"
+          disabled={!selectedDesign}
+          onClick={() => selectedDesign && setInspectOpen(true)}
+        >
+          {t.builder.fillFilm}
+        </button>
+        <button type="button" className="btn-soft shrink-0 text-xs" disabled={!canUndo} onClick={undo}>
+          {t.builder.undo}
+        </button>
+      </div>
+      <div className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden border-x border-line bg-surface">
+        {compact && (libraryOpen || inspectOpen) && (
+          <button
+            type="button"
+            className="absolute inset-0 z-30 bg-ink/40"
+            aria-label="Close"
+            onClick={() => {
+              setLibraryOpen(false);
+              setInspectOpen(false);
+            }}
+          />
+        )}
+        <nav className={`${compact ? "hidden" : "flex"} w-14 shrink-0 flex-col items-center gap-1 overflow-y-auto thin-scroll border-r border-line bg-paper py-3`}>
           <RailBtn
             active={tab === "images"}
             label={t.builder.tabImages}
@@ -456,7 +552,21 @@ export function BuilderApp() {
           </RailBtn>
         </nav>
 
-        <aside className="flex w-[280px] min-h-0 shrink-0 flex-col overflow-y-auto thin-scroll border-r border-line bg-paper xl:w-[300px]">
+        <aside
+          className={
+            compact
+              ? `absolute inset-0 z-40 flex min-h-0 flex-col overflow-y-auto thin-scroll bg-paper transition-transform ${
+                  libraryOpen ? "translate-y-0" : "pointer-events-none translate-y-full"
+                }`
+              : "relative z-40 flex min-h-0 w-[280px] shrink-0 flex-col overflow-y-auto thin-scroll border-r border-line bg-paper xl:w-[300px]"
+          }
+        >
+          <div className={`items-center justify-between border-b border-line px-3 py-2 ${compact ? "flex" : "hidden"}`}>
+            <p className="text-sm">{t.builder.tabImages}</p>
+            <button type="button" className="btn-soft" onClick={() => setLibraryOpen(false)}>
+              ×
+            </button>
+          </div>
           {tab === "images" ? (
             <>
               <div className="shrink-0 space-y-2 p-3">
@@ -553,14 +663,14 @@ export function BuilderApp() {
         </aside>
 
         <section
-          className="flex min-h-0 min-w-0 flex-1 flex-col"
+          className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
             void onFiles(e.dataTransfer.files);
           }}
         >
-          <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-line px-3 py-2">
+          <div className={`shrink-0 flex-wrap items-center gap-1.5 border-b border-line px-3 py-2 ${compact ? "hidden" : "flex"}`}>
             <button type="button" className="btn-soft" disabled={!canUndo} onClick={undo}>
               {t.builder.undo}
             </button>
@@ -670,7 +780,23 @@ export function BuilderApp() {
           </div>
         </section>
 
-        <aside className="flex w-[280px] min-h-0 shrink-0 flex-col overflow-y-auto thin-scroll border-l border-line bg-paper xl:w-[300px]">
+        <aside
+          className={
+            compact
+              ? `absolute inset-x-0 bottom-0 z-40 flex max-h-[75%] min-h-0 flex-col overflow-y-auto thin-scroll border-t border-line bg-paper transition-transform ${
+                  inspectOpen && selectedDesign
+                    ? "translate-y-0"
+                    : "pointer-events-none translate-y-full"
+                }`
+              : "relative z-40 flex min-h-0 w-[280px] shrink-0 flex-col overflow-y-auto thin-scroll border-l border-line bg-paper xl:w-[300px]"
+          }
+        >
+          <div className={`items-center justify-between border-b border-line px-3 py-2 ${compact ? "flex" : "hidden"}`}>
+            <p className="text-sm">{t.builder.properties}</p>
+            <button type="button" className="btn-soft" onClick={() => setInspectOpen(false)}>
+              ×
+            </button>
+          </div>
           {selectedDesign && (
             <PieceProperties
               design={selectedDesign}
@@ -696,66 +822,78 @@ export function BuilderApp() {
               onChange={(patch) => void updateTextDesign(selectedDesign.id, patch, config)}
             />
           )}
-          <div className="flex shrink-0 items-center justify-between px-3 py-3">
-            <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{t.builder.films}</p>
-            <button type="button" className="btn-soft" onClick={newFilm}>
-              + {t.builder.newFilm}
-            </button>
-          </div>
-          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto thin-scroll px-3">
-            <FilmCard
-              film={liveCard}
-              active
-              locale={locale}
-              trade={false}
-              onOpen={() => undefined}
-              onRemove={
-                designs.length
-                  ? () => {
-                      reset();
-                      if (activeId) dropFilm(activeId);
-                    }
-                  : undefined
-              }
-            />
-            {otherFilms.map((f) => (
-              <FilmCard
-                key={f.id}
-                film={f}
-                active={false}
-                locale={locale}
-                trade={false}
-                onOpen={() => openFilm(f)}
-                onRemove={() => dropFilm(f.id)}
-              />
-            ))}
-          </div>
-          <div className="shrink-0 space-y-3 border-t border-line p-3">
-            <div className="flex items-baseline justify-between">
-              <span className="text-xs text-muted">{t.builder.orderTotal}</span>
-              <span className="num text-2xl text-accent">{money(displayJob, locale)}</span>
-            </div>
-            <p className="num text-xs text-muted">
-              {metersLabel(Number(jobBilled.toFixed(2)), locale)} ·{" "}
-              {filmsCount(jobLengths.length, locale)}
-            </p>
-            <p className="text-[11px] text-muted">{fill(t.builder.billedHint, config, locale)}</p>
-          </div>
+          {!compact && (
+            <>
+              <div className="flex shrink-0 items-center justify-between px-3 py-3">
+                <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{t.builder.films}</p>
+                <button type="button" className="btn-soft" onClick={newFilm}>
+                  + {t.builder.newFilm}
+                </button>
+              </div>
+              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto thin-scroll px-3">
+                <FilmCard
+                  film={liveCard}
+                  active
+                  locale={locale}
+                  trade={false}
+                  onOpen={() => undefined}
+                  onRemove={
+                    designs.length
+                      ? () => {
+                          reset();
+                          if (activeId) dropFilm(activeId);
+                        }
+                      : undefined
+                  }
+                />
+                {otherFilms.map((f) => (
+                  <FilmCard
+                    key={f.id}
+                    film={f}
+                    active={false}
+                    locale={locale}
+                    trade={false}
+                    onOpen={() => openFilm(f)}
+                    onRemove={() => dropFilm(f.id)}
+                  />
+                ))}
+              </div>
+              <div className="shrink-0 space-y-3 border-t border-line p-3">
+                <div className="flex items-baseline justify-between">
+                  <span className="text-xs text-muted">{t.builder.orderTotal}</span>
+                  <span className="num text-2xl text-accent">{money(displayJob, locale)}</span>
+                </div>
+                <p className="num text-xs text-muted">
+                  {metersLabel(Number(jobBilled.toFixed(2)), locale)} ·{" "}
+                  {filmsCount(jobLengths.length, locale)}
+                </p>
+                <p className="text-[11px] text-muted">{fill(t.builder.billedHint, config, locale)}</p>
+              </div>
+            </>
+          )}
         </aside>
       </div>
 
-      <div className="fixed inset-x-3 bottom-3 z-30 lg:hidden">
-        <div className="glass mx-auto flex items-center justify-between gap-3 rounded-2xl p-3">
-          <p className="num text-lg text-accent">{money(displayJob, locale)}</p>
+      <div
+        className={`z-20 shrink-0 items-center justify-between gap-3 border-t border-line bg-paper px-3 py-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] ${
+          compact ? "flex" : "hidden"
+        }`}
+      >
+        <p className="num text-lg text-accent">{money(displayJob, locale)}</p>
+        {added ? (
+          <Link href={localizedPath(locale, "/checkout")} className="btn btn-primary">
+            {t.builder.checkout}
+          </Link>
+        ) : (
           <button
             type="button"
-            disabled={added || adding || (!designs.length && films.length === 0)}
+            disabled={adding || (!designs.length && films.length === 0)}
             onClick={addOrderToCart}
             className="btn btn-primary"
           >
-            {added ? t.builder.added : t.builder.addCart}
+            {t.builder.addCart}
           </button>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -1175,9 +1313,9 @@ function FilmCard({
     >
       <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 gap-2 text-left">
         <div className="checker h-14 w-14 shrink-0 overflow-hidden rounded-xl">
-          {film.previewSrc ? (
+          {liveThumb(film.previewSrc) ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={film.previewSrc} alt="" className="h-full w-full object-contain" />
+            <img src={liveThumb(film.previewSrc)} alt="" className="h-full w-full object-contain" />
           ) : null}
         </div>
         <div className="min-w-0">
@@ -1233,9 +1371,13 @@ function LibraryItem({ design, selected }: { design: Design; selected: boolean }
         className="flex min-w-0 flex-1 items-center gap-2 text-left"
       >
         <div className="relative checker h-16 w-16 shrink-0 overflow-hidden rounded-xl">
-          {design.src ? (
+          {liveThumb(design.src, design.previewUrl) ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={design.src} alt="" className="h-full w-full object-contain" />
+            <img
+              src={liveThumb(design.src, design.previewUrl)}
+              alt=""
+              className="h-full w-full object-contain"
+            />
           ) : (
             <span className="grid h-full place-items-center text-xs text-muted">—</span>
           )}

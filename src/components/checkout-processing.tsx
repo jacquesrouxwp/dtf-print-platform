@@ -24,7 +24,7 @@ export function CheckoutProcessing({
       aria-busy="true"
     >
       <div className="absolute inset-0 bg-ink/45" aria-hidden />
-      <FrameCmyk className="relative z-[1] w-full max-w-md bg-paper px-8 py-10">
+      <FrameCmyk className="relative z-[1] w-full max-w-[min(24rem,calc(100vw-1.5rem))] overflow-hidden bg-paper px-5 py-8 sm:px-8 sm:py-10">
         <ConveyorLoop />
         <p className="mt-6 text-center text-base text-ink">{title}</p>
         <p className="mt-2 text-center text-sm text-muted">{wait}</p>

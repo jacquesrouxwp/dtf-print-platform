@@ -271,20 +271,29 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
         onSubmit={onSubmit}
         className={`grid gap-4 ${sending ? "pointer-events-none" : ""}`}
       >
-        <input name="name" required placeholder={t.common.name} className="field" />
-        <input name="email" type="email" required placeholder={t.common.email} className="field" />
-        <input name="company" placeholder={t.common.company} className="field" />
-        <input name="address" required={!pickup} placeholder={t.common.address} className="field" />
-        <div className="grid grid-cols-2 gap-3">
-          <input name="postcode" placeholder={t.common.postcode} className="border border-rule px-3 py-2" />
-          <input name="city" placeholder={t.common.city} className="border border-rule px-3 py-2" />
-        </div>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={pickup} onChange={(e) => setPickup(e.target.checked)} />
+        <input name="name" required placeholder={t.common.name} className="field min-h-11" />
+        <input name="email" type="email" required placeholder={t.common.email} className="field min-h-11" />
+        <input name="company" placeholder={t.common.company} className="field min-h-11" />
+        <label className="flex min-h-11 items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="h-5 w-5"
+            checked={pickup}
+            onChange={(e) => setPickup(e.target.checked)}
+          />
           {t.checkout.pickup}
         </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={rush} onChange={(e) => setRush(e.target.checked)} />
+        {!pickup && (
+          <>
+            <input name="address" required placeholder={t.common.address} className="field min-h-11" />
+            <div className="grid grid-cols-2 gap-3">
+              <input name="postcode" placeholder={t.common.postcode} className="field min-h-11" />
+              <input name="city" placeholder={t.common.city} className="field min-h-11" />
+            </div>
+          </>
+        )}
+        <label className="flex min-h-11 items-center gap-2 text-sm">
+          <input type="checkbox" className="h-5 w-5" checked={rush} onChange={(e) => setRush(e.target.checked)} />
           {interpolate(t.checkout.rush, { pct: Math.round(config.rushSurcharge * 100) })}
         </label>
         {trade && <p className="text-sm text-muted">{t.checkout.trade}</p>}
@@ -335,7 +344,7 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
             type="button"
             disabled={sending || !configReady || (!mollie && !testOrder)}
             onClick={() => submit(true)}
-            className="btn btn-primary"
+            className="btn btn-primary min-h-11 w-full"
           >
             Confirm {money(confirmNeeded.totalIncl, locale)}
           </button>
@@ -343,7 +352,7 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
           <button
             type="submit"
             disabled={sending || !display || !configReady || (!mollie && !testOrder)}
-            className="btn btn-primary"
+            className="btn btn-primary min-h-11 w-full"
           >
             {testOrder
               ? display

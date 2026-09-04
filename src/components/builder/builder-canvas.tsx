@@ -196,7 +196,7 @@ export function BuilderCanvas({
   }, [selectedPieceId, placed, canDrag, drawScale]);
 
   return (
-    <div ref={wrapRef} className="builder-film relative h-full min-h-[420px] min-w-0 w-full max-w-full overflow-hidden">
+    <div ref={wrapRef} className="builder-film relative h-full min-h-0 min-w-0 w-full max-w-full overflow-hidden md:min-h-[420px]">
       <div ref={scrollRef} className="h-full w-full max-w-full overflow-auto rounded-xl bg-[#161412]">
         {avail > 0 && (
           <div

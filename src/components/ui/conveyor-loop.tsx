@@ -15,7 +15,7 @@ export function ConveyorLoop({
   return (
     <div
       className={cn(
-        "conveyor-loop h-8 overflow-hidden font-mono text-2xl leading-none tracking-[0.12em] select-none",
+        "conveyor-loop h-8 w-full max-w-full overflow-hidden font-mono text-2xl leading-none tracking-[0.12em] select-none",
         className
       )}
       aria-hidden

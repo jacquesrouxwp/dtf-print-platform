@@ -50,7 +50,7 @@ export function Header() {
     return (
       <Link
         href={localizedPath(locale, href)}
-        className={`text-sm tracking-wide ${
+        className={`inline-flex min-h-11 items-center text-sm tracking-wide ${
           active ? "text-ink" : "text-muted hover:text-ink"
         }`}
         onClick={() => setOpen(false)}
@@ -62,7 +62,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-paper">
-      <div className="mx-auto flex max-w-[1200px] items-center gap-5 px-4 py-3">
+      <div className="mx-auto flex min-w-0 max-w-[1200px] items-center gap-2 px-4 py-3 md:gap-5">
         <Link
           href={localizedPath(locale, "/")}
           className="flex items-center"
@@ -71,7 +71,7 @@ export function Header() {
           <BrandLogo height={44} priority />
         </Link>
 
-        <div className="ml-auto flex items-center gap-3 md:gap-5">
+        <div className="ml-auto flex min-w-0 items-center gap-2 md:gap-5">
           <nav className="hidden items-center text-sm md:flex" aria-label="Primary">
             {primary.map((item, i) => (
               <span key={item.href} className="flex items-center">
@@ -82,7 +82,7 @@ export function Header() {
           </nav>
           <Link
             href={localizedPath(locale, "/order")}
-            className="btn btn-primary"
+            className="btn btn-primary min-h-11"
             onClick={() => setOpen(false)}
           >
             {t.nav.start}
@@ -113,7 +113,7 @@ export function Header() {
 
           <Link
             href={localizedPath(locale, "/checkout")}
-            className="relative grid h-10 w-10 place-items-center border border-line text-ink"
+            className="relative grid h-11 w-11 place-items-center border border-line text-ink"
             aria-label={t.nav.cart}
           >
             <ShoppingBag size={18} />
@@ -126,7 +126,7 @@ export function Header() {
 
           <button
             type="button"
-            className="grid h-10 w-10 place-items-center border border-line md:hidden"
+            className="grid h-11 w-11 place-items-center border border-line md:hidden"
             onClick={() => setOpen((v) => !v)}
             aria-label={t.nav.menu}
           >
@@ -150,7 +150,7 @@ export function Header() {
           ))}
           <Link
             href={localizedPath(locale, "/account")}
-            className="px-2 py-1"
+            className="flex min-h-11 items-center px-2"
             onClick={() => setOpen(false)}
           >
             {t.nav.account}
@@ -160,7 +160,7 @@ export function Header() {
               <Link
                 key={code}
                 href={localizedPath(code, rest)}
-                className={`num border border-line px-3 py-1.5 text-xs uppercase tracking-wider ${
+                className={`num grid min-h-11 min-w-11 place-items-center border border-line px-3 text-xs uppercase tracking-wider ${
                   code === locale ? "bg-line text-ink" : "text-muted"
                 }`}
                 onClick={() => setOpen(false)}
