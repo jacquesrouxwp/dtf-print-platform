@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FrameCmyk } from "./frame-cmyk";
 
 export type ProductTile = {
   id: string;
@@ -12,18 +13,20 @@ export type ProductTile = {
 
 export function ProductGrid({ products }: { products: ProductTile[] }) {
   return (
-    <ul className="grid gap-4 sm:grid-cols-2">
+    <ul className="grid gap-4 md:grid-cols-3">
       {products.map((p) => (
         <li key={p.id}>
           <Link
             href={p.ctaHref}
-            className="glass block h-full px-6 py-8 pl-7 transition hover:border-ink"
+            className="block h-full"
           >
+          <FrameCmyk className="h-full bg-paper p-6 transition hover:bg-surface">
             <p className="num text-xs uppercase tracking-[0.2em] text-muted">{p.tag}</p>
             <h3 className="font-display mt-5 text-2xl md:text-3xl">{p.title}</h3>
             <p className="mt-3 max-w-md text-sm leading-relaxed text-muted">{p.body}</p>
             <p className="num mt-6 text-sm">{p.meta}</p>
             <span className="mt-4 inline-flex text-sm text-accent">{p.ctaLabel} →</span>
+          </FrameCmyk>
           </Link>
         </li>
       ))}

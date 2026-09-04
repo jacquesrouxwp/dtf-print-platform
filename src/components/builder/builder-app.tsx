@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Image as ImageIcon, Type } from "lucide-react";
 import { printDpi } from "@/lib/artwork";
-import { makeDemoDesigns } from "@/lib/demo-art";
+import { DEMO_FILENAMES, makeDemoDesigns } from "@/lib/demo-art";
 import { localizedPath } from "@/lib/i18n-config";
 import { effectiveDpi, MIN_PIECE_MM } from "@/lib/units";
 import type { PlacedPiece } from "@/lib/nesting";
@@ -20,6 +20,7 @@ import { cartFingerprint, useCartStore } from "@/store/useCartStore";
 import { useJobStore, type JobFilm } from "@/store/useJobStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
 import { BrandLogo } from "../brand-logo";
+import { FrameCmyk } from "../frame-cmyk";
 import { useI18n } from "../providers";
 
 const BuilderCanvas = dynamic(
@@ -463,12 +464,16 @@ export function BuilderApp() {
                   type="button"
                   className="w-full text-center text-[11px] text-muted hover:text-foreground"
                   onClick={async () => {
+                    const have = new Set(useBuilderStore.getState().designs.map((d) => d.name));
+                    if (DEMO_FILENAMES.every((name) => have.has(name))) return;
                     const demos = makeDemoDesigns();
                     const files: File[] = [];
                     for (const d of demos) {
+                      if (have.has(d.name)) continue;
                       const blob = await (await fetch(d.src)).blob();
                       files.push(new File([blob], d.name, { type: "image/png" }));
                     }
+                    if (!files.length) return;
                     await addFiles(files, config);
                   }}
                 >
@@ -628,6 +633,9 @@ export function BuilderApp() {
             </div>
           </div>
           <div className="relative min-h-0 flex-1 p-2">
+            <FrameCmyk className="pointer-events-none absolute inset-2 z-10">
+              <span className="sr-only" />
+            </FrameCmyk>
             {/* Over the film, not beside it: a warning about the layout should
                 sit where the layout is. */}
             <div className="pointer-events-none absolute left-4 top-4 z-20 space-y-1.5">

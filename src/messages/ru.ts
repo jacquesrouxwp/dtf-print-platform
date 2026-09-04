@@ -2,7 +2,7 @@ import type { en } from "./en";
 
 export const ru: typeof en = {
   meta: {
-    homeTitle: "DTF Studio — Закажи плёнку. Пресс сам.",
+    homeTitle: "DTF Studio",
     homeDesc:
       "DTF Studio. Custom DTF transfers and merch. Закажи плёнку. Пресс сам. Печать в Анкевене. От 0,5 м.",
     orderTitle: "Раскладка на рулон",

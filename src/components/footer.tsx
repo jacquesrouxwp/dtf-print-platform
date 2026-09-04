@@ -4,6 +4,7 @@ import Link from "next/link";
 import { localizedPath } from "@/lib/i18n-config";
 import { interpolate } from "@/lib/interpolate";
 import { BrandLogo } from "./brand-logo";
+import { SocialLinks } from "./social-links";
 import { useI18n } from "./providers";
 import { useSettingsStore } from "@/store/useSettingsStore";
 
@@ -14,18 +15,17 @@ export function Footer() {
 
   return (
     <footer className="border-t border-line bg-paper">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 md:grid-cols-4">
+      <div className="mx-auto grid max-w-[1200px] gap-10 px-4 py-14 md:grid-cols-4">
         <div className="md:col-span-2">
           <BrandLogo height={44} />
           <p className="mt-3 max-w-sm text-sm text-muted">{t.footer.blurb}</p>
-          <p className="mt-4 grid gap-1 text-sm">
+          <p className="mt-2 text-sm text-muted">Netherlands · Ankeveen</p>
+          <p className="mt-4 grid gap-2 text-sm">
             <a href={`mailto:${config.email}`}>{config.email}</a>
-            <a href="https://www.instagram.com/dtf_print_studio/" target="_blank" rel="noopener noreferrer">
-              {t.footer.socialStudio}
-            </a>
-            <a href="https://www.instagram.com/dtf_print_eu/" target="_blank" rel="noopener noreferrer">
-              {t.footer.socialEu}
-            </a>
+            <SocialLinks />
+            <Link href={L("/rental")} className="text-muted hover:text-ink">
+              {t.nav.rental}
+            </Link>
           </p>
           {config.kvk && config.btwNumber ? (
             <p className="num mt-6 text-xs text-muted">

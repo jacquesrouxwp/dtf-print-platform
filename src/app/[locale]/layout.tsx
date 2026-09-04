@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { ContactDock } from "@/components/contact-dock";
 import { PersistHydrate } from "@/components/persist-hydrate";
 import { CookieBanner } from "@/components/cookie-banner";
 import { AppFrame, FooterSlot, SiteChrome } from "@/components/app-frame";
@@ -34,7 +33,7 @@ export default async function LocaleLayout({
           <SiteChrome />
           <main className="flex min-h-0 flex-1 flex-col">{children}</main>
           <FooterSlot />
-          <ContactDock />
+          {/* WhatsApp FAB omitted until a business wa.me exists. */}
           <CookieBanner />
         </AppFrame>
       </SiteShell>

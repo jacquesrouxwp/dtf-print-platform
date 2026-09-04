@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { FrameCmyk } from "./frame-cmyk";
 
 export function PageShell({
   kicker,
@@ -14,8 +15,8 @@ export function PageShell({
   children?: ReactNode;
 }) {
   return (
-    <article className={`mx-auto px-4 py-16 md:py-24 ${wide ? "max-w-6xl" : "max-w-3xl"}`}>
-      <div className="glass px-6 py-10 md:px-10 md:py-14">
+    <article className={`mx-auto px-4 py-16 md:py-24 ${wide ? "max-w-[1200px]" : "max-w-3xl"}`}>
+      <FrameCmyk className="bg-paper px-6 py-10 md:px-10 md:py-14">
         {kicker && (
           <p className="num text-xs uppercase tracking-[0.2em] text-muted">{kicker}</p>
         )}
@@ -24,7 +25,7 @@ export function PageShell({
         </h1>
         {lede && <p className="mt-6 text-lg leading-relaxed text-muted">{lede}</p>}
         <div className="mt-10">{children}</div>
-      </div>
+      </FrameCmyk>
     </article>
   );
 }

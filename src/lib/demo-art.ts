@@ -14,6 +14,14 @@ function canvasPng(
   return canvas.toDataURL("image/png");
 }
 
+export const DEMO_FILENAMES = [
+  "dtf-mark.png",
+  "atelier.png",
+  "badge-55.png",
+  "studio-banner.png",
+  "88.png",
+] as const;
+
 export function makeDemoDesigns(): Design[] {
   const mark = canvasPng(900, 900, (ctx, w, h) => {
     ctx.clearRect(0, 0, w, h);
@@ -63,7 +71,7 @@ export function makeDemoDesigns(): Design[] {
     ctx.font = "600 140px ui-monospace, monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("HILVERSUM", w / 2, h / 2 + 8);
+    ctx.fillText("STUDIO", w / 2, h / 2 + 8);
   });
 
   const number = canvasPng(800, 1000, (ctx, w, h) => {
@@ -79,7 +87,7 @@ export function makeDemoDesigns(): Design[] {
     { name: "dtf-mark.png", src: mark, pixelW: 900, pixelH: 900, widthMm: 80, heightMm: 80, qty: 4 },
     { name: "atelier.png", src: word, pixelW: 1400, pixelH: 420, widthMm: 180, heightMm: 54, qty: 2 },
     { name: "badge-55.png", src: badge, pixelW: 700, pixelH: 700, widthMm: 60, heightMm: 60, qty: 3 },
-    { name: "ankeveen.png", src: banner, pixelW: 1600, pixelH: 360, widthMm: 220, heightMm: 50, qty: 2 },
+    { name: "studio-banner.png", src: banner, pixelW: 1600, pixelH: 360, widthMm: 220, heightMm: 50, qty: 2 },
     { name: "88.png", src: number, pixelW: 800, pixelH: 1000, widthMm: 70, heightMm: 88, qty: 6 },
   ];
 

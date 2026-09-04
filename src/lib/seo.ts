@@ -12,8 +12,10 @@ export function pageMetadata(
 ): Metadata {
   const t = getDict(locale);
   const url = `${SITE}${localizedPath(locale, path)}`;
+  const isHome = path === "/" || path === "";
+  const fullTitle = isHome ? "DTF Studio" : `${title.replace(/\s*·\s*DTF Studio$/i, "")} · DTF Studio`;
   return {
-    title: `${title} · DTF Studio`,
+    title: { absolute: fullTitle },
     description,
     alternates: {
       canonical: url,
@@ -25,14 +27,14 @@ export function pageMetadata(
       },
     },
     openGraph: {
-      title: `${title} · DTF Studio`,
+      title: fullTitle,
       description,
       url,
       locale: locale === "nl" ? "nl_NL" : locale === "ru" ? "ru_RU" : "en_GB",
       siteName: "DTF Studio",
       type: "website",
     },
-    twitter: { card: "summary_large_image", title: `${title} · DTF Studio`, description },
+    twitter: { card: "summary_large_image", title: fullTitle, description },
     keywords: [
       "DTF transfers bestellen",
       "DTF drukwerk Nederland",

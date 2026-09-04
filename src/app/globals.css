@@ -163,23 +163,6 @@ input[type="number"]::-webkit-inner-spin-button {
   border: 1px solid var(--line);
   border-radius: 0;
   box-shadow: none;
-  overflow: hidden;
-}
-
-.glass::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background: linear-gradient(
-    to bottom,
-    var(--cmyk-c) 0 25%,
-    var(--cmyk-m) 25% 50%,
-    var(--cmyk-y) 50% 75%,
-    var(--cmyk-k) 75% 100%
-  );
 }
 
 .btn {
