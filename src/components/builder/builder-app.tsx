@@ -6,7 +6,7 @@ import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from 
 import { Image as ImageIcon, Type } from "lucide-react";
 import { printDpi } from "@/lib/artwork";
 import { DEMO_FILENAMES, makeDemoDesigns } from "@/lib/demo-art";
-import { localizedPath } from "@/lib/i18n-config";
+import { locales, localizedPath } from "@/lib/i18n-config";
 import { effectiveDpi, MIN_PIECE_MM } from "@/lib/units";
 import type { PlacedPiece } from "@/lib/nesting";
 import { previousWholeMetreMm } from "@/lib/fit-to-length";
@@ -80,7 +80,6 @@ export function BuilderApp() {
   const [fitNote, setFitNote] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
   const [cartNote, setCartNote] = useState<string | null>(null);
-  const [libraryOpen, setLibraryOpen] = useState(false);
   const [inspectOpen, setInspectOpen] = useState(false);
   const compact = useCompactBuilder();
 
@@ -156,7 +155,6 @@ export function BuilderApp() {
 
   useEffect(() => {
     if (!selectedId) return;
-    setLibraryOpen(false);
     setInspectOpen(true);
   }, [selectedId]);
 
@@ -420,7 +418,11 @@ export function BuilderApp() {
   };
 
   return (
-    <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden">
+    <div
+      className={`flex min-h-0 w-full min-w-0 flex-1 flex-col ${
+        compact ? "overflow-y-auto thin-scroll" : "overflow-hidden"
+      }`}
+    >
       {/* The builder owns the window, so it carries its own bar: the way back
           to the site on the left, the money and the order on the right. */}
       <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-line bg-paper px-3 py-2">
@@ -461,7 +463,21 @@ export function BuilderApp() {
         )}
         {fitNote && <span className="text-xs text-muted">{fitNote}</span>}
         {cartNote && <span className="text-xs text-bad">{cartNote}</span>}
-        <div className={`ml-auto items-center gap-2 ${compact ? "hidden" : "flex"}`}>
+        <div className="ml-auto flex items-center gap-1">
+          {locales.map((code) => (
+            <Link
+              key={code}
+              href={localizedPath(code, "/order")}
+              hrefLang={code}
+              className={`num grid min-h-[44px] min-w-[44px] place-items-center rounded-md text-xs uppercase tracking-wider ${
+                code === locale ? "bg-ink/10 text-foreground" : "text-muted"
+              }`}
+            >
+              {code}
+            </Link>
+          ))}
+        </div>
+        <div className={`items-center gap-2 ${compact ? "hidden" : "flex"}`}>
           {added && (
             <Link href={localizedPath(locale, "/checkout")} className="btn btn-ghost">
               {t.builder.checkout}
@@ -477,14 +493,13 @@ export function BuilderApp() {
           </button>
         </div>
       </div>
-      <div className={`shrink-0 items-center gap-1 overflow-x-auto border-b border-line px-2 py-1 ${compact ? "flex" : "hidden"}`}>
+      <div className={`sticky top-0 z-20 shrink-0 items-center gap-1 overflow-x-auto border-b border-line bg-paper px-2 py-1 ${compact ? "flex" : "hidden"}`}>
         <button
           type="button"
           className="btn-soft shrink-0 text-xs"
           onClick={() => {
             setInspectOpen(false);
             setTab("images");
-            setLibraryOpen(true);
           }}
         >
           {t.builder.tabImages}
@@ -495,7 +510,6 @@ export function BuilderApp() {
           onClick={() => {
             setInspectOpen(false);
             setTab("text");
-            setLibraryOpen(true);
           }}
         >
           {t.builder.tabText}
@@ -514,8 +528,20 @@ export function BuilderApp() {
         <button
           type="button"
           className="btn-soft shrink-0 text-xs"
-          disabled={!selectedDesign}
-          onClick={() => selectedDesign && setInspectOpen(true)}
+          disabled={!designs.length}
+          onClick={() => {
+            // Fill with whatever is selected, or the only sensible default —
+            // the first design — so the button works on the first tap.
+            const target = selectedDesign ?? designs[0];
+            if (!target) return;
+            const copies = fillWithDesign(target.id, fitTargetMm ?? 1000, config);
+            setFitNote(
+              copies > 0
+                ? t.builder.fillDone.replace("{n}", String(copies))
+                : t.builder.fillNone
+            );
+            window.setTimeout(() => setFitNote(null), 6000);
+          }}
         >
           {t.builder.fillFilm}
         </button>
@@ -523,14 +549,17 @@ export function BuilderApp() {
           {t.builder.undo}
         </button>
       </div>
-      <div className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden border-x border-line bg-surface">
-        {compact && (libraryOpen || inspectOpen) && (
+      <div
+        className={`relative min-h-0 min-w-0 flex-1 border-x border-line bg-surface ${
+          compact ? "flex flex-col overflow-visible" : "flex overflow-hidden"
+        }`}
+      >
+        {compact && inspectOpen && (
           <button
             type="button"
             className="absolute inset-0 z-30 bg-ink/40"
             aria-label="Close"
             onClick={() => {
-              setLibraryOpen(false);
               setInspectOpen(false);
             }}
           />
@@ -555,17 +584,14 @@ export function BuilderApp() {
         <aside
           className={
             compact
-              ? `absolute inset-0 z-40 flex min-h-0 flex-col overflow-y-auto thin-scroll bg-paper transition-transform ${
-                  libraryOpen ? "translate-y-0" : "pointer-events-none translate-y-full"
-                }`
+              ? // Beeld sits above the film, in the first viewport: the upload is
+                // the first thing a thumb reaches, not something behind a sheet.
+                "relative z-10 flex max-h-[46vh] shrink-0 flex-col overflow-y-auto thin-scroll border-b border-line bg-paper"
               : "relative z-40 flex min-h-0 w-[280px] shrink-0 flex-col overflow-y-auto thin-scroll border-r border-line bg-paper xl:w-[300px]"
           }
         >
           <div className={`items-center justify-between border-b border-line px-3 py-2 ${compact ? "flex" : "hidden"}`}>
-            <p className="text-sm">{t.builder.tabImages}</p>
-            <button type="button" className="btn-soft" onClick={() => setLibraryOpen(false)}>
-              ×
-            </button>
+            <p className="text-sm">{tab === "images" ? t.builder.tabImages : t.builder.tabText}</p>
           </div>
           {tab === "images" ? (
             <>
@@ -589,7 +615,7 @@ export function BuilderApp() {
                 </label>
                 <button
                   type="button"
-                  className="w-full text-center text-[11px] text-muted hover:text-foreground"
+                  className="min-h-[44px] w-full text-center text-[11px] text-muted hover:text-foreground"
                   onClick={async () => {
                     const have = new Set(useBuilderStore.getState().designs.map((d) => d.name));
                     if (DEMO_FILENAMES.every((name) => have.has(name))) return;
@@ -663,7 +689,9 @@ export function BuilderApp() {
         </aside>
 
         <section
-          className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+          className={`flex min-w-0 flex-col ${
+            compact ? "h-[58vh] shrink-0 overflow-hidden" : "min-h-0 flex-1 overflow-hidden"
+          }`}
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
@@ -875,7 +903,7 @@ export function BuilderApp() {
       </div>
 
       <div
-        className={`z-20 shrink-0 items-center justify-between gap-3 border-t border-line bg-paper px-3 py-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] ${
+        className={`sticky bottom-0 z-20 shrink-0 items-center justify-between gap-3 border-t border-line bg-paper px-3 py-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] ${
           compact ? "flex" : "hidden"
         }`}
       >
@@ -1329,7 +1357,7 @@ function FilmCard({
         </div>
       </button>
       {onRemove && (
-        <button type="button" className="self-start text-sm text-muted hover:text-bad" onClick={onRemove}>
+        <button type="button" className="grid min-h-[44px] min-w-[44px] shrink-0 place-items-center self-start text-sm text-muted hover:text-bad" onClick={onRemove}>
           ×
         </button>
       )}
@@ -1397,7 +1425,7 @@ function LibraryItem({ design, selected }: { design: Design; selected: boolean }
       </button>
       <button
         type="button"
-        className="self-start px-1 text-muted hover:text-bad"
+        className="grid min-h-[44px] min-w-[44px] shrink-0 place-items-center self-start text-muted hover:text-bad"
         aria-label={t.builder.remove}
         onClick={() => removeDesign(design.id, config)}
       >

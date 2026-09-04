@@ -3,13 +3,11 @@
 import Konva from "konva";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Group, Image as KImage, Layer, Line, Rect, Stage, Text, Transformer } from "react-konva";
+import { filmChrome, filmScale } from "@/lib/film-scale";
 import { MIN_PIECE_MM, usableWidthMm } from "@/lib/units";
 import { useBuilderStore } from "@/store/useBuilderStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
 
-const RULER = 26;
-/** Neutral margin around the film, so it sits on a surface instead of in a corner. */
-const SURROUND = 24;
 
 function usableSrc(src?: string) {
   return Boolean(src && !src.startsWith("data:,"));
@@ -169,14 +167,18 @@ export function BuilderCanvas({
     };
   }, [designs]);
 
+  const { rulerPx: ruler, surroundPx: surround } = filmChrome(boxW);
   const roll = Math.max(1, config.rollWidthMm);
   const viewLength = Math.max(lengthMm + 40, 280);
-  // Room for the film once the ruler and a margin of surround are taken out.
-  const avail = Math.max(0, boxW - RULER - SURROUND * 2);
-  // 100% means the whole width of the roll fits. Zooming past that has to make
-  // the film genuinely bigger and scroll, not stop at the edge of the box.
-  const fitScale = avail > 0 ? avail / roll : 0;
-  const drawScale = fitScale * (Math.max(25, Math.min(zoomPct, 400)) / 100);
+  // The camera reads the box, the roll and the zoom — never the contents. That
+  // is what keeps the film still while a piece is resized.
+  const drawScale = filmScale({
+    boxWidthPx: boxW,
+    rollWidthMm: roll,
+    zoomPct,
+    rulerPx: ruler,
+    surroundPx: surround,
+  });
   const stageW = Math.max(1, Math.round(roll * drawScale));
   const stageH = Math.max(200, Math.min(Math.round(viewLength * drawScale), 20000));
   const canDrag = interactive;
@@ -198,36 +200,36 @@ export function BuilderCanvas({
   return (
     <div ref={wrapRef} className="builder-film relative h-full min-h-0 min-w-0 w-full max-w-full overflow-hidden md:min-h-[420px]">
       <div ref={scrollRef} className="h-full w-full max-w-full overflow-auto rounded-xl bg-[#161412]">
-        {avail > 0 && (
+        {drawScale > 0 && (
           <div
             className="relative"
             style={{
-              width: RULER + stageW,
-              height: RULER + stageH,
+              width: ruler + stageW,
+              height: ruler + stageH,
               // Centred while it fits, and still scrollable from the left edge
               // once the customer zooms past the width of the box.
-              margin: `${SURROUND}px auto`,
+              margin: `${surround}px auto`,
             }}
           >
             <div
               className="num pointer-events-none absolute left-0 top-0 z-10 grid place-items-center text-[9px] text-[#8a8378]"
-              style={{ width: RULER, height: RULER }}
+              style={{ width: ruler, height: ruler }}
             >
               cm
             </div>
             <div
               className="pointer-events-none absolute top-0 z-10 overflow-hidden border-b border-[#3a3530]"
-              style={{ left: RULER, width: stageW, height: RULER }}
+              style={{ left: ruler, width: stageW, height: ruler }}
             >
               <RulerMarks lengthMm={roll} pxPerMm={drawScale} axis="h" />
             </div>
             <div
               className="pointer-events-none absolute left-0 z-10 overflow-hidden border-r border-[#3a3530]"
-              style={{ top: RULER, width: RULER, height: stageH }}
+              style={{ top: ruler, width: ruler, height: stageH }}
             >
               <RulerMarks lengthMm={viewLength} pxPerMm={drawScale} axis="v" />
             </div>
-            <div className="absolute" style={{ left: RULER, top: RULER }}>
+            <div className="absolute" style={{ left: ruler, top: ruler }}>
               <Stage width={stageW} height={stageH}>
                 <Layer>
                   {swatch ? (
