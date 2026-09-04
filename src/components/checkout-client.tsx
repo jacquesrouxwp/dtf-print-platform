@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { FrameCmyk } from "./frame-cmyk";
+import { CheckoutProcessing } from "./checkout-processing";
 import { PageShell } from "./page-shell";
 import { useI18n } from "./providers";
-import { ConveyorLoop } from "./ui/conveyor-loop";
 import { localizedPath } from "@/lib/i18n-config";
 import { money, type PriceBreakdown } from "@/lib/pricing";
 import { interpolate } from "@/lib/interpolate";
@@ -65,6 +64,7 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
   const [error, setError] = useState<string | null>(null);
   const [cartReady, setCartReady] = useState(useCartStore.persist.hasHydrated());
   const inflight = useRef(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     const unsub = useCartStore.persist.onFinishHydration(() => setCartReady(true));
@@ -121,7 +121,7 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
     inflight.current = true;
     setSending(true);
     setError(null);
-    const form = document.querySelector("form");
+    const form = formRef.current;
     if (!form && !confirm) {
       inflight.current = false;
       setSending(false);
@@ -182,8 +182,8 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
         billedMeters: payload.quote?.billedMeters ?? quote.billedMeters,
         manifest,
       });
-      clear();
       setDone({ id: String(payload.orderId || ""), manifest });
+      clear();
     } catch {
       setError(t.checkout.paymentsSoon);
     } finally {
@@ -198,6 +198,10 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
     e.preventDefault();
     await submit(false);
   }
+
+  const processing = sending ? (
+    <CheckoutProcessing title={t.checkout.processing} wait={t.checkout.processingWait} />
+  ) : null;
 
   if (paidOrderId && !done) {
     return (
@@ -220,16 +224,24 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
   }
 
   if (!cartReady) {
-    return <PageShell title={t.checkout.title} lede={t.checkout.lede} />;
+    return (
+      <>
+        {processing}
+        <PageShell title={t.checkout.title} lede={t.checkout.lede} />
+      </>
+    );
   }
 
   if (!lines.length) {
     return (
-      <PageShell title={t.checkout.title} lede={t.cart.empty}>
-        <Link href={localizedPath(locale, "/order")} className="underline">
-          {t.common.startOrder}
-        </Link>
-      </PageShell>
+      <>
+        {processing}
+        <PageShell title={t.checkout.title} lede={t.cart.empty}>
+          <Link href={localizedPath(locale, "/order")} className="underline">
+            {t.common.startOrder}
+          </Link>
+        </PageShell>
+      </>
     );
   }
 
@@ -240,21 +252,7 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
 
   return (
     <PageShell title={t.checkout.title} lede={t.checkout.lede}>
-      {sending && (
-        <div
-          className="fixed inset-0 z-[80] flex items-center justify-center px-4"
-          role="status"
-          aria-live="polite"
-          aria-busy="true"
-        >
-          <div className="absolute inset-0 bg-ink/40" aria-hidden />
-          <FrameCmyk className="relative z-[1] w-full max-w-md bg-paper px-8 py-10">
-            <ConveyorLoop />
-            <p className="mt-6 text-center text-base text-ink">{t.checkout.processing}</p>
-            <p className="mt-2 text-center text-sm text-muted">{t.checkout.processingWait}</p>
-          </FrameCmyk>
-        </div>
-      )}
+      {processing}
       <ul className="mb-8 grid gap-3">
         {lines.map((line) => (
           <li key={line.id} className="flex justify-between gap-3 border border-rule px-3 py-3 text-sm">
@@ -268,7 +266,11 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
         ))}
       </ul>
 
-      <form onSubmit={onSubmit} className={`grid gap-4 ${sending ? "pointer-events-none" : ""}`}>
+      <form
+        ref={formRef}
+        onSubmit={onSubmit}
+        className={`grid gap-4 ${sending ? "pointer-events-none" : ""}`}
+      >
         <input name="name" required placeholder={t.common.name} className="field" />
         <input name="email" type="email" required placeholder={t.common.email} className="field" />
         <input name="company" placeholder={t.common.company} className="field" />
