@@ -2,16 +2,28 @@ import { putObject } from "./storage";
 
 export type PrinterNotice = {
   orderId: string;
-  customer: { name?: string; email?: string };
+  customer: {
+    name?: string;
+    email?: string;
+    company?: string;
+    address?: string;
+    postcode?: string;
+    city?: string;
+  };
   charged: number;
   films: { filmId: string; billedLengthMm: number }[];
   blobKeys: string[];
 };
 
 export function printerNoticeText(notice: PrinterNotice): string {
+  const ship = [notice.customer.address, notice.customer.postcode, notice.customer.city]
+    .filter(Boolean)
+    .join(", ");
   const lines = [
     `New paid DTF Studio order ${notice.orderId}`,
     `Customer: ${notice.customer.name || "—"} <${notice.customer.email || "—"}>`,
+    notice.customer.company ? `Company: ${notice.customer.company}` : "",
+    ship ? `Ship: ${ship}` : "Ship: pickup / none",
     `Charged: €${notice.charged.toFixed(2)} incl. BTW`,
     `Films: ${notice.films.length}`,
     ...notice.films.map(
@@ -19,7 +31,7 @@ export function printerNoticeText(notice: PrinterNotice): string {
     ),
     "Files:",
     ...notice.blobKeys.map((k) => `  ${k}`),
-  ];
+  ].filter(Boolean);
   return lines.join("\n");
 }
 

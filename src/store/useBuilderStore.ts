@@ -19,6 +19,20 @@ import { clampGapMm, rollFromSite } from "@/lib/roll";
 import { clampPieceSize, MIN_PIECE_MM, printSizeFromPixels, usableWidthMm } from "@/lib/units";
 import type { SiteConfig } from "@/lib/site-config";
 
+async function mapPool<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let next = 0;
+  async function worker() {
+    while (next < items.length) {
+      const i = next++;
+      out[i] = await fn(items[i]);
+    }
+  }
+  const n = Math.min(Math.max(1, limit), items.length);
+  await Promise.all(Array.from({ length: n }, () => worker()));
+  return out;
+}
+
 export type Design = {
   id: string;
   name: string;
@@ -284,7 +298,7 @@ export const useBuilderStore = create<BuilderState>()(
         const created: Design[] = [];
         const usable = usableWidthMm(config.rollWidthMm, config.edgeMm);
         try {
-          for (const file of files) {
+          const batch = await mapPool([...files], 3, async (file) => {
             let localSrc = "";
             let pixelW = 0;
             let pixelH = 0;
@@ -325,18 +339,19 @@ export const useBuilderStore = create<BuilderState>()(
               const res = await fetch("/api/upload", { method: "POST", body: form });
               const data = await readResponseJson(res);
               if (!res.ok) {
-                created.push({
+                return {
                   ...fallback,
                   uploadError: String(data.error || `http ${res.status}`),
-                });
-                continue;
+                };
               }
-              created.push({
+              const storageKey =
+                typeof data.storageKey === "string" && data.storageKey ? data.storageKey : undefined;
+              return {
                 ...fallback,
                 id: typeof data.id === "string" && data.id ? data.id : fallback.id,
                 src: localSrc || persistableSrc(String(data.previewUrl ?? "")),
                 previewUrl: persistableSrc(String(data.previewUrl ?? "")) || undefined,
-                storageKey: typeof data.storageKey === "string" ? data.storageKey : undefined,
+                storageKey,
                 mime: typeof data.mime === "string" ? data.mime : fallback.mime,
                 pixelW: Number(data.pixelW) > 0 ? Number(data.pixelW) : pixelW,
                 pixelH: Number(data.pixelH) > 0 ? Number(data.pixelH) : pixelH,
@@ -348,11 +363,13 @@ export const useBuilderStore = create<BuilderState>()(
                 hasSemiTransparency: Boolean(data.hasSemiTransparency),
                 whiteBackground: Boolean(data.whiteBackground),
                 trimBox: data.trimBox as TrimBox | undefined,
-              });
+                uploadError: storageKey ? undefined : "upload failed",
+              };
             } catch {
-              created.push({ ...fallback, uploadError: "upload failed" });
+              return { ...fallback, uploadError: "upload failed" };
             }
-          }
+          });
+          created.push(...batch);
           const designs = [...get().designs, ...created];
           const prev = snapOf(get());
           let packed;

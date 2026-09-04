@@ -62,9 +62,17 @@ type CartState = {
 
 export function cartFingerprint(line: {
   lengthMm: number;
-  designs: { id: string; qty: number; widthMm: number; heightMm: number }[];
+  gapMm?: number;
+  designs: { id: string; qty: number; widthMm: number; heightMm: number; storageKey?: string }[];
+  placed?: { id: string; xMm: number; yMm: number; rotation: number; flipX?: boolean }[];
 }): string {
-  return `${line.lengthMm}|${line.designs.map((d) => `${d.id}:${d.qty}:${d.widthMm}x${d.heightMm}`).join(",")}`;
+  const designs = line.designs
+    .map((d) => `${d.id}:${d.qty}:${d.widthMm}x${d.heightMm}:${d.storageKey ?? ""}`)
+    .join(",");
+  const placed = (line.placed ?? [])
+    .map((p) => `${p.id}:${p.xMm}:${p.yMm}:${p.rotation}:${p.flipX ? 1 : 0}`)
+    .join(",");
+  return `${line.lengthMm}|${line.gapMm ?? ""}|${designs}|${placed}`;
 }
 
 function slimPayload(payload: string): string {

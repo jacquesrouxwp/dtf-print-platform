@@ -15,7 +15,7 @@ import { recordFilmOrder } from "./airtable-order";
 import { queueFileUrl } from "./queue-files";
 
 export async function fulfillPaidOrder(order: PendingOrder) {
-  const claimed = await claimForFulfillment(order.orderId, order);
+  const claimed = await claimForFulfillment(order.orderId);
   if (!claimed.ok) {
     return { orderId: order.orderId, already: true, films: [] as { filmId: string }[] };
   }

@@ -7,7 +7,14 @@ const TEST_STATUS = "тест/ожидает";
 export type FilmOrderRow = {
   orderId: string;
   status: string;
-  customer: { name?: string; email?: string };
+  customer: {
+    name?: string;
+    email?: string;
+    company?: string;
+    address?: string;
+    postcode?: string;
+    city?: string;
+  };
   charged: number;
   billedMeters: number;
   files: string[];
@@ -68,10 +75,16 @@ export function fieldsForFilmOrder(fields: AirtableField[], row: FilmOrderRow): 
   const nameField = pickField(fields, [/^имя$/i, /^name$/i, /клиент/i, /customer/i]);
   if (emailField && row.customer.email) out[emailField.name] = row.customer.email;
   if (nameField) {
-    const name =
-      emailField || !row.customer.email
-        ? row.customer.name
-        : [row.customer.name, row.customer.email].filter(Boolean).join(" ");
+    const ship = [row.customer.address, row.customer.postcode, row.customer.city]
+      .filter(Boolean)
+      .join(", ");
+    const name = [
+      emailField ? row.customer.name : [row.customer.name, row.customer.email].filter(Boolean).join(" "),
+      row.customer.company,
+      ship,
+    ]
+      .filter(Boolean)
+      .join(" · ");
     if (name) out[nameField.name] = name;
   }
   set([/^сумма$/i, /total/i, /charged/i, /цена/i], row.charged);

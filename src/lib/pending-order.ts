@@ -15,11 +15,36 @@ export type PendingFilm = {
 
 export type OrderStatus = "pending" | "paid" | "fulfilling" | "fulfilled";
 
+export type OrderCustomer = {
+  name?: string;
+  email?: string;
+  company?: string;
+  address?: string;
+  postcode?: string;
+  city?: string;
+};
+
+function str(v: unknown): string | undefined {
+  return typeof v === "string" && v.trim() ? v.trim() : undefined;
+}
+
+export function parseOrderCustomer(raw: unknown): OrderCustomer {
+  const c = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  return {
+    name: str(c.name),
+    email: str(c.email),
+    company: str(c.company),
+    address: str(c.address),
+    postcode: str(c.postcode),
+    city: str(c.city),
+  };
+}
+
 export type PendingOrder = {
   orderId: string;
   status: OrderStatus;
   films: PendingFilm[];
-  customer: { name?: string; email?: string };
+  customer: OrderCustomer;
   trade: boolean;
   rush: boolean;
   pickup: boolean;
@@ -45,11 +70,8 @@ export function fulfillmentClaim(status: OrderStatus): "claim" | "busy" | "done"
  * only shrinks the race — a second webhook that already read `paid` can still
  * slip through, but not one that arrives after this write.
  */
-export async function claimForFulfillment(
-  orderId: string,
-  known?: PendingOrder
-): Promise<ClaimResult> {
-  const current = known?.orderId === orderId ? known : await loadPendingOrder(orderId);
+export async function claimForFulfillment(orderId: string): Promise<ClaimResult> {
+  const current = await loadPendingOrder(orderId);
   if (!current) return { ok: false, reason: "missing" };
   const gate = fulfillmentClaim(current.status);
   if (gate === "done") return { ok: false, reason: "done" };

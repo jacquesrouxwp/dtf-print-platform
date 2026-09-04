@@ -62,7 +62,7 @@ export async function POST(request: Request) {
       pixelH: inspect.trimBox.h,
       naturalPxW: inspect.naturalPxW,
       naturalPxH: inspect.naturalPxH,
-      trimBox: inspect.trimBox,
+      trimBox: { x: 0, y: 0, w: inspect.trimBox.w, h: inspect.trimBox.h },
       hasAlpha: inspect.hasAlpha,
       hasSemiTransparency: inspect.hasSemiTransparency,
       whiteBackground: inspect.whiteBackground,

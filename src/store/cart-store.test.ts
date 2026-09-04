@@ -41,6 +41,13 @@ describe("cart fingerprint", () => {
     expect(useCartStore.getState().lines).toHaveLength(1);
   });
 
+  it("keeps two films that only differ by gap", async () => {
+    const { useCartStore } = await import("./useCartStore");
+    useCartStore.getState().addLine({ ...line, gapMm: 4 });
+    useCartStore.getState().addLine({ ...line, id: "b", gapMm: 12, createdAt: "later" });
+    expect(useCartStore.getState().lines).toHaveLength(2);
+  });
+
   it("adopts hlv-cart once, then drops the old key", async () => {
     const map = installStorage();
     map.set(

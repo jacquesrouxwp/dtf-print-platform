@@ -30,9 +30,9 @@ export async function POST(request: Request) {
   const films = filmsFromBody(body);
 
   const order = authoritativeOrderQuote(films, config, {
-    trade: Boolean(body.trade),
+    trade: false,
     rush: Boolean(body.rush),
-    includeShipping: body.includeShipping !== false,
+    includeShipping: body.pickup ? false : body.includeShipping !== false,
   });
 
   const first = order.films[0];

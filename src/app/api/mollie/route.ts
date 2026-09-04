@@ -3,6 +3,7 @@ import { fulfillOrderId } from "@/lib/fulfill-order";
 import { loadPendingOrder } from "@/lib/pending-order";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 /**
  * Mollie POSTs { id } when a payment changes. We refetch the payment — never
@@ -33,6 +34,7 @@ export async function POST(request: Request) {
   if (!res.ok) return NextResponse.json({ error: "payment_lookup" }, { status: 502 });
   const payment = (await res.json()) as {
     status?: string;
+    amount?: { value?: string };
     metadata?: { orderId?: string };
   };
 
@@ -47,6 +49,11 @@ export async function POST(request: Request) {
   if (!pending) return NextResponse.json({ error: "unknown_order" }, { status: 404 });
   if (pending.status === "fulfilled" || pending.status === "fulfilling") {
     return NextResponse.json({ ok: true, orderId, already: true });
+  }
+
+  const paidValue = Number(payment.amount?.value);
+  if (Number.isFinite(paidValue) && Math.abs(paidValue - pending.charged) > 0.009) {
+    return NextResponse.json({ error: "amount_mismatch", orderId }, { status: 409 });
   }
 
   try {

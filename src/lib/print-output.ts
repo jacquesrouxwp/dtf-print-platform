@@ -61,7 +61,8 @@ export async function renderPrintPng(
       const h = Math.max(1, mmToPx(item.heightMm, roll.outputDpi));
       let img = sharp(src, { failOn: "none" });
       const trim = trims?.get(item.designId);
-      if (trim && trim.w > 0 && trim.h > 0) {
+      // Uploaded files are already cropped; origin-zero boxes must not extract.
+      if (trim && (trim.x > 0 || trim.y > 0) && trim.w > 0 && trim.h > 0) {
         const meta = await sharp(src, { failOn: "none" }).metadata();
         const nw = meta.width ?? 0;
         const nh = meta.height ?? 0;

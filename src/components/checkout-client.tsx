@@ -57,7 +57,8 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
   const [sending, setSending] = useState(false);
   const [quote, setQuote] = useState<PriceBreakdown | null>(null);
   const [mollie, setMollie] = useState(false);
-  const [testOrder, setTestOrder] = useState(true);
+  const [testOrder, setTestOrder] = useState(false);
+  const [configReady, setConfigReady] = useState(false);
   const [confirmNeeded, setConfirmNeeded] = useState<PriceBreakdown | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cartReady, setCartReady] = useState(useCartStore.persist.hasHydrated());
@@ -75,12 +76,19 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
       .then((d) => {
         setMollie(Boolean(d.mollie));
         setTestOrder(Boolean(d.testOrder));
+        setConfigReady(true);
       })
       .catch(() => {
         setMollie(false);
-        setTestOrder(true);
+        setTestOrder(false);
+        setConfigReady(true);
       });
   }, []);
+
+  useEffect(() => {
+    if (!paidOrderId || !cartReady) return;
+    clear();
+  }, [paidOrderId, cartReady, clear]);
 
   useEffect(() => {
     if (!lines.length) return;
@@ -89,8 +97,8 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         films: cartFilms(lines),
-        trade,
         rush,
+        pickup,
         includeShipping: !pickup,
       }),
     })
@@ -100,6 +108,7 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
   }, [lines, trade, rush, pickup]);
 
   async function submit(confirm = false) {
+    if (!configReady) return;
     if (!mollie && !testOrder) {
       setError(t.checkout.paymentsSoon);
       return;
@@ -122,12 +131,19 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
       body: JSON.stringify({
         amount: quote.totalIncl,
         method,
-        trade,
         rush,
         pickup,
         confirm,
+        locale,
         films,
-        customer: { name: data.name, email: data.email },
+        customer: {
+          name: data.name,
+          email: data.email,
+          company: data.company,
+          address: data.address,
+          postcode: data.postcode,
+          city: data.city,
+        },
       }),
     });
     const payload = await res.json();
@@ -204,6 +220,9 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
   }
 
   const display = quote;
+  const vat = display
+    ? display.btw + Number((display.shipping * config.btwRate).toFixed(2))
+    : 0;
 
   return (
     <PageShell title={t.checkout.title} lede={t.checkout.lede}>
@@ -264,7 +283,7 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
             </div>
             <div className="flex justify-between gap-3">
               <dt>{interpolate(t.builder.btw, { pct: String(Math.round(config.btwRate * 100)) })}</dt>
-              <dd className="num">{money(display.btw, locale)}</dd>
+              <dd className="num">{money(vat, locale)}</dd>
             </div>
             <div className="flex justify-between gap-3 border-t border-line pt-2 text-lg">
               <dt>{t.builder.total}</dt>
@@ -283,7 +302,7 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
         {confirmNeeded ? (
           <button
             type="button"
-            disabled={sending || (!mollie && !testOrder)}
+            disabled={sending || !configReady || (!mollie && !testOrder)}
             onClick={() => submit(true)}
             className="btn btn-primary"
           >
@@ -292,7 +311,7 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
         ) : (
           <button
             type="submit"
-            disabled={sending || !display || (!mollie && !testOrder)}
+            disabled={sending || !display || !configReady || (!mollie && !testOrder)}
             className="btn btn-primary"
           >
             {testOrder

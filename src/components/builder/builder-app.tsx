@@ -50,15 +50,20 @@ export function BuilderApp() {
   const [fitNote, setFitNote] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
   const [cartNote, setCartNote] = useState<string | null>(null);
+  const [cartReady, setCartReady] = useState(useCartStore.persist.hasHydrated());
 
   useEffect(() => {
     const unsub = useBuilderStore.persist.onFinishHydration(() => setReady(true));
     void useBuilderStore.persist.rehydrate();
     if (useBuilderStore.persist.hasHydrated()) setReady(true);
+    const unsubCart = useCartStore.persist.onFinishHydration(() => setCartReady(true));
+    void useCartStore.persist.rehydrate();
+    if (useCartStore.persist.hasHydrated()) setCartReady(true);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       unsub();
+      unsubCart();
       document.body.style.overflow = prev;
     };
   }, []);
@@ -254,7 +259,7 @@ export function BuilderApp() {
   }
 
   function addOrderToCart() {
-    if (added || blocking || adding || !ready) return;
+    if (added || blocking || adding || !ready || !cartReady) return;
     const shot = captureCurrent(activeId);
     if (shot) upsertFilm(shot);
     const all: JobFilm[] = [];
@@ -419,7 +424,7 @@ export function BuilderApp() {
           <button
             type="button"
             className="btn btn-primary"
-            disabled={added || blocking || adding || !ready || (!designs.length && films.length === 0)}
+            disabled={added || blocking || adding || !ready || !cartReady || (!designs.length && films.length === 0)}
             onClick={addOrderToCart}
           >
             {added ? t.builder.added : t.builder.addAllCart}
@@ -737,7 +742,7 @@ export function BuilderApp() {
           <p className="num text-lg text-accent">{money(displayJob, locale)}</p>
           <button
             type="button"
-            disabled={added || blocking || adding || !ready || (!designs.length && films.length === 0)}
+            disabled={added || blocking || adding || !ready || !cartReady || (!designs.length && films.length === 0)}
             onClick={addOrderToCart}
             className="btn btn-primary"
           >
