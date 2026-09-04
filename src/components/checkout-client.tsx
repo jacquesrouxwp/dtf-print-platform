@@ -64,14 +64,28 @@ export function CheckoutClient({
   const [quote, setQuote] = useState<PriceBreakdown | null>(null);
   const [mollie, setMollie] = useState(false);
   const [testOrder, setTestOrder] = useState(false);
-  const testKey =
-    testKeyProp ||
-    (typeof window !== "undefined"
-      ? new URLSearchParams(window.location.search).get("test") || ""
-      : "");
+  const [testKey, setTestKey] = useState(testKeyProp || "");
   const [confirmNeeded, setConfirmNeeded] = useState<PriceBreakdown | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cartReady, setCartReady] = useState(useCartStore.persist.hasHydrated());
+
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("test") || testKeyProp || "";
+    if (q) {
+      try {
+        sessionStorage.setItem("dtf-test-order-key", q);
+      } catch {
+        /* ignore */
+      }
+      setTestKey(q);
+      return;
+    }
+    try {
+      setTestKey(sessionStorage.getItem("dtf-test-order-key") || "");
+    } catch {
+      setTestKey("");
+    }
+  }, [testKeyProp]);
 
   useEffect(() => {
     const unsub = useCartStore.persist.onFinishHydration(() => setCartReady(true));
@@ -311,7 +325,13 @@ export function CheckoutClient({
             disabled={sending || !display || (!mollie && !testOrder)}
             className="btn btn-primary"
           >
-            {testOrder ? t.checkout.testConfirm : mollie ? t.checkout.payIdeal : t.checkout.payDemo}
+            {testOrder
+              ? display
+                ? t.checkout.testConfirm
+                : t.common.sending
+              : mollie
+                ? t.checkout.payIdeal
+                : t.checkout.payDemo}
           </button>
         )}
       </form>
