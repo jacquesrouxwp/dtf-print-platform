@@ -12,6 +12,7 @@ import { rollFromSite } from "./roll";
 import { getServerConfig } from "./server-config";
 import { getObject } from "./storage";
 import { recordFilmOrder } from "./airtable-order";
+import { queueFileUrl } from "./queue-files";
 
 export async function fulfillPaidOrder(order: PendingOrder) {
   const claimed = await claimForFulfillment(order.orderId);
@@ -67,12 +68,14 @@ export async function fulfillPaidOrder(order: PendingOrder) {
       });
     }
 
+    const fileUrls = written.flatMap((f) => f.blobKeys.map(queueFileUrl));
+
     await notifyPrinter({
       orderId: working.orderId,
       customer: working.customer,
       charged: working.charged,
       films: written.map((f) => ({ filmId: f.filmId, billedLengthMm: f.billedLengthMm })),
-      blobKeys: written.flatMap((f) => f.blobKeys),
+      blobKeys: fileUrls,
     });
 
     const billedMeters = Number(
@@ -86,7 +89,7 @@ export async function fulfillPaidOrder(order: PendingOrder) {
         customer: working.customer,
         charged: working.charged,
         billedMeters,
-        files: written.flatMap((f) => f.blobKeys),
+        files: fileUrls,
         test: Boolean(working.test),
       });
     } catch (err) {

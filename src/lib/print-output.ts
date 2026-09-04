@@ -24,6 +24,22 @@ export function printSizePx(roll: RollConfig, billedLengthMm: number) {
   };
 }
 
+function printCanvas(widthPx: number, heightPx: number) {
+  return sharp({
+    create: {
+      width: widthPx,
+      height: heightPx,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  });
+}
+
+/** RIP/Photoshop read pHYs; pixels are already 300 dpi via mmToPx. */
+function finalizePrintPng(img: sharp.Sharp): Promise<Buffer> {
+  return img.withMetadata({ density: 300 }).png().toBuffer();
+}
+
 export async function renderPrintPng(
   roll: RollConfig,
   billedLengthMm: number,
@@ -32,17 +48,9 @@ export async function renderPrintPng(
   trims?: Map<string, TrimBox>
 ): Promise<Buffer> {
   const { widthPx, heightPx } = printSizePx(roll, billedLengthMm);
-  const base = sharp({
-    create: {
-      width: widthPx,
-      height: heightPx,
-      channels: 4,
-      background: { r: 0, g: 0, b: 0, alpha: 0 },
-    },
-  }).png();
 
   if (!images || images.size === 0 || items.length === 0) {
-    return base.toBuffer();
+    return finalizePrintPng(printCanvas(widthPx, heightPx));
   }
 
   const composites: { input: Buffer; left: number; top: number }[] = [];
@@ -80,18 +88,8 @@ export async function renderPrintPng(
     });
   }
 
-  if (composites.length === 0) return base.toBuffer();
-  return sharp({
-    create: {
-      width: widthPx,
-      height: heightPx,
-      channels: 4,
-      background: { r: 0, g: 0, b: 0, alpha: 0 },
-    },
-  })
-    .composite(composites)
-    .png()
-    .toBuffer();
+  if (composites.length === 0) return finalizePrintPng(printCanvas(widthPx, heightPx));
+  return finalizePrintPng(printCanvas(widthPx, heightPx).composite(composites));
 }
 
 export async function renderOperatorPdf(
