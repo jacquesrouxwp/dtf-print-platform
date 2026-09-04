@@ -50,20 +50,16 @@ export function BuilderApp() {
   const [fitNote, setFitNote] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
   const [cartNote, setCartNote] = useState<string | null>(null);
-  const [cartReady, setCartReady] = useState(useCartStore.persist.hasHydrated());
 
   useEffect(() => {
     const unsub = useBuilderStore.persist.onFinishHydration(() => setReady(true));
     void useBuilderStore.persist.rehydrate();
     if (useBuilderStore.persist.hasHydrated()) setReady(true);
-    const unsubCart = useCartStore.persist.onFinishHydration(() => setCartReady(true));
     void useCartStore.persist.rehydrate();
-    if (useCartStore.persist.hasHydrated()) setCartReady(true);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       unsub();
-      unsubCart();
       document.body.style.overflow = prev;
     };
   }, []);
@@ -188,12 +184,8 @@ export function BuilderApp() {
     ? liveQuote.subtotalExcl + Number((liveQuote.subtotalExcl * config.btwRate).toFixed(2))
     : liveQuote.subtotalExcl;
 
-  const blocking = designs.some(
-    (d) =>
-      d.uploadError ||
-      (d.warnings ?? []).some((w) => w.level === "red") ||
-      rejected.includes(d.id)
-  );
+  const uploadBlocked = designs.some((d) => d.uploadError);
+  const nestBlocked = designs.some((d) => rejected.includes(d.id));
 
   async function onFiles(list: FileList | null) {
     if (!list?.length) return;
@@ -259,12 +251,21 @@ export function BuilderApp() {
   }
 
   function addOrderToCart() {
-    if (added || blocking || adding || !ready || !cartReady) return;
+    if (added || adding) return;
+    void useCartStore.persist.rehydrate();
+    if (uploadBlocked) {
+      setCartNote(t.builder.uploadFailed);
+      return;
+    }
+    if (nestBlocked) {
+      setCartNote(t.builder.overflow);
+      return;
+    }
     const shot = captureCurrent(activeId);
     if (shot) upsertFilm(shot);
     const all: JobFilm[] = [];
     const seen = new Set<string>();
-    for (const film of useJobStore.getState().films) {
+    for (const film of [shot, ...useJobStore.getState().films]) {
       if (!film || film.designCount <= 0 || film.lengthMm <= 0) continue;
       const fp = filmFingerprint(film);
       if (seen.has(fp) || seen.has(film.id)) continue;
@@ -273,7 +274,10 @@ export function BuilderApp() {
       all.push(film);
     }
     const usable = all;
-    if (!usable.length) return;
+    if (!usable.length) {
+      setCartNote(t.builder.empty);
+      return;
+    }
     if (
       usable.some((f) => {
         try {
@@ -400,7 +404,10 @@ export function BuilderApp() {
           {" · "}
           {fill(t.builder.billedHint, config, locale)}
         </span>
-        {blocking && <span className="text-xs text-bad">{t.builder.uploadFailed}</span>}
+        {uploadBlocked && <span className="text-xs text-bad">{t.builder.uploadFailed}</span>}
+        {nestBlocked && !uploadBlocked && (
+          <span className="text-xs text-bad">{t.builder.overflow}</span>
+        )}
         {offerFit && (
           <button
             type="button"
@@ -424,7 +431,7 @@ export function BuilderApp() {
           <button
             type="button"
             className="btn btn-primary"
-            disabled={added || blocking || adding || !ready || !cartReady || (!designs.length && films.length === 0)}
+            disabled={added || adding || (!designs.length && films.length === 0)}
             onClick={addOrderToCart}
           >
             {added ? t.builder.added : t.builder.addAllCart}
@@ -742,7 +749,7 @@ export function BuilderApp() {
           <p className="num text-lg text-accent">{money(displayJob, locale)}</p>
           <button
             type="button"
-            disabled={added || blocking || adding || !ready || !cartReady || (!designs.length && films.length === 0)}
+            disabled={added || adding || (!designs.length && films.length === 0)}
             onClick={addOrderToCart}
             className="btn btn-primary"
           >
