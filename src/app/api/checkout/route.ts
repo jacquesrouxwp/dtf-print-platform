@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { getServerConfig } from "@/lib/server-config";
 import { authoritativeOrderQuote, type OrderFilm } from "@/lib/order-quote";
 import { fulfillPaidOrder } from "@/lib/fulfill-order";
-import { savePendingOrder, type PendingFilm } from "@/lib/pending-order";
+import { parseOrderCustomer, savePendingOrder, type PendingFilm } from "@/lib/pending-order";
 import type { NestSource } from "@/lib/nesting";
 import { assignOrderId, testOrdersEnabled } from "@/lib/test-order";
+import { siteBaseUrl } from "@/lib/queue-files";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -38,9 +39,14 @@ function filmsFromBody(body: {
 }
 
 export async function POST(request: Request) {
-  const body = await request.json();
+  let body: Record<string, unknown>;
+  try {
+    body = (await request.json()) as Record<string, unknown>;
+  } catch {
+    return NextResponse.json({ error: "bad_json" }, { status: 400 });
+  }
   const config = await getServerConfig();
-  const films = filmsFromBody(body);
+  const films = filmsFromBody(body as { films?: CheckoutFilm[]; items?: CheckoutItem[] });
   const sources = films.flatMap((f) => f.sources) as CheckoutItem[];
 
   if (!films.length) {
@@ -58,10 +64,19 @@ export async function POST(request: Request) {
     );
   }
 
+  if (
+    sources.some(
+      (s) => Array.isArray(s.instances) && s.instances.length > 0 && s.instances.length !== s.qty
+    )
+  ) {
+    return NextResponse.json({ error: "qty_mismatch" }, { status: 422 });
+  }
+
+  const pickup = Boolean(body.pickup);
   const order = authoritativeOrderQuote(films, config, {
-    trade: Boolean(body.trade),
+    trade: false,
     rush: Boolean(body.rush),
-    includeShipping: !body.pickup,
+    includeShipping: !pickup,
   });
   const quote = order.total;
 
@@ -107,17 +122,19 @@ export async function POST(request: Request) {
     gapMm: f.gapMm,
   }));
 
+  const customer = parseOrderCustomer(body.customer);
+  if (!pickup && !customer.address) {
+    return NextResponse.json({ error: "address_required" }, { status: 422 });
+  }
+
   const pending = {
     orderId,
     status: "pending" as const,
     films: pendingFilms,
-    customer: {
-      name: typeof body.customer?.name === "string" ? body.customer.name : undefined,
-      email: typeof body.customer?.email === "string" ? body.customer.email : undefined,
-    },
-    trade: Boolean(body.trade),
+    customer,
+    trade: false,
     rush: Boolean(body.rush),
-    pickup: Boolean(body.pickup),
+    pickup,
     charged,
     createdAt: new Date().toISOString(),
     test: staffTest,
@@ -149,7 +166,9 @@ export async function POST(request: Request) {
 
   await savePendingOrder(pending);
 
-  const site = process.env.NEXT_PUBLIC_SITE_URL || "https://dtfstudio.site";
+  const site = siteBaseUrl();
+  const locale =
+    typeof body.locale === "string" && /^(nl|en|ru)$/.test(body.locale) ? body.locale : "nl";
   const res = await fetch("https://api.mollie.com/v2/payments", {
     method: "POST",
     headers: {
@@ -159,7 +178,7 @@ export async function POST(request: Request) {
     body: JSON.stringify({
       amount: { currency: "EUR", value: charged.toFixed(2) },
       description: `DTF Studio ${orderId}`,
-      redirectUrl: `${site}/nl/checkout?paid=${orderId}`,
+      redirectUrl: `${site}/${locale}/checkout?paid=${orderId}`,
       webhookUrl: `${site}/api/mollie`,
       method: "ideal",
       metadata: { orderId },
