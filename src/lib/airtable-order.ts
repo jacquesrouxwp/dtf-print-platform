@@ -15,6 +15,17 @@ export type FilmOrderRow = {
 type AirtableField = { name: string; type: string };
 type AirtableTable = { id: string; name: string; fields: AirtableField[] };
 
+/** Live «Заказы плёнки» columns (this PAT cannot read schema.bases). */
+const FALLBACK_FIELDS: AirtableField[] = [
+  { name: "№", type: "singleLineText" },
+  { name: "Статус", type: "singleSelect" },
+  { name: "Клиент", type: "singleLineText" },
+  { name: "Сумма", type: "number" },
+  { name: "Метры", type: "number" },
+  { name: "Файл", type: "multilineText" },
+  { name: "Оплата", type: "singleSelect" },
+];
+
 function token() {
   return process.env.AIRTABLE_API_KEY || process.env.AIRTABLE_TOKEN || process.env.AIRTABLE_PAT || "";
 }
@@ -41,13 +52,22 @@ export function fieldsForFilmOrder(fields: AirtableField[], row: FilmOrderRow): 
     const name = pickField(fields, patterns);
     if (name && value !== undefined && value !== "") out[name] = value;
   };
-  set([/^заказ$/i, /order\s*id/i, /^номер/i, /order/i], row.orderId);
+  set([/^№$/, /^заказ$/i, /order\s*id/i, /^номер/i, /^#$/, /order/i], row.orderId);
   set([/^статус$/i, /^status$/i], row.status);
-  set([/^email$/i, /почта/i, /e-mail/i], row.customer.email);
-  set([/^имя$/i, /^name$/i, /клиент/i, /customer/i], row.customer.name);
+  const emailField = pickField(fields, [/^email$/i, /почта/i, /e-mail/i]);
+  const nameField = pickField(fields, [/^имя$/i, /^name$/i, /клиент/i, /customer/i]);
+  if (emailField && row.customer.email) out[emailField] = row.customer.email;
+  if (nameField) {
+    const name =
+      emailField || !row.customer.email
+        ? row.customer.name
+        : [row.customer.name, row.customer.email].filter(Boolean).join(" ");
+    if (name) out[nameField] = name;
+  }
   set([/^сумма$/i, /total/i, /charged/i, /цена/i], row.charged);
   set([/^метры$/i, /meter/i, /длина/i, /length/i], row.billedMeters);
-  set([/^файлы$/i, /^files$/i, /png/i], row.files.join("\n"));
+  set([/^файлы?$/i, /^files$/i, /png/i], row.files.join("\n"));
+  set([/^оплат/i, /^payment$/i], row.test ? "ожидает" : "оплачен");
   set([/^заметк/i, /^notes$/i, /коммент/i], row.test ? "тест" : "");
   return out;
 }
@@ -80,22 +100,15 @@ export async function recordFilmOrder(row: FilmOrderRow): Promise<{ ok: boolean;
     const table = meta?.tables?.find((t) => t.name === wanted);
     fieldNames = table?.fields ?? [];
   } catch {
-    fieldNames = [
-      { name: "Заказ", type: "singleLineText" },
-      { name: "Статус", type: "singleSelect" },
-      { name: "Email", type: "email" },
-      { name: "Имя", type: "singleLineText" },
-      { name: "Сумма", type: "number" },
-      { name: "Метры", type: "number" },
-      { name: "Файлы", type: "multilineText" },
-    ];
+    fieldNames = FALLBACK_FIELDS;
   }
+  if (!fieldNames.length) fieldNames = FALLBACK_FIELDS;
   const fields = fieldsForFilmOrder(fieldNames, {
     ...row,
     status: row.test ? TEST_STATUS : row.status || "ожидает",
   });
   if (!Object.keys(fields).length) {
-    fields["Заказ"] = row.orderId;
+    fields["№"] = row.orderId;
     fields["Статус"] = TEST_STATUS;
   }
   const created = await airtable(`${base}/${encodeURIComponent(wanted)}`, {
