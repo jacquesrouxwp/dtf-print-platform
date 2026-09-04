@@ -17,7 +17,7 @@ export function Footer() {
     <footer className="border-t border-line bg-paper">
       <div className="mx-auto grid max-w-[1200px] gap-10 px-4 py-14 md:grid-cols-4">
         <div className="md:col-span-2">
-          <BrandLogo height={44} />
+          <BrandLogo height={56} />
           <p className="mt-3 max-w-sm text-sm text-muted">{t.footer.blurb}</p>
           <p className="mt-2 text-sm text-muted">Netherlands · Ankeveen</p>
           <p className="mt-4 grid gap-2 text-sm">

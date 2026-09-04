@@ -378,7 +378,7 @@ export function BuilderApp() {
           title={t.builder.backToSite}
           aria-label="DTF"
         >
-          <BrandLogo height={24} />
+          <BrandLogo height={32} />
         </Link>
         <span className="hidden text-xs text-muted sm:inline">{t.builder.title}</span>
         <div className="flex items-baseline gap-2 lg:ml-6">
