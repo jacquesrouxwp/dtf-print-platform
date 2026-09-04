@@ -4,7 +4,7 @@ import { authoritativeOrderQuote, type OrderFilm } from "@/lib/order-quote";
 import { fulfillPaidOrder } from "@/lib/fulfill-order";
 import { savePendingOrder, type PendingFilm } from "@/lib/pending-order";
 import type { NestSource } from "@/lib/nesting";
-import { testKeyFromRequest, testOrderKeyOk } from "@/lib/test-order";
+import { testOrdersEnabled } from "@/lib/test-order";
 
 export const runtime = "nodejs";
 
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const staffTest = testOrderKeyOk(testKeyFromRequest(request, body));
+  const staffTest = testOrdersEnabled();
   const orderId =
     typeof body.orderId === "string" && /^(DTF|HLV)-/.test(body.orderId)
       ? body.orderId

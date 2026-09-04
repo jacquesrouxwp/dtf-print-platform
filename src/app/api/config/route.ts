@@ -5,15 +5,14 @@ import {
   saveServerConfig,
 } from "@/lib/server-config";
 import { defaultConfig, type SiteConfig } from "@/lib/site-config";
-import { testKeyFromRequest, testOrderKeyOk } from "@/lib/test-order";
+import { testOrdersEnabled } from "@/lib/test-order";
 
-export async function GET(request: Request) {
+export async function GET() {
   const config = await getServerConfig();
-  const testKey = testKeyFromRequest(request);
   return NextResponse.json({
     config,
     mollie: Boolean(process.env.MOLLIE_API_KEY),
-    testOrder: testOrderKeyOk(testKey),
+    testOrder: testOrdersEnabled(),
   });
 }
 
