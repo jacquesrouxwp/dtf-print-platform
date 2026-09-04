@@ -42,13 +42,7 @@ function cartFilms(lines: ReturnType<typeof useCartStore.getState>["lines"]) {
   return lines.map((line) => ({ id: line.id, gapMm: line.gapMm, items: filmItems(line) }));
 }
 
-export function CheckoutClient({
-  paidOrderId,
-  testKey: testKeyProp,
-}: {
-  paidOrderId?: string;
-  testKey?: string;
-}) {
+export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
   const { locale, t } = useI18n();
   const lines = useCartStore((s) => s.lines);
   const removeLine = useCartStore((s) => s.removeLine);
@@ -63,29 +57,10 @@ export function CheckoutClient({
   const [sending, setSending] = useState(false);
   const [quote, setQuote] = useState<PriceBreakdown | null>(null);
   const [mollie, setMollie] = useState(false);
-  const [testOrder, setTestOrder] = useState(false);
-  const [testKey, setTestKey] = useState(testKeyProp || "");
+  const [testOrder, setTestOrder] = useState(true);
   const [confirmNeeded, setConfirmNeeded] = useState<PriceBreakdown | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cartReady, setCartReady] = useState(useCartStore.persist.hasHydrated());
-
-  useEffect(() => {
-    const q = new URLSearchParams(window.location.search).get("test") || testKeyProp || "";
-    if (q) {
-      try {
-        sessionStorage.setItem("dtf-test-order-key", q);
-      } catch {
-        /* ignore */
-      }
-      setTestKey(q);
-      return;
-    }
-    try {
-      setTestKey(sessionStorage.getItem("dtf-test-order-key") || "");
-    } catch {
-      setTestKey("");
-    }
-  }, [testKeyProp]);
 
   useEffect(() => {
     const unsub = useCartStore.persist.onFinishHydration(() => setCartReady(true));
@@ -95,9 +70,7 @@ export function CheckoutClient({
   }, []);
 
   useEffect(() => {
-    const headers: HeadersInit = {};
-    if (testKey) headers["x-test-order-key"] = testKey;
-    fetch("/api/config", { headers })
+    fetch("/api/config")
       .then((r) => r.json())
       .then((d) => {
         setMollie(Boolean(d.mollie));
@@ -105,9 +78,9 @@ export function CheckoutClient({
       })
       .catch(() => {
         setMollie(false);
-        setTestOrder(false);
+        setTestOrder(true);
       });
-  }, [testKey]);
+  }, []);
 
   useEffect(() => {
     if (!lines.length) return;
@@ -157,7 +130,6 @@ export function CheckoutClient({
         confirm,
         films,
         customer: { name: data.name, email: data.email },
-        testKey: testOrder ? testKey : undefined,
       }),
     });
     const payload = await res.json();

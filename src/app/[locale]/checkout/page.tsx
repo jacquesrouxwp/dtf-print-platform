@@ -16,8 +16,8 @@ export async function generateMetadata({
 export default async function CheckoutPage({
   searchParams,
 }: {
-  searchParams: Promise<{ paid?: string; test?: string }>;
+  searchParams: Promise<{ paid?: string }>;
 }) {
-  const { paid, test } = await searchParams;
-  return <CheckoutClient paidOrderId={paid} testKey={test} />;
+  const { paid } = await searchParams;
+  return <CheckoutClient paidOrderId={paid} />;
 }
