@@ -36,7 +36,7 @@ function printCanvas(widthPx: number, heightPx: number) {
 }
 
 /** RIP/Photoshop read pHYs; pixels are already 300 dpi via mmToPx. */
-function finalizePrintPng(img: sharp.Sharp): Promise<Buffer> {
+function finalizePrintPng(img: ReturnType<typeof sharp>): Promise<Buffer> {
   return img.withMetadata({ density: 300 }).png().toBuffer();
 }
 
