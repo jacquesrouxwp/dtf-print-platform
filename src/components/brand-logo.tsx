@@ -15,7 +15,7 @@ export function BrandLogo({
   const width = Math.round(height * RATIO);
   return (
     <Image
-      src="/logo.png"
+      src="/logo-trim.png"
       alt="DTF Studio"
       width={width}
       height={height}

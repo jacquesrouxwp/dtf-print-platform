@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://dtfstudio.site"),
   title: {
-    default: "DTF Studio — Custom DTF transfers and merch",
+    default: "DTF Studio",
     template: "%s · DTF Studio",
   },
   description: "DTF Studio. Custom DTF transfers and merch. Bestel film. Pers zelf. Ankeveen, Netherlands.",

@@ -34,8 +34,11 @@ export default async function ContactPage({
         <a href="https://www.instagram.com/dtf_print_studio/" target="_blank" rel="noopener noreferrer">
           {t.footer.socialStudio}
         </a>
-        <a href="https://www.instagram.com/dtf_print_eu/" target="_blank" rel="noopener noreferrer">
+        <a href="https://x.com/dtf_print_eu" target="_blank" rel="noopener noreferrer">
           {t.footer.socialEu}
+        </a>
+        <a href="https://www.pinterest.com/dtf_studio/" target="_blank" rel="noopener noreferrer">
+          dtf_studio
         </a>
       </p>
       <LeadForm

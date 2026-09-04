@@ -62,7 +62,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-paper">
-      <div className="mx-auto flex max-w-7xl items-center gap-5 px-4 py-3">
+      <div className="mx-auto flex max-w-[1200px] items-center gap-5 px-4 py-3">
         <Link
           href={localizedPath(locale, "/")}
           className="flex items-center"
@@ -136,7 +136,7 @@ export function Header() {
       </div>
 
       <div className="hidden border-t border-line md:block">
-        <nav className="mx-auto flex max-w-7xl items-center gap-4 overflow-x-auto px-4 py-2 text-xs text-muted">
+        <nav className="mx-auto flex max-w-[1200px] items-center gap-4 overflow-x-auto px-4 py-2 text-xs text-muted">
           {more.map((item) => (
             <NavLink key={item.href} href={item.href} label={t.nav[item.key]} />
           ))}

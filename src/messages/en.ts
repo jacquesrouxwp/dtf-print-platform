@@ -1,6 +1,6 @@
 export const en = {
   meta: {
-    homeTitle: "DTF Studio — Order film. Press it yourself.",
+    homeTitle: "DTF Studio",
     homeDesc:
       "DTF Studio. Custom DTF transfers and merch. Order film. Press it yourself. Printed in Ankeveen. From 0.5 m.",
     orderTitle: "Gang sheet builder",

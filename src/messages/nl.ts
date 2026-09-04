@@ -2,7 +2,7 @@ import type { en } from "./en";
 
 export const nl: typeof en = {
   meta: {
-    homeTitle: "DTF Studio — Bestel film. Pers zelf.",
+    homeTitle: "DTF Studio",
     homeDesc:
       "DTF Studio. Custom DTF transfers and merch. Bestel film. Pers zelf. Gedrukt in Ankeveen. Vanaf 0,5 m.",
     orderTitle: "Gangsheet-bouwer",
