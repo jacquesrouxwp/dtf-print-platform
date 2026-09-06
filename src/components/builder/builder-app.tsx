@@ -23,6 +23,9 @@ import { layoutAlerts } from "@/lib/layout-alerts";
 import { defaultTextSpec, rasterizeText, type TextAlign, type TextSpec } from "@/lib/raster-text";
 import { persistableSrc } from "@/lib/local-artwork";
 import { previewFileName, renderFilmPreview } from "@/lib/film-preview";
+import { copiesForLength } from "@/lib/auto-fill";
+import { rollFromSite } from "@/lib/roll";
+import type { SiteConfig } from "@/lib/site-config";
 import { fill } from "@/lib/tokens";
 import { useBuilderStore, type Design } from "@/store/useBuilderStore";
 import { cartFingerprint, useCartStore } from "@/store/useCartStore";
@@ -505,6 +508,29 @@ export function BuilderApp() {
    */
   if (compact) {
     const rollCm = Math.round(config.rollWidthMm / 10);
+    if (filmTall) {
+      return (
+        <div className="fixed inset-0 z-50 flex flex-col bg-paper">
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-line px-3 py-2">
+            <p className="num text-sm">
+              {metersLabel(Number((lengthMm / 1000).toFixed(2)), locale)}
+            </p>
+            <button
+              type="button"
+              className="btn-soft text-xs"
+              onClick={() => setFilmTall(false)}
+            >
+              {t.builder.closeFilm}
+            </button>
+          </div>
+          <div className="relative min-h-0 flex-1 bg-surface p-2">
+            <CanvasGuard>
+              <BuilderCanvas interactive={false} zoomPct={100} />
+            </CanvasGuard>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden bg-surface">
         <header className="flex shrink-0 items-center gap-2 border-b border-line bg-paper px-3 py-2">
@@ -705,11 +731,7 @@ export function BuilderApp() {
               />
             </div>
 
-            <div
-              className={`relative border-y border-line bg-surface p-2 ${
-                filmTall ? "h-[78dvh]" : "h-[46dvh] min-h-[240px]"
-              }`}
-            >
+            <div className="relative h-[46dvh] min-h-[240px] border-y border-line bg-surface p-2">
               <div className="pointer-events-none absolute left-4 top-4 z-20 space-y-1.5">
                 {alerts.overlap && <AlertPill tone="bad">{t.builder.overlap}</AlertPill>}
                 {alerts.overflow && <AlertPill tone="warn">{t.builder.overflow}</AlertPill>}
@@ -729,9 +751,9 @@ export function BuilderApp() {
                 <button
                   type="button"
                   className="btn-soft flex-1 justify-center text-xs"
-                  onClick={() => setFilmTall((v) => !v)}
+                  onClick={() => setFilmTall(true)}
                 >
-                  {filmTall ? t.builder.collapseFilm : t.builder.expandFilm}
+                  {t.builder.viewFilm}
                 </button>
                 <button
                   type="button"
@@ -759,6 +781,19 @@ export function BuilderApp() {
               <p className="text-[11px] leading-relaxed text-muted">{t.builder.mobileNote}</p>
             </div>
           </section>
+
+          {placed.length > 0 && (
+            <section className="rounded-2xl border border-line bg-paper p-4">
+              <FilmSummary
+                designs={designs}
+                placed={placed}
+                lengthMm={lengthMm}
+                config={config}
+                locale={locale}
+                t={t}
+              />
+            </section>
+          )}
 
           <section className="rounded-2xl border border-line bg-paper">
             <button
@@ -1231,6 +1266,16 @@ export function BuilderApp() {
                 ))}
               </div>
               <div className="shrink-0 space-y-3 border-t border-line p-4 xl:p-5">
+                {placed.length > 0 && (
+                  <FilmSummary
+                    designs={designs}
+                    placed={placed}
+                    lengthMm={lengthMm}
+                    config={config}
+                    locale={locale}
+                    t={t}
+                  />
+                )}
                 <div className="flex items-baseline justify-between">
                   <span className="text-xs text-muted">{t.builder.orderTotal}</span>
                   <span className="num text-2xl text-accent">{money(displayJob, locale)}</span>
@@ -1246,6 +1291,90 @@ export function BuilderApp() {
         </aside>
       </div>
 
+    </div>
+  );
+}
+
+/**
+ * The last thing a customer reads before paying: every design on the film, how
+ * many copies of it are really placed there, at what size, and how many of it
+ * fit in a metre. Counts come from the layout, not from what was asked for —
+ * a piece that did not fit is a piece they are not paying for.
+ */
+function FilmSummary({
+  designs,
+  placed,
+  lengthMm,
+  config,
+  locale,
+  t,
+}: {
+  designs: Design[];
+  placed: PlacedPiece[];
+  lengthMm: number;
+  config: SiteConfig;
+  locale: string;
+  t: ReturnType<typeof useI18n>["t"];
+}) {
+  const roll = rollFromSite(config);
+  const rows = designs
+    .map((design) => {
+      const copies = placed.filter((p) => p.designId === design.id).length;
+      const perMetre = copiesForLength(
+        {
+          designId: design.id,
+          widthMm: design.widthMm,
+          heightMm: design.heightMm,
+          allowRotate: design.allowRotate !== false,
+        },
+        roll,
+        1000
+      );
+      return { design, copies, perMetre };
+    })
+    .filter((row) => row.copies > 0);
+
+  if (rows.length === 0) return null;
+  const pieces = rows.reduce((sum, row) => sum + row.copies, 0);
+
+  return (
+    <div className="space-y-3">
+      <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{t.builder.onThisFilm}</p>
+      <ul className="space-y-2">
+        {rows.map(({ design, copies, perMetre }) => (
+          <li key={design.id} className="flex items-center gap-3">
+            <span className="checker relative h-11 w-11 shrink-0 overflow-hidden rounded-lg">
+              {liveThumb(design.src, design.previewUrl) ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={liveThumb(design.src, design.previewUrl)}
+                  alt=""
+                  className="h-full w-full object-contain"
+                />
+              ) : (
+                <span className="grid h-full place-items-center text-xs text-muted">—</span>
+              )}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm">{design.name}</span>
+              <span className="num block text-[11px] text-muted">
+                {t.builder.piecesShort.replace("{n}", String(copies))} ·{" "}
+                {(design.widthMm / 10).toFixed(1)} × {(design.heightMm / 10).toFixed(1)}{" "}
+                {t.builder.cm}
+                {perMetre > 0 && (
+                  <> · {t.builder.perMetre.replace("{n}", String(perMetre))}</>
+                )}
+              </span>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="num text-xs text-muted">
+        {t.builder.filmTotals
+          .replace("{designs}", String(rows.length))
+          .replace("{pieces}", t.builder.piecesShort.replace("{n}", String(pieces)))
+          .replace("{len}", metersLabel(Number((lengthMm / 1000).toFixed(2)), locale))}
+      </p>
     </div>
   );
 }

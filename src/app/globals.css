@@ -331,8 +331,8 @@ input[type="number"]::-webkit-inner-spin-button {
 /* Konva parks touch-action: none on its own container, which is right while a
    piece can be dragged and wrong on a phone, where it means the film cannot be
    scrolled at all. Where nothing is draggable, the finger belongs to the page. */
-.builder-film--scroll .konvajs-content,
-.builder-film--scroll canvas {
+.builder-film--scroll,
+.builder-film--scroll * {
   touch-action: pan-y !important;
 }
 
