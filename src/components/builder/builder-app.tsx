@@ -15,13 +15,14 @@ import {
   printSizeFromPixels,
   usableWidthMm,
 } from "@/lib/units";
-import type { PlacedPiece } from "@/lib/nesting";
+import type { LayoutMode, PlacedPiece } from "@/lib/nesting";
 import { previousWholeMetreMm } from "@/lib/fit-to-length";
 import { filmsCount } from "@/lib/plural";
 import { metersLabel, money, quoteFilm } from "@/lib/pricing";
 import { layoutAlerts } from "@/lib/layout-alerts";
 import { defaultTextSpec, rasterizeText, type TextAlign, type TextSpec } from "@/lib/raster-text";
 import { persistableSrc } from "@/lib/local-artwork";
+import { previewFileName, renderFilmPreview } from "@/lib/film-preview";
 import { fill } from "@/lib/tokens";
 import { useBuilderStore, type Design } from "@/store/useBuilderStore";
 import { cartFingerprint, useCartStore } from "@/store/useCartStore";
@@ -87,6 +88,10 @@ export function BuilderApp() {
   const [fitNote, setFitNote] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
   const [cartNote, setCartNote] = useState<string | null>(null);
+  const [previewNote, setPreviewNote] = useState<string | null>(null);
+  const [previewBusy, setPreviewBusy] = useState(false);
+  const [filmTall, setFilmTall] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const compact = useCompactBuilder();
 
   useEffect(() => {
@@ -130,6 +135,8 @@ export function BuilderApp() {
   const fillWithDesign = useBuilderStore((s) => s.fillWithDesign);
   const gapMm = useBuilderStore((s) => s.gapMm);
   const setGapMm = useBuilderStore((s) => s.setGapMm);
+  const layoutMode = useBuilderStore((s) => s.layoutMode);
+  const setLayoutMode = useBuilderStore((s) => s.setLayoutMode);
   const freeCopiesFor = useBuilderStore((s) => s.freeCopiesFor);
   const movePiece = useBuilderStore((s) => s.movePiece);
   const selectDesign = useBuilderStore((s) => s.select);
@@ -433,6 +440,47 @@ export function BuilderApp() {
     window.setTimeout(() => setFitNote(null), 6000);
   }
 
+  /**
+   * The film as a picture, built here in the browser. Deliberately not the
+   * print file: that is 300 dpi and is rebuilt from the originals after
+   * payment, which the caption on the image says out loud.
+   */
+  async function downloadPreview() {
+    if (previewBusy || !placed.length) return;
+    setPreviewBusy(true);
+    setPreviewNote(null);
+    try {
+      const blob = await renderFilmPreview({
+        designs: designs.map((d) => ({
+          id: d.id,
+          name: d.name,
+          src: liveThumb(d.src, d.previewUrl) || d.src,
+        })),
+        placed,
+        lengthMm,
+        rollWidthMm: config.rollWidthMm,
+        caption: t.builder.previewCaption.replace(
+          "{len}",
+          metersLabel(Number((lengthMm / 1000).toFixed(2)), locale)
+        ),
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = previewFileName(lengthMm);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    } catch (err) {
+      console.error("preview", err);
+      setPreviewNote(t.builder.previewFailed);
+      window.setTimeout(() => setPreviewNote(null), 6000);
+    } finally {
+      setPreviewBusy(false);
+    }
+  }
+
   const filtered = designs.filter((d) =>
     query.trim() ? d.name.toLowerCase().includes(query.trim().toLowerCase()) : true
   );
@@ -618,6 +666,13 @@ export function BuilderApp() {
             </section>
           )}
 
+          <section className="space-y-3 rounded-2xl border border-line bg-paper p-4">
+            <h2 className="text-[11px] uppercase tracking-[0.16em] text-muted">
+              {t.builder.layout}
+            </h2>
+            <LayoutChoice mode={layoutMode} t={t} onPick={(m) => setLayoutMode(m, config)} />
+          </section>
+
           <section className="overflow-hidden rounded-2xl border border-line bg-paper">
             <div className="flex items-center justify-between gap-3 px-4 pt-4">
               <h2 className="text-base font-medium">{t.builder.film}</h2>
@@ -650,7 +705,11 @@ export function BuilderApp() {
               />
             </div>
 
-            <div className="relative h-[46dvh] min-h-[240px] border-y border-line bg-surface p-2">
+            <div
+              className={`relative border-y border-line bg-surface p-2 ${
+                filmTall ? "h-[78dvh]" : "h-[46dvh] min-h-[240px]"
+              }`}
+            >
               <div className="pointer-events-none absolute left-4 top-4 z-20 space-y-1.5">
                 {alerts.overlap && <AlertPill tone="bad">{t.builder.overlap}</AlertPill>}
                 {alerts.overflow && <AlertPill tone="warn">{t.builder.overflow}</AlertPill>}
@@ -666,6 +725,25 @@ export function BuilderApp() {
             </div>
 
             <div className="space-y-2 p-4">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="btn-soft flex-1 justify-center text-xs"
+                  onClick={() => setFilmTall((v) => !v)}
+                >
+                  {filmTall ? t.builder.collapseFilm : t.builder.expandFilm}
+                </button>
+                <button
+                  type="button"
+                  className="btn-soft flex-1 justify-center text-xs"
+                  disabled={previewBusy || !placed.length}
+                  onClick={() => void downloadPreview()}
+                >
+                  {previewBusy ? t.builder.previewBuilding : t.builder.downloadPreview}
+                </button>
+              </div>
+              <p className="text-[11px] leading-relaxed text-muted">{t.builder.previewNote}</p>
+              {previewNote && <p className="text-xs text-bad">{previewNote}</p>}
               {offerFit && (
                 <button
                   type="button"
@@ -680,6 +758,76 @@ export function BuilderApp() {
               {fitNote && <p className="text-xs text-muted">{fitNote}</p>}
               <p className="text-[11px] leading-relaxed text-muted">{t.builder.mobileNote}</p>
             </div>
+          </section>
+
+          <section className="rounded-2xl border border-line bg-paper">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left"
+              aria-expanded={moreOpen}
+              onClick={() => setMoreOpen((v) => !v)}
+            >
+              <span className="text-base font-medium">{t.builder.moreTools}</span>
+              <span className="num text-muted">{moreOpen ? "−" : "+"}</span>
+            </button>
+            {moreOpen && (
+              <div className="space-y-3 border-t border-line p-4">
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    className="btn-soft justify-center text-xs"
+                    disabled={!selectedPiece}
+                    onClick={() => selectedPiece && rotatePiece(selectedPiece.id)}
+                  >
+                    {t.builder.rotate}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-soft justify-center text-xs"
+                    disabled={!selectedPiece}
+                    onClick={() => selectedPiece && flipPiece(selectedPiece.id)}
+                  >
+                    {t.builder.flip}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-soft justify-center text-xs"
+                    disabled={!selectedPiece}
+                    onClick={() => selectedPiece && duplicatePiece(selectedPiece.id, config)}
+                  >
+                    {t.builder.duplicate}
+                  </button>
+                  {(["left", "center", "right"] as const).map((edge) => (
+                    <button
+                      key={edge}
+                      type="button"
+                      className="btn-soft justify-center text-xs"
+                      disabled={!selectedPiece}
+                      onClick={() => selectedPiece && alignPiece(selectedPiece.id, edge, config)}
+                    >
+                      {edge === "left"
+                        ? t.builder.alignLeft
+                        : edge === "center"
+                          ? t.builder.alignCenter
+                          : t.builder.alignRight}
+                    </button>
+                  ))}
+                </div>
+                <label className="flex items-center justify-between gap-3 text-sm text-muted">
+                  <span>{t.builder.gap}</span>
+                  <span className="flex items-center gap-2">
+                    <input
+                      className="field num w-20 py-1 text-center text-sm"
+                      inputMode="decimal"
+                      value={gapMm ?? config.gapMm}
+                      onChange={(e) => setGapMm(Number(e.target.value.replace(",", ".")), config)}
+                    />
+                    <span className="text-xs">mm</span>
+                  </span>
+                </label>
+                <p className="text-[11px] leading-relaxed text-muted">{t.builder.moreToolsHint}</p>
+              </div>
+            )}
           </section>
 
           <p className="px-1 text-[11px] leading-relaxed text-muted">
@@ -1032,6 +1180,22 @@ export function BuilderApp() {
           )}
           {(
             <>
+              <div className="shrink-0 space-y-3 border-b border-line px-4 py-5 xl:px-5">
+                <p className="text-[11px] uppercase tracking-[0.16em] text-muted">
+                  {t.builder.layout}
+                </p>
+                <LayoutChoice mode={layoutMode} t={t} onPick={(m) => setLayoutMode(m, config)} />
+                <button
+                  type="button"
+                  className="btn-soft w-full justify-center text-xs"
+                  disabled={previewBusy || !placed.length}
+                  onClick={() => void downloadPreview()}
+                >
+                  {previewBusy ? t.builder.previewBuilding : t.builder.downloadPreview}
+                </button>
+                <p className="text-[11px] leading-relaxed text-muted">{t.builder.previewNote}</p>
+                {previewNote && <p className="text-xs text-bad">{previewNote}</p>}
+              </div>
               <div className="flex shrink-0 items-center justify-between px-4 pb-2 pt-5 xl:px-5">
                 <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{t.builder.films}</p>
                 <button type="button" className="btn-soft" onClick={newFilm}>
@@ -1082,6 +1246,49 @@ export function BuilderApp() {
         </aside>
       </div>
 
+    </div>
+  );
+}
+
+/**
+ * Two ways to fill a film, and the trade between them said out loud: mixed is
+ * cheaper and lands the customer with a jigsaw to cut; blocks cost a little
+ * film and come apart with one cut per design.
+ */
+function LayoutChoice({
+  mode,
+  t,
+  onPick,
+}: {
+  mode: LayoutMode;
+  t: ReturnType<typeof useI18n>["t"];
+  onPick: (mode: LayoutMode) => void;
+}) {
+  const options: { id: LayoutMode; label: string; hint: string }[] = [
+    { id: "mixed", label: t.builder.layoutMixed, hint: t.builder.layoutMixedHint },
+    { id: "blocks", label: t.builder.layoutBlocks, hint: t.builder.layoutBlocksHint },
+  ];
+  return (
+    <div className="grid gap-2">
+      {options.map((option) => {
+        const active = mode === option.id;
+        return (
+          <button
+            key={option.id}
+            type="button"
+            aria-pressed={active}
+            onClick={() => onPick(option.id)}
+            className={`flex flex-col items-start gap-1 border p-3 text-left ${
+              active ? "border-accent bg-accent/5" : "border-line bg-paper"
+            }`}
+          >
+            <span className={`text-sm font-medium ${active ? "text-accent" : "text-ink"}`}>
+              {option.label}
+            </span>
+            <span className="text-[11px] leading-relaxed text-muted">{option.hint}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }

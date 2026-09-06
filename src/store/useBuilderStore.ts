@@ -10,7 +10,7 @@ import {
 } from "@/lib/artwork";
 import type { TrimBox } from "@/lib/inspect-artwork";
 import { localImageMeta, persistableSrc, readResponseJson } from "@/lib/local-artwork";
-import { nest, type PlacedPiece } from "@/lib/nesting";
+import { nest, nestBlocks, type LayoutMode, type PlacedPiece } from "@/lib/nesting";
 import { alignedPosition, duplicateOffset, type AlignEdge } from "@/lib/piece-ops";
 import { rasterizeText, type TextSpec } from "@/lib/raster-text";
 import { fitToLength } from "@/lib/fit-to-length";
@@ -74,6 +74,8 @@ type BuilderState = {
   rejected: string[];
   /** Gap between pieces on this film, in mm; null means the shop default. */
   gapMm: number | null;
+  /** How the packer arranges the film: everything mixed, or a block per design. */
+  layoutMode: LayoutMode;
   selectedId: string | null;
   adding: boolean;
   history: BuilderSnap[];
@@ -117,6 +119,7 @@ type BuilderState = {
   pastePiece: (config: SiteConfig) => void;
   alignPiece: (id: string, edge: AlignEdge, config: SiteConfig) => void;
   setGapMm: (mm: number | null, config: SiteConfig) => void;
+  setLayoutMode: (mode: LayoutMode, config: SiteConfig) => void;
   setDesignText: (id: string, spec: TextSpec) => void;
   /** Shrink every piece just enough to land on `targetMm`. Returns the factor used. */
   fitFilmTo: (targetMm: number, config: SiteConfig) => number | null;
@@ -256,9 +259,29 @@ function applyPack(
   designs: Design[],
   existing: PlacedPiece[],
   config: SiteConfig,
-  gapMm?: number | null
+  gapMm?: number | null,
+  mode: LayoutMode = "mixed"
 ) {
   const seeded = syncPlaced(designs, existing);
+  const roll = rollFromSite(config, gapMm == null ? undefined : { gapMm });
+  if (mode === "blocks") {
+    const result = nestBlocks(
+      designs.map((d) => ({
+        designId: d.id,
+        widthMm: d.widthMm,
+        heightMm: d.heightMm,
+        qty: d.qty,
+        allowRotate: d.allowRotate !== false,
+      })),
+      roll
+    );
+    return {
+      designs: designs.map((d) => ({ ...d, warnings: recomputeWarnings(d, config) })),
+      placed: result.items,
+      lengthMm: result.usedLengthMm,
+      rejected: result.rejected,
+    };
+  }
   const result = nest(
     designs.map((d) => ({
       designId: d.id,
@@ -279,7 +302,7 @@ function applyPack(
           flipX: p.flipX,
         })),
     })),
-    rollFromSite(config, gapMm == null ? undefined : { gapMm })
+    roll
   );
   return {
     designs: designs.map((d) => ({ ...d, warnings: recomputeWarnings(d, config) })),
@@ -297,6 +320,7 @@ export const useBuilderStore = create<BuilderState>()(
       lengthMm: 0,
       rejected: [],
       gapMm: null,
+      layoutMode: "mixed",
       selectedId: null,
       clipboard: null,
       adding: false,
@@ -386,7 +410,7 @@ export const useBuilderStore = create<BuilderState>()(
           const prev = snapOf(get());
           let packed;
           try {
-            packed = applyPack(designs, get().placed, config, get().gapMm);
+            packed = applyPack(designs, get().placed, config, get().gapMm, get().layoutMode);
           } catch (err) {
             console.error("applyPack", err);
             packed = { designs, placed: get().placed, lengthMm: get().lengthMm, rejected: [] as string[] };
@@ -420,7 +444,7 @@ export const useBuilderStore = create<BuilderState>()(
       addDesigns: (incoming, config) => {
         const designs = [...get().designs, ...incoming];
         set({
-          ...applyPack(designs, get().placed, config, get().gapMm),
+          ...applyPack(designs, get().placed, config, get().gapMm, get().layoutMode),
           selectedId: incoming[0]?.id ?? get().selectedId,
         });
       },
@@ -458,7 +482,7 @@ export const useBuilderStore = create<BuilderState>()(
             );
           }
         }
-        if (shouldRepack) set(applyPack(designs, placed, config, get().gapMm));
+        if (shouldRepack) set(applyPack(designs, placed, config, get().gapMm, get().layoutMode));
         else
           set({
             designs: designs.map((d) => ({ ...d, warnings: recomputeWarnings(d, config) })),
@@ -468,7 +492,7 @@ export const useBuilderStore = create<BuilderState>()(
       removeDesign: (id, config) => {
         const designs = get().designs.filter((d) => d.id !== id);
         set({
-          ...applyPack(designs, get().placed, config, get().gapMm),
+          ...applyPack(designs, get().placed, config, get().gapMm, get().layoutMode),
           selectedId: get().selectedId === id ? null : get().selectedId,
         });
       },
@@ -477,14 +501,14 @@ export const useBuilderStore = create<BuilderState>()(
 
       autoArrange: (config) => {
         const unlocked = get().placed.map((p) => ({ ...p, locked: false }));
-        set(applyPack(get().designs, unlocked, config, get().gapMm));
+        set(applyPack(get().designs, unlocked, config, get().gapMm, get().layoutMode));
       },
 
       patchCopies: (designId, patch, config) => {
         const placed = get().placed.map((p) =>
           p.designId === designId ? { ...p, ...patch } : p
         );
-        set(applyPack(get().designs, placed, config, get().gapMm));
+        set(applyPack(get().designs, placed, config, get().gapMm, get().layoutMode));
       },
 
       movePiece: (id, xMm, yMm, config) => {
@@ -539,7 +563,10 @@ export const useBuilderStore = create<BuilderState>()(
           };
           if (!Array.isArray(parsed.designs)) return;
           const gap = parsed.gapMm === undefined ? get().gapMm : parsed.gapMm;
-          set({ ...applyPack(parsed.designs, parsed.placed ?? [], config, gap), gapMm: gap });
+          set({
+            ...applyPack(parsed.designs, parsed.placed ?? [], config, gap, get().layoutMode),
+            gapMm: gap,
+          });
         } catch {
           /* ignore */
         }
@@ -690,7 +717,7 @@ export const useBuilderStore = create<BuilderState>()(
           flipX,
         }));
         set({
-          ...applyPack(designs, [...others, ...seeds], config, get().gapMm),
+          ...applyPack(designs, [...others, ...seeds], config, get().gapMm, get().layoutMode),
           selectedId: designId,
           history: [...get().history, prev].slice(-40),
           future: [],
@@ -743,7 +770,7 @@ export const useBuilderStore = create<BuilderState>()(
         // Positions were chosen for the old sizes, so everything is laid out
         // again rather than shrunk around stale coordinates.
         set({
-          ...applyPack(resized, [], config, get().gapMm),
+          ...applyPack(resized, [], config, get().gapMm, get().layoutMode),
           selectedId: null,
           history: [...get().history, prev].slice(-40),
           future: [],
@@ -753,13 +780,30 @@ export const useBuilderStore = create<BuilderState>()(
         return fit.scale;
       },
 
+      setLayoutMode: (mode, config) => {
+        if (mode === get().layoutMode) return;
+        const prev = snapOf(get());
+        const selectedId = get().selectedId;
+        const keptDesignId =
+          get().placed.find((p) => p.id === selectedId)?.designId ?? selectedId;
+        set({
+          layoutMode: mode,
+          selectedId: keptDesignId,
+          ...applyPack(get().designs, get().placed, config, get().gapMm, mode),
+          history: [...get().history, prev].slice(-40),
+          future: [],
+          canUndo: true,
+          canRedo: false,
+        });
+      },
+
       setGapMm: (mm, config) => {
         const next = mm === null ? null : clampGapMm(mm, config.gapMm);
         const prev = snapOf(get());
         set({
           gapMm: next,
           // Positions were packed against the old gap; lay it out again.
-          ...applyPack(get().designs, [], config, next),
+          ...applyPack(get().designs, [], config, next, get().layoutMode),
           history: [...get().history, prev].slice(-40),
           future: [],
           canUndo: true,
@@ -831,7 +875,7 @@ export const useBuilderStore = create<BuilderState>()(
             : d
         );
         set({
-          ...applyPack(designs, get().placed, config, get().gapMm),
+          ...applyPack(designs, get().placed, config, get().gapMm, get().layoutMode),
           history: [...get().history, prev].slice(-40),
           future: [],
           canUndo: true,
@@ -856,7 +900,7 @@ export const useBuilderStore = create<BuilderState>()(
           d.id === piece.designId ? { ...d, qty: d.qty + 1 } : d
         );
         set({
-          ...applyPack(designs, [...get().placed, copy], config, get().gapMm),
+          ...applyPack(designs, [...get().placed, copy], config, get().gapMm, get().layoutMode),
           selectedId: copy.id,
           history: [...get().history, prev].slice(-40),
           future: [],
@@ -900,7 +944,7 @@ export const useBuilderStore = create<BuilderState>()(
           d.id === piece.designId ? { ...d, qty: Math.max(1, d.qty - 1) } : d
         );
         set({
-          ...applyPack(designs, remaining, config, get().gapMm),
+          ...applyPack(designs, remaining, config, get().gapMm, get().layoutMode),
           selectedId: get().selectedId === id ? piece.designId : get().selectedId,
           history: [...get().history, prev].slice(-40),
           future: [],
@@ -960,6 +1004,7 @@ export const useBuilderStore = create<BuilderState>()(
                   ? Number(p.gapMm)
                   : current.gapMm,
             rejected: Array.isArray(p.rejected) ? p.rejected.filter((x) => typeof x === "string") : [],
+            layoutMode: p.layoutMode === "blocks" ? "blocks" : "mixed",
             selectedId: null,
             adding: false,
             history: [],
@@ -980,6 +1025,7 @@ export const useBuilderStore = create<BuilderState>()(
         lengthMm: s.lengthMm,
         rejected: s.rejected,
         gapMm: s.gapMm,
+        layoutMode: s.layoutMode,
       }),
     }
   )
