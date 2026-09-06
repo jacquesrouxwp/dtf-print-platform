@@ -617,6 +617,9 @@ export const ru: typeof en = {
     outlineColor: "Цвет обводки",
     dpiGood: "ОК",
     dpiLow: "Низкое",
+    autoSize: "Авто",
+    autoSizeHint: "Авто — размер файла при 300 dpi. Рекомендуем его.",
+    designSize: "Размер",
   },
   cart: {
     title: "Корзина",

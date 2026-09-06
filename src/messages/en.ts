@@ -615,6 +615,9 @@ export const en = {
     outlineColor: "Outline colour",
     dpiGood: "GOOD",
     dpiLow: "LOW",
+    autoSize: "Auto",
+    autoSizeHint: "Auto is the file at 300 dpi — the size we recommend.",
+    designSize: "Size",
   },
   cart: {
     title: "Cart",

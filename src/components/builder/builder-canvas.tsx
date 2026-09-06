@@ -199,7 +199,12 @@ export function BuilderCanvas({
 
   return (
     <div ref={wrapRef} className="builder-film relative h-full min-h-0 min-w-0 w-full max-w-full overflow-hidden md:min-h-[420px]">
-      <div ref={scrollRef} className="h-full w-full max-w-full overflow-auto rounded-xl bg-[#161412]">
+      <div
+        ref={scrollRef}
+        // The film scrolls inside its own box: a finger that reaches the end of
+        // it must not carry the page along with it.
+        className="h-full w-full max-w-full overflow-auto overscroll-contain rounded-xl bg-[#161412]"
+      >
         {drawScale > 0 && (
           <div
             className="relative"
