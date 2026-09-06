@@ -425,17 +425,23 @@ export function BuilderApp() {
     >
       {/* The builder owns the window, so it carries its own bar: the way back
           to the site on the left, the money and the order on the right. */}
-      <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-line bg-paper px-3 py-2">
+      <div
+        className={`flex shrink-0 items-center border-b border-line bg-paper ${
+          compact
+            ? "min-w-0 gap-x-2 px-2 py-1.5"
+            : "flex-wrap gap-x-4 gap-y-2 px-3 py-2"
+        }`}
+      >
         <Link
           href={localizedPath(locale, "/")}
           className="flex items-center"
           title={t.builder.backToSite}
           aria-label="DTF"
         >
-          <BrandLogo height={32} />
+          <BrandLogo height={compact ? 26 : 32} />
         </Link>
         <span className="hidden text-xs text-muted sm:inline">{t.builder.title}</span>
-        <div className="flex items-baseline gap-2 lg:ml-6">
+        <div className={`flex items-baseline gap-2 lg:ml-6 ${compact ? "hidden" : "flex"}`}>
           <span className="text-xs text-muted">{t.builder.orderTotal}</span>
           <span className="num text-xl text-accent">{money(displayJob, locale)}</span>
         </div>
@@ -445,11 +451,13 @@ export function BuilderApp() {
           {" · "}
           {fill(t.builder.billedHint, config, locale)}
         </span>
-        {uploadBlocked && <span className="text-xs text-bad">{t.builder.uploadFailed}</span>}
-        {nestBlocked && !uploadBlocked && (
+        {!compact && uploadBlocked && (
+          <span className="text-xs text-bad">{t.builder.uploadFailed}</span>
+        )}
+        {!compact && nestBlocked && !uploadBlocked && (
           <span className="text-xs text-bad">{t.builder.overflow}</span>
         )}
-        {offerFit && (
+        {!compact && offerFit && (
           <button
             type="button"
             className="btn-soft text-xs text-accent"
@@ -461,22 +469,29 @@ export function BuilderApp() {
               .replace("{save}", (fitSavingMm / 10).toFixed(1))}
           </button>
         )}
-        {fitNote && <span className="text-xs text-muted">{fitNote}</span>}
-        {cartNote && <span className="text-xs text-bad">{cartNote}</span>}
-        <div className="ml-auto flex items-center gap-1">
+        {!compact && fitNote && <span className="text-xs text-muted">{fitNote}</span>}
+        {!compact && cartNote && <span className="text-xs text-bad">{cartNote}</span>}
+        <nav
+          className={`ml-auto flex shrink-0 items-center ${
+            compact ? "border border-line" : "gap-1"
+          }`}
+          aria-label={t.nav.language}
+        >
           {locales.map((code) => (
             <Link
               key={code}
               href={localizedPath(code, "/order")}
               hrefLang={code}
-              className={`num grid min-h-[44px] min-w-[44px] place-items-center rounded-md text-xs uppercase tracking-wider ${
-                code === locale ? "bg-ink/10 text-foreground" : "text-muted"
-              }`}
+              className={`num place-items-center text-xs uppercase tracking-wider ${
+                compact
+                  ? "grid min-h-[36px] px-2"
+                  : "grid min-h-[44px] min-w-[44px] rounded-md"
+              } ${code === locale ? "bg-ink/10 text-foreground" : "text-muted"}`}
             >
               {code}
             </Link>
           ))}
-        </div>
+        </nav>
         <div className={`items-center gap-2 ${compact ? "hidden" : "flex"}`}>
           {added && (
             <Link href={localizedPath(locale, "/checkout")} className="btn btn-ghost">
@@ -549,15 +564,32 @@ export function BuilderApp() {
           {t.builder.undo}
         </button>
       </div>
+      {compact && (uploadBlocked || nestBlocked || offerFit || fitNote || cartNote) && (
+        <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-line bg-paper px-3 py-1.5">
+          {uploadBlocked && <span className="text-xs text-bad">{t.builder.uploadFailed}</span>}
+          {nestBlocked && !uploadBlocked && (
+            <span className="text-xs text-bad">{t.builder.overflow}</span>
+          )}
+          {offerFit && (
+            <button type="button" className="btn-soft text-xs text-accent" onClick={fitToWholeMetre}>
+              {t.builder.fitTo
+                .replace("{m}", String((fitTargetMm as number) / 1000))
+                .replace("{save}", (fitSavingMm / 10).toFixed(1))}
+            </button>
+          )}
+          {fitNote && <span className="text-xs text-muted">{fitNote}</span>}
+          {cartNote && <span className="text-xs text-bad">{cartNote}</span>}
+        </div>
+      )}
       <div
         className={`relative min-h-0 min-w-0 flex-1 border-x border-line bg-surface ${
           compact ? "flex flex-col overflow-visible" : "flex overflow-hidden"
         }`}
       >
-        {compact && inspectOpen && (
+        {compact && inspectOpen && selectedDesign && (
           <button
             type="button"
-            className="absolute inset-0 z-30 bg-ink/40"
+            className="fixed inset-0 z-30 bg-ink/40"
             aria-label="Close"
             onClick={() => {
               setInspectOpen(false);
@@ -586,7 +618,7 @@ export function BuilderApp() {
             compact
               ? // Beeld sits above the film, in the first viewport: the upload is
                 // the first thing a thumb reaches, not something behind a sheet.
-                "relative z-10 flex max-h-[46vh] shrink-0 flex-col overflow-y-auto thin-scroll border-b border-line bg-paper"
+                "relative z-10 flex max-h-[40dvh] shrink-0 flex-col overflow-y-auto thin-scroll border-b border-line bg-paper"
               : "relative z-40 flex min-h-0 w-[280px] shrink-0 flex-col overflow-y-auto thin-scroll border-r border-line bg-paper xl:w-[300px]"
           }
         >
@@ -690,7 +722,7 @@ export function BuilderApp() {
 
         <section
           className={`flex min-w-0 flex-col ${
-            compact ? "h-[58vh] shrink-0 overflow-hidden" : "min-h-0 flex-1 overflow-hidden"
+            compact ? "h-[52dvh] shrink-0 overflow-hidden" : "min-h-0 flex-1 overflow-hidden"
           }`}
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
@@ -811,7 +843,7 @@ export function BuilderApp() {
         <aside
           className={
             compact
-              ? `absolute inset-x-0 bottom-0 z-40 flex max-h-[75%] min-h-0 flex-col overflow-y-auto thin-scroll border-t border-line bg-paper transition-transform ${
+              ? `fixed inset-x-0 bottom-0 z-40 flex max-h-[75dvh] min-h-0 flex-col overflow-y-auto thin-scroll border-t border-line bg-paper pb-[env(safe-area-inset-bottom)] transition-transform ${
                   inspectOpen && selectedDesign
                     ? "translate-y-0"
                     : "pointer-events-none translate-y-full"
