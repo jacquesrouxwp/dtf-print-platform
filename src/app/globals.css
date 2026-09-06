@@ -53,6 +53,14 @@ body {
   padding-left: 8px;
 }
 
+/* On a phone that 8px is a crooked gutter down the left of every screen: the
+   page reads as if it slipped sideways. Full bleed instead. */
+@media (max-width: 767px) {
+  body {
+    padding-left: 0;
+  }
+}
+
 .font-display {
   font-family: var(--font-liberation-sans), "Liberation Sans", Arial, Helvetica, sans-serif;
   font-weight: 700;

@@ -82,7 +82,7 @@ export function Header() {
           </nav>
           <Link
             href={localizedPath(locale, "/order")}
-            className="btn btn-primary min-h-11"
+            className="btn btn-primary hidden min-h-11 sm:inline-flex"
             onClick={() => setOpen(false)}
           >
             {t.nav.start}
@@ -111,9 +111,30 @@ export function Header() {
             ))}
           </nav>
 
+          {/* On a phone the language must be reachable without opening the
+              menu: the same switcher, compact enough to sit in the bar. */}
+          <nav
+            className="flex shrink-0 items-center border border-line md:hidden"
+            aria-label={t.nav.language}
+          >
+            {locales.map((code) => (
+              <Link
+                key={code}
+                href={localizedPath(code, rest)}
+                hrefLang={code}
+                className={`num px-1.5 py-2 text-[11px] uppercase tracking-wider ${
+                  code === locale ? "bg-line text-ink" : "text-muted"
+                }`}
+                onClick={() => setOpen(false)}
+              >
+                {code}
+              </Link>
+            ))}
+          </nav>
+
           <Link
             href={localizedPath(locale, "/checkout")}
-            className="relative grid h-11 w-11 place-items-center border border-line text-ink"
+            className="relative grid h-11 w-11 shrink-0 place-items-center border border-line text-ink"
             aria-label={t.nav.cart}
           >
             <ShoppingBag size={18} />
@@ -145,6 +166,13 @@ export function Header() {
 
       {open && (
         <nav className="grid gap-2 border-t border-line px-4 py-4 md:hidden">
+          <Link
+            href={localizedPath(locale, "/order")}
+            className="btn btn-primary w-full justify-center sm:hidden"
+            onClick={() => setOpen(false)}
+          >
+            {t.nav.start}
+          </Link>
           {primary.concat(more).map((item) => (
             <NavLink key={item.href} href={item.href} label={t.nav[item.key]} />
           ))}

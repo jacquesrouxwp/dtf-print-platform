@@ -617,6 +617,9 @@ export const nl: typeof en = {
     outlineColor: "Contourkleur",
     dpiGood: "GOED",
     dpiLow: "LAAG",
+    autoSize: "Auto",
+    autoSizeHint: "Auto is het bestand op 300 dpi — de maat die wij aanraden.",
+    designSize: "Formaat",
   },
   cart: {
     title: "Winkelwagen",
