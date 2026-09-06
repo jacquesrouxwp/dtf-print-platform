@@ -1220,32 +1220,34 @@ export function BuilderApp() {
 
         <aside className="relative z-40 flex min-h-0 w-[320px] shrink-0 flex-col overflow-y-auto thin-scroll border-l border-line bg-paper xl:w-[368px]">
           {selectedDesign && (
-            <AcrossOffer
-              design={selectedDesign}
-              config={config}
-              gapMm={gapMm}
-              t={t}
-              className="mx-4 mt-4 w-auto xl:mx-5"
-              onTake={(w, h) =>
-                updateDesign(selectedDesign.id, { widthMm: w, heightMm: h }, config)
-              }
-            />
-            <PieceProperties
-              design={selectedDesign}
-              piece={selectedPiece}
-              t={t}
-              onResize={(w, h) =>
-                updateDesign(selectedDesign.id, { widthMm: w, heightMm: h }, config)
-              }
-              onMove={(x, y) => selectedPiece && movePiece(selectedPiece.id, x, y, config)}
-              onDuplicate={() => selectedPiece && duplicatePiece(selectedPiece.id, config)}
-              onFill={(metres) => fillWithDesign(selectedDesign.id, metres * 1000, config)}
-              freeCopies={freeCopiesFor(selectedDesign.id, config)}
-              onFillFree={(extra) =>
-                updateDesign(selectedDesign.id, { qty: selectedDesign.qty + extra }, config)
-              }
-              onQty={(qty) => updateDesign(selectedDesign.id, { qty }, config)}
-            />
+            <>
+              <AcrossOffer
+                design={selectedDesign}
+                config={config}
+                gapMm={gapMm}
+                t={t}
+                className="mx-4 mt-4 w-auto xl:mx-5"
+                onTake={(w, h) =>
+                  updateDesign(selectedDesign.id, { widthMm: w, heightMm: h }, config)
+                }
+              />
+              <PieceProperties
+                design={selectedDesign}
+                piece={selectedPiece}
+                t={t}
+                onResize={(w, h) =>
+                  updateDesign(selectedDesign.id, { widthMm: w, heightMm: h }, config)
+                }
+                onMove={(x, y) => selectedPiece && movePiece(selectedPiece.id, x, y, config)}
+                onDuplicate={() => selectedPiece && duplicatePiece(selectedPiece.id, config)}
+                onFill={(metres) => fillWithDesign(selectedDesign.id, metres * 1000, config)}
+                freeCopies={freeCopiesFor(selectedDesign.id, config)}
+                onFillFree={(extra) =>
+                  updateDesign(selectedDesign.id, { qty: selectedDesign.qty + extra }, config)
+                }
+                onQty={(qty) => updateDesign(selectedDesign.id, { qty }, config)}
+              />
+            </>
           )}
           {selectedDesign?.text && (
             <TextProperties
