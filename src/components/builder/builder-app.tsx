@@ -429,7 +429,7 @@ export function BuilderApp() {
         className={`flex shrink-0 items-center border-b border-line bg-paper ${
           compact
             ? "min-w-0 gap-x-2 px-2 py-1.5"
-            : "flex-wrap gap-x-4 gap-y-2 px-3 py-2"
+            : "flex-wrap gap-x-5 gap-y-2 px-4 py-3 xl:px-6"
         }`}
       >
         <Link
@@ -619,7 +619,7 @@ export function BuilderApp() {
               ? // Beeld sits above the film, in the first viewport: the upload is
                 // the first thing a thumb reaches, not something behind a sheet.
                 "relative z-10 flex max-h-[40dvh] shrink-0 flex-col overflow-y-auto thin-scroll border-b border-line bg-paper"
-              : "relative z-40 flex min-h-0 w-[280px] shrink-0 flex-col overflow-y-auto thin-scroll border-r border-line bg-paper xl:w-[300px]"
+              : "relative z-40 flex min-h-0 w-[320px] shrink-0 flex-col overflow-y-auto thin-scroll border-r border-line bg-paper xl:w-[368px]"
           }
         >
           <div className={`items-center justify-between border-b border-line px-3 py-2 ${compact ? "flex" : "hidden"}`}>
@@ -627,9 +627,9 @@ export function BuilderApp() {
           </div>
           {tab === "images" ? (
             <>
-              <div className="shrink-0 space-y-2 p-3">
-                <label className="relative flex cursor-pointer flex-col items-center rounded-2xl bg-accent px-3 py-4 text-center text-white">
-                  <span className="text-sm font-medium">{t.builder.uploadImage}</span>
+              <div className="shrink-0 space-y-3 p-4 xl:p-5">
+                <label className="relative flex cursor-pointer flex-col items-center rounded-2xl bg-accent px-4 py-7 text-center text-white">
+                  <span className="text-base font-medium">{t.builder.uploadImage}</span>
                   <span className="mt-1 text-[11px] text-white/80">{t.builder.pngHint}</span>
                   <span className="mt-2 text-xs text-white/90">{t.builder.dropFiles}</span>
                   <input
@@ -672,10 +672,10 @@ export function BuilderApp() {
                   className="field py-2 text-sm"
                 />
               </div>
-              <p className="shrink-0 px-3 pb-1 text-[11px] uppercase tracking-[0.16em] text-muted">
+              <p className="shrink-0 px-4 pb-2 pt-1 text-[11px] uppercase tracking-[0.16em] text-muted xl:px-5">
                 {t.builder.uploadedImages}
               </p>
-              <div className="min-h-0 flex-1 overflow-y-auto thin-scroll px-3 pb-3">
+              <div className="min-h-0 flex-1 overflow-y-auto thin-scroll px-4 pb-4 xl:px-5">
                 {!ready && <p className="text-xs text-muted">{t.builder.loading}</p>}
                 {adding && <p className="text-xs text-muted">{t.builder.uploading}</p>}
                 {designs.length === 0 && (
@@ -683,7 +683,7 @@ export function BuilderApp() {
                     {fill(t.builder.empty, config, locale)}
                   </p>
                 )}
-                <ul className="grid gap-2">
+                <ul className="grid gap-2.5">
                   {filtered.map((d) => (
                     <LibraryItem
                       key={d.id}
@@ -705,7 +705,7 @@ export function BuilderApp() {
               </div>
             </>
           ) : (
-            <div className="flex min-h-0 flex-1 flex-col gap-3 p-3">
+            <div className="flex min-h-0 flex-1 flex-col gap-4 p-4 xl:p-5">
               <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{t.builder.tabText}</p>
               <p className="text-sm text-muted">{t.builder.textHint}</p>
               <button
@@ -730,7 +730,7 @@ export function BuilderApp() {
             void onFiles(e.dataTransfer.files);
           }}
         >
-          <div className={`shrink-0 flex-wrap items-center gap-1.5 border-b border-line px-3 py-2 ${compact ? "hidden" : "flex"}`}>
+          <div className={`shrink-0 flex-wrap items-center gap-2 border-b border-line px-4 py-3 xl:px-5 ${compact ? "hidden" : "flex"}`}>
             <button type="button" className="btn-soft" disabled={!canUndo} onClick={undo}>
               {t.builder.undo}
             </button>
@@ -819,8 +819,8 @@ export function BuilderApp() {
               </label>
             </div>
           </div>
-          <div className="relative min-h-0 flex-1 p-2">
-            <FrameCmyk className="pointer-events-none absolute inset-2 z-10">
+          <div className="relative min-h-0 flex-1 p-4 xl:p-7">
+            <FrameCmyk className="pointer-events-none absolute inset-4 z-10 xl:inset-7">
               <span className="sr-only" />
             </FrameCmyk>
             {/* Over the film, not beside it: a warning about the layout should
@@ -848,7 +848,7 @@ export function BuilderApp() {
                     ? "translate-y-0"
                     : "pointer-events-none translate-y-full"
                 }`
-              : "relative z-40 flex min-h-0 w-[280px] shrink-0 flex-col overflow-y-auto thin-scroll border-l border-line bg-paper xl:w-[300px]"
+              : "relative z-40 flex min-h-0 w-[320px] shrink-0 flex-col overflow-y-auto thin-scroll border-l border-line bg-paper xl:w-[368px]"
           }
         >
           <div className={`items-center justify-between border-b border-line px-3 py-2 ${compact ? "flex" : "hidden"}`}>
@@ -884,13 +884,13 @@ export function BuilderApp() {
           )}
           {!compact && (
             <>
-              <div className="flex shrink-0 items-center justify-between px-3 py-3">
+              <div className="flex shrink-0 items-center justify-between px-4 pb-2 pt-5 xl:px-5">
                 <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{t.builder.films}</p>
                 <button type="button" className="btn-soft" onClick={newFilm}>
                   + {t.builder.newFilm}
                 </button>
               </div>
-              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto thin-scroll px-3">
+              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto thin-scroll px-4 xl:px-5">
                 <FilmCard
                   film={liveCard}
                   active
@@ -918,7 +918,7 @@ export function BuilderApp() {
                   />
                 ))}
               </div>
-              <div className="shrink-0 space-y-3 border-t border-line p-3">
+              <div className="shrink-0 space-y-3 border-t border-line p-4 xl:p-5">
                 <div className="flex items-baseline justify-between">
                   <span className="text-xs text-muted">{t.builder.orderTotal}</span>
                   <span className="num text-2xl text-accent">{money(displayJob, locale)}</span>
@@ -1020,7 +1020,7 @@ function PieceProperties({
   }
 
   return (
-    <div className="shrink-0 space-y-3 border-b border-line px-3 py-3">
+    <div className="shrink-0 space-y-4 border-b border-line px-4 py-5 xl:px-5">
       <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{t.builder.properties}</p>
       <div className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
         <NumField label={`${t.builder.width} (cm)`} value={design.widthMm / 10} onCommit={setWidthCm} />
@@ -1221,7 +1221,7 @@ function TextProperties({
   }
 
   return (
-    <div className="shrink-0 space-y-3 border-b border-line px-3 py-3">
+    <div className="shrink-0 space-y-4 border-b border-line px-4 py-5 xl:px-5">
       <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{t.builder.tabText}</p>
       <textarea
         value={draft}
@@ -1369,7 +1369,7 @@ function FilmCard({
     : q.subtotalExcl;
   return (
     <div
-      className={`flex gap-2 rounded-sm border border-line p-2 ${active ? "ring-1 ring-accent bg-surface" : "bg-surface"}`}
+      className={`flex gap-3 rounded-sm border border-line p-3 ${active ? "ring-1 ring-accent bg-surface" : "bg-surface"}`}
     >
       <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 gap-2 text-left">
         <div className="checker h-14 w-14 shrink-0 overflow-hidden rounded-xl">
@@ -1421,16 +1421,16 @@ function LibraryItem({ design, selected }: { design: Design; selected: boolean }
   const config = useSettingsStore((s) => s.config);
   return (
     <li
-      className={`flex items-stretch gap-1 rounded-sm border border-line bg-surface p-2 ${
+      className={`flex items-stretch gap-2 rounded-sm border border-line bg-surface p-2.5 ${
         selected ? "ring-1 ring-accent" : ""
       }`}
     >
       <button
         type="button"
         onClick={() => select(design.id)}
-        className="flex min-w-0 flex-1 items-center gap-2 text-left"
+        className="flex min-w-0 flex-1 items-center gap-3 text-left"
       >
-        <div className="relative checker h-16 w-16 shrink-0 overflow-hidden rounded-xl">
+        <div className="relative checker h-[72px] w-[72px] shrink-0 overflow-hidden rounded-xl">
           {liveThumb(design.src, design.previewUrl) ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -1514,7 +1514,7 @@ function Inspector({
   }
 
   return (
-    <div className="mt-3 rounded-sm border border-line bg-surface p-3">
+    <div className="mt-3 rounded-sm border border-line bg-surface p-4">
       <p className="num text-[11px] uppercase tracking-[0.16em] text-muted">{t.builder.properties}</p>
       <p className={`num mt-1 text-xs ${dpi < 150 ? "text-bad" : dpi < 200 ? "text-warn" : "text-muted"}`}>
         {t.builder.dpi} {dpi}
