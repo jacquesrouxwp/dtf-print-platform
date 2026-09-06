@@ -4,10 +4,14 @@ import Konva from "konva";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Group, Image as KImage, Layer, Line, Rect, Stage, Text, Transformer } from "react-konva";
 import { filmChrome, filmScale } from "@/lib/film-scale";
+import { BLOCK_CUT_GAP_MM, blockCuts } from "@/lib/nesting";
 import { MIN_PIECE_MM, usableWidthMm } from "@/lib/units";
 import { useBuilderStore } from "@/store/useBuilderStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
 
+
+/** Canvas area a phone browser will still allocate, with room to spare. */
+const MAX_CANVAS_PX = 12_000_000;
 
 function usableSrc(src?: string) {
   return Boolean(src && !src.startsWith("data:,"));
@@ -37,10 +41,15 @@ function RulerMarks({
   pxPerMm: number;
   axis: "h" | "v";
 }) {
+  // At a centimetre a mark, twenty metres of film is two thousand elements the
+  // browser has to lay out — and at that zoom they would be a millimetre apart
+  // anyway. The step follows the scale: readable marks, never a wall of them.
+  const step = [10, 50, 100, 250, 500, 1000].find((mm) => mm * pxPerMm >= 5) ?? 1000;
+  const majorEvery = [50, 100, 250, 500, 1000, 5000].find((mm) => mm * pxPerMm >= 28) ?? 5000;
   const marks: { mm: number; major: boolean }[] = [];
   const end = Math.max(0, lengthMm);
-  for (let mm = 0; mm <= end + 0.01; mm += 10) {
-    marks.push({ mm, major: mm % 50 === 0 });
+  for (let mm = 0; mm <= end + 0.01; mm += step) {
+    marks.push({ mm, major: mm % majorEvery === 0 });
   }
   return (
     <>
@@ -118,6 +127,7 @@ export function BuilderCanvas({
   const movePiece = useBuilderStore((s) => s.movePiece);
   const resizePiece = useBuilderStore((s) => s.resizePiece);
   const removePiece = useBuilderStore((s) => s.removePiece);
+  const layoutMode = useBuilderStore((s) => s.layoutMode);
 
   useEffect(() => {
     // Measure the scrolling box, not its parent: a vertical scrollbar eats
@@ -172,15 +182,22 @@ export function BuilderCanvas({
   const viewLength = Math.max(lengthMm + 40, 280);
   // The camera reads the box, the roll and the zoom — never the contents. That
   // is what keeps the film still while a piece is resized.
-  const drawScale = filmScale({
+  const wanted = filmScale({
     boxWidthPx: boxW,
     rollWidthMm: roll,
     zoomPct,
     rulerPx: ruler,
     surroundPx: surround,
   });
+  // A browser will not hand out an unbounded canvas, and Safari gives up on
+  // area long before height. Twenty metres used to be drawn to the cap and
+  // then silently cut off — the customer scrolled to the end of their order
+  // and found nothing there. Zoom the whole film out to fit the budget
+  // instead: smaller, but all of it is on screen and all of it scrolls.
+  const budget = Math.sqrt(MAX_CANVAS_PX / Math.max(1, roll * viewLength));
+  const drawScale = Math.min(wanted, budget);
   const stageW = Math.max(1, Math.round(roll * drawScale));
-  const stageH = Math.max(200, Math.min(Math.round(viewLength * drawScale), 20000));
+  const stageH = Math.max(200, Math.round(viewLength * drawScale));
   const canDrag = interactive;
   const selectedPieceId = placed.some((p) => p.id === selectedId) ? selectedId : null;
   const usable = usableWidthMm(config.rollWidthMm, config.edgeMm);
@@ -198,7 +215,12 @@ export function BuilderCanvas({
   }, [selectedPieceId, placed, canDrag, drawScale]);
 
   return (
-    <div ref={wrapRef} className="builder-film relative h-full min-h-0 min-w-0 w-full max-w-full overflow-hidden md:min-h-[420px]">
+    <div
+      ref={wrapRef}
+      className={`builder-film relative h-full min-h-0 w-full min-w-0 max-w-full overflow-hidden md:min-h-[420px] ${
+        interactive ? "" : "builder-film--scroll"
+      }`}
+    >
       <div
         ref={scrollRef}
         // The film scrolls inside its own box: a finger that reaches the end of
@@ -235,7 +257,10 @@ export function BuilderCanvas({
               <RulerMarks lengthMm={viewLength} pxPerMm={drawScale} axis="v" />
             </div>
             <div className="absolute" style={{ left: ruler, top: ruler }}>
-              <Stage width={stageW} height={stageH}>
+              {/* On a phone nothing here is draggable, so Konva must stop
+                  swallowing touchmove: without this the film cannot be
+                  scrolled with a finger at all. */}
+              <Stage width={stageW} height={stageH} preventDefault={interactive}>
                 <Layer>
                   {swatch ? (
                     <Rect
@@ -369,6 +394,34 @@ export function BuilderCanvas({
                       />
                     </Group>
                   ))}
+                  {layoutMode === "blocks" &&
+                    blockCuts(placed, designs.map((d) => d.id))
+                      .slice(0, -1)
+                      .map((cut) => (
+                        <Group key={`cut${cut.designId}`} listening={false}>
+                          <Line
+                            points={[
+                              0,
+                              (cut.endMm + BLOCK_CUT_GAP_MM / 2) * drawScale,
+                              stageW,
+                              (cut.endMm + BLOCK_CUT_GAP_MM / 2) * drawScale,
+                            ]}
+                            stroke="#efe8db"
+                            strokeWidth={1}
+                            dash={[10, 8]}
+                            opacity={0.9}
+                          />
+                          <Text
+                            x={6}
+                            y={(cut.endMm + BLOCK_CUT_GAP_MM / 2) * drawScale - 14}
+                            text="cut"
+                            fill="#efe8db"
+                            fontFamily="ui-monospace, monospace"
+                            fontSize={10}
+                            opacity={0.9}
+                          />
+                        </Group>
+                      ))}
                   <Line
                     points={[0, lengthMm * drawScale, stageW, lengthMm * drawScale]}
                     stroke="#7eb6e4"

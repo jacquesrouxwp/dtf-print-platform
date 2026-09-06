@@ -424,3 +424,65 @@ export function nestDesigns(
 export function lengthFromPlaced(placed: PlacedPiece[], edgeMm: number): number {
   return usedFromItems(placed, edgeMm);
 }
+
+/** How the packer arranges a film: everything mixed, or one block per design. */
+export type LayoutMode = "mixed" | "blocks";
+
+/** Clear film left between two blocks, so one cut separates the jobs. */
+export const BLOCK_CUT_GAP_MM = 20;
+
+/**
+ * One block per design, stacked down the roll in the order the designs were
+ * added. Each block is packed on its own — so its copies stay together and a
+ * single cut separates it from the next — and the blocks are then shifted down
+ * the film with a cut lane between them.
+ *
+ * It costs film: every block ends with a part-used row. That is the trade the
+ * customer is making when they pick this over the mixed layout.
+ */
+export function nestBlocks(sources: NestSource[], config: RollConfig): Layout {
+  const edge = config.edgeMarginMm;
+  const items: PlacedItem[] = [];
+  const rejected: string[] = [];
+  let cursor = edge;
+
+  for (const src of sources) {
+    // Positions from a previous layout mean nothing once the blocks move, so
+    // each block is packed from its quantity alone.
+    const band = nest([{ ...src, instances: undefined, xMm: undefined, yMm: undefined }], config);
+    rejected.push(...band.rejected);
+    if (band.items.length === 0) continue;
+
+    const top = Math.min(...band.items.map((p) => p.yMm));
+    const shift = cursor - top;
+    let end = cursor;
+    for (const p of band.items) {
+      const yMm = Number((p.yMm + shift).toFixed(3));
+      items.push({ ...p, yMm });
+      end = Math.max(end, yMm + p.heightMm);
+    }
+    cursor = Number((end + BLOCK_CUT_GAP_MM).toFixed(3));
+  }
+
+  const usedLengthMm = usedFromItems(items, edge);
+  return {
+    items,
+    usedLengthMm,
+    billedLengthMm: billedLengthMm(usedLengthMm, config.lengthIncrementMm, config.minOrderMm),
+    rejected: [...new Set(rejected)],
+  };
+}
+
+/** Where each block ends, in roll millimetres: the lines the film is cut on. */
+export function blockCuts(items: PlacedItem[], order: string[]): { designId: string; endMm: number }[] {
+  const cuts: { designId: string; endMm: number }[] = [];
+  for (const designId of order) {
+    const own = items.filter((p) => p.designId === designId);
+    if (own.length === 0) continue;
+    cuts.push({
+      designId,
+      endMm: Number(Math.max(...own.map((p) => p.yMm + p.heightMm)).toFixed(3)),
+    });
+  }
+  return cuts.sort((a, b) => a.endMm - b.endMm);
+}
