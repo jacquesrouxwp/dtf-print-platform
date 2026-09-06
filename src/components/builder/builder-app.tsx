@@ -24,6 +24,7 @@ import { defaultTextSpec, rasterizeText, type TextAlign, type TextSpec } from "@
 import { persistableSrc } from "@/lib/local-artwork";
 import { previewFileName, renderFilmPreview } from "@/lib/film-preview";
 import { copiesForLength } from "@/lib/auto-fill";
+import { suggestAcross } from "@/lib/fit-across";
 import { rollFromSite } from "@/lib/roll";
 import type { SiteConfig } from "@/lib/site-config";
 import { fill } from "@/lib/tokens";
@@ -95,6 +96,7 @@ export function BuilderApp() {
   const [previewBusy, setPreviewBusy] = useState(false);
   const [filmTall, setFilmTall] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [fillMetres, setFillMetres] = useState(1);
   const compact = useCompactBuilder();
 
   useEffect(() => {
@@ -435,8 +437,8 @@ export function BuilderApp() {
     updateDesign(design.id, { widthMm: size.widthMm, heightMm: size.heightMm }, config);
   }
 
-  function fillFilmWith(design: Design) {
-    const copies = fillWithDesign(design.id, fitTargetMm ?? 1000, config);
+  function fillFilmWith(design: Design, metres: number) {
+    const copies = fillWithDesign(design.id, Math.max(1, metres) * 1000, config);
     setFitNote(
       copies > 0 ? t.builder.fillDone.replace("{n}", String(copies)) : t.builder.fillNone
     );
@@ -682,13 +684,42 @@ export function BuilderApp() {
                 </div>
               </div>
 
-              <button
-                type="button"
-                className="btn btn-ghost w-full justify-center"
-                onClick={() => fillFilmWith(selectedDesign)}
-              >
-                {t.builder.fillFilm}
-              </button>
+              <AcrossOffer
+                design={selectedDesign}
+                config={config}
+                gapMm={gapMm}
+                t={t}
+                onTake={(w, h) =>
+                  updateDesign(selectedDesign.id, { widthMm: w, heightMm: h }, config)
+                }
+              />
+
+              <div className="space-y-2 border-t border-line pt-3">
+                <div className="flex items-center gap-2">
+                  <select
+                    className="field num w-24 py-2 text-sm"
+                    aria-label={t.builder.fillFilm}
+                    value={fillMetres}
+                    onChange={(e) => setFillMetres(Number(e.target.value))}
+                  >
+                    {[1, 2, 3, 5, 10].map((m) => (
+                      <option key={m} value={m}>
+                        {m} m
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="btn btn-ghost flex-1 justify-center"
+                    onClick={() => fillFilmWith(selectedDesign, fillMetres)}
+                  >
+                    {t.builder.fillMetres.replace("{m}", String(fillMetres))}
+                  </button>
+                </div>
+                <p className="text-[11px] leading-relaxed text-muted">
+                  {t.builder.fillReplaces}
+                </p>
+              </div>
             </section>
           )}
 
@@ -1189,22 +1220,34 @@ export function BuilderApp() {
 
         <aside className="relative z-40 flex min-h-0 w-[320px] shrink-0 flex-col overflow-y-auto thin-scroll border-l border-line bg-paper xl:w-[368px]">
           {selectedDesign && (
-            <PieceProperties
-              design={selectedDesign}
-              piece={selectedPiece}
-              t={t}
-              onResize={(w, h) =>
-                updateDesign(selectedDesign.id, { widthMm: w, heightMm: h }, config)
-              }
-              onMove={(x, y) => selectedPiece && movePiece(selectedPiece.id, x, y, config)}
-              onDuplicate={() => selectedPiece && duplicatePiece(selectedPiece.id, config)}
-              onFill={(metres) => fillWithDesign(selectedDesign.id, metres * 1000, config)}
-              freeCopies={freeCopiesFor(selectedDesign.id, config)}
-              onFillFree={(extra) =>
-                updateDesign(selectedDesign.id, { qty: selectedDesign.qty + extra }, config)
-              }
-              onQty={(qty) => updateDesign(selectedDesign.id, { qty }, config)}
-            />
+            <>
+              <AcrossOffer
+                design={selectedDesign}
+                config={config}
+                gapMm={gapMm}
+                t={t}
+                className="mx-4 mt-4 w-auto xl:mx-5"
+                onTake={(w, h) =>
+                  updateDesign(selectedDesign.id, { widthMm: w, heightMm: h }, config)
+                }
+              />
+              <PieceProperties
+                design={selectedDesign}
+                piece={selectedPiece}
+                t={t}
+                onResize={(w, h) =>
+                  updateDesign(selectedDesign.id, { widthMm: w, heightMm: h }, config)
+                }
+                onMove={(x, y) => selectedPiece && movePiece(selectedPiece.id, x, y, config)}
+                onDuplicate={() => selectedPiece && duplicatePiece(selectedPiece.id, config)}
+                onFill={(metres) => fillWithDesign(selectedDesign.id, metres * 1000, config)}
+                freeCopies={freeCopiesFor(selectedDesign.id, config)}
+                onFillFree={(extra) =>
+                  updateDesign(selectedDesign.id, { qty: selectedDesign.qty + extra }, config)
+                }
+                onQty={(qty) => updateDesign(selectedDesign.id, { qty }, config)}
+              />
+            </>
           )}
           {selectedDesign?.text && (
             <TextProperties
@@ -1292,6 +1335,57 @@ export function BuilderApp() {
       </div>
 
     </div>
+  );
+}
+
+/**
+ * The offer the wasted stripe down the side of the roll pays for: a few
+ * millimetres off the artwork, one more copy in every row. Shown only when
+ * the trade is small enough to be worth a tap, and it always says what it
+ * costs — smaller art — next to what it buys.
+ */
+function AcrossOffer({
+  design,
+  config,
+  gapMm,
+  t,
+  className,
+  onTake,
+}: {
+  design: Design;
+  config: SiteConfig;
+  gapMm: number | null;
+  t: ReturnType<typeof useI18n>["t"];
+  className?: string;
+  onTake: (widthMm: number, heightMm: number) => void;
+}) {
+  const offer = suggestAcross({
+    widthMm: design.widthMm,
+    heightMm: design.heightMm,
+    usableMm: usableWidthMm(config.rollWidthMm, config.edgeMm),
+    gapMm: gapMm ?? config.gapMm,
+  });
+  if (!offer) return null;
+  return (
+    <button
+      type="button"
+      className={`flex w-full shrink-0 flex-col items-start gap-1 border border-accent bg-accent/5 p-3 text-left ${
+        className ?? ""
+      }`}
+      onClick={() => onTake(offer.widthMm, offer.heightMm)}
+    >
+      <span className="text-sm font-medium text-accent">
+        {t.builder.moreAcross
+          .replace("{n}", String(offer.toAcross))
+          .replace("{m}", String(offer.fromAcross))
+          .replace("{w}", (offer.widthMm / 10).toFixed(1))}
+      </span>
+      <span className="text-[11px] leading-relaxed text-muted">
+        {t.builder.moreAcrossHint
+          .replace("{shrink}", String(offer.shrinkPct))
+          .replace("{gain}", String(offer.gainPct))}
+      </span>
+    </button>
   );
 }
 
@@ -1555,6 +1649,7 @@ function PieceProperties({
             {t.builder.fillFilm}
           </button>
         </div>
+        <p className="text-[11px] leading-relaxed text-muted">{t.builder.fillReplaces}</p>
         {filled !== null && (
           <p className="text-[11px] text-muted">
             {filled > 0
