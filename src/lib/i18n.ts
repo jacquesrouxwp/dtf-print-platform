@@ -1,14 +1,17 @@
+import { ar } from "@/messages/ar";
+import { de } from "@/messages/de";
 import { en } from "@/messages/en";
+import { fr } from "@/messages/fr";
 import { nl } from "@/messages/nl";
-import { ru } from "@/messages/ru";
+import { uk } from "@/messages/uk";
 
 export type { Locale } from "./i18n-config";
 export { locales, defaultLocale, isLocale, localizedPath } from "./i18n-config";
 
 export type Dict = typeof en;
 
+const dicts: Record<string, Dict> = { nl, en, uk, fr, de, ar };
+
 export function getDict(locale: string): Dict {
-  if (locale === "en") return en;
-  if (locale === "ru") return ru;
-  return nl;
+  return dicts[locale] ?? nl;
 }

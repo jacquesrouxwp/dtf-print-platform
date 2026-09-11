@@ -83,7 +83,10 @@ export function quoteFilm(lengthMm: number, config: SiteConfig, opts?: {
 
 export function intlTag(locale: string): string {
   if (locale === "nl") return "nl-NL";
-  if (locale === "ru") return "ru-RU";
+  if (locale === "uk") return "uk-UA";
+  if (locale === "fr") return "fr-FR";
+  if (locale === "de") return "de-DE";
+  if (locale === "ar") return "ar";
   return "en-NL";
 }
 

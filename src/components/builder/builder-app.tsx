@@ -6,7 +6,7 @@ import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from 
 import { Image as ImageIcon, ShoppingCart, Type } from "lucide-react";
 import { printDpi } from "@/lib/artwork";
 import { DEMO_FILENAMES, makeDemoDesigns } from "@/lib/demo-art";
-import { locales, localizedPath } from "@/lib/i18n-config";
+import { localizedPath } from "@/lib/i18n-config";
 import {
   clampPieceSize,
   DEFAULT_OUTPUT_DPI,
@@ -34,6 +34,7 @@ import { cartStatus, lineFromFilm } from "@/lib/cart-lines";
 import { useJobStore, type JobFilm } from "@/store/useJobStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
 import { BrandLogo } from "../brand-logo";
+import { LanguageSwitch } from "../language-switch";
 import { FrameCmyk } from "../frame-cmyk";
 import { useI18n } from "../providers";
 
@@ -520,23 +521,9 @@ export function BuilderApp() {
           >
             <BrandLogo height={26} />
           </Link>
-          <nav
-            className="ml-auto flex shrink-0 items-center border border-line"
-            aria-label={t.nav.language}
-          >
-            {locales.map((code) => (
-              <Link
-                key={code}
-                href={localizedPath(code, "/order")}
-                hrefLang={code}
-                className={`num grid min-h-[36px] place-items-center px-2.5 text-xs uppercase tracking-wider ${
-                  code === locale ? "bg-line text-ink" : "text-muted"
-                }`}
-              >
-                {code}
-              </Link>
-            ))}
-          </nav>
+          <div className="ml-auto">
+            <LanguageSwitch pathRest="/order" />
+          </div>
         </header>
 
         <main
@@ -1005,20 +992,7 @@ export function BuilderApp() {
         )}
         {fitNote && <span className="text-xs text-muted">{fitNote}</span>}
         {cartNote && <span className="text-xs text-bad">{cartNote}</span>}
-        <nav className="ml-auto flex shrink-0 items-center gap-1" aria-label={t.nav.language}>
-          {locales.map((code) => (
-            <Link
-              key={code}
-              href={localizedPath(code, "/order")}
-              hrefLang={code}
-              className={`num grid min-h-[44px] min-w-[44px] place-items-center rounded-md text-xs uppercase tracking-wider ${
-                code === locale ? "bg-ink/10 text-foreground" : "text-muted"
-              }`}
-            >
-              {code}
-            </Link>
-          ))}
-        </nav>
+        <LanguageSwitch pathRest="/order" className="ml-auto" />
         <div className="flex items-center gap-2">
           {cartFlash && <span className="text-xs text-accent">{cartFlash}</span>}
           {cartLines.length > 0 && (

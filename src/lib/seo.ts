@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getDict } from "./i18n";
-import { localizedPath } from "./i18n-config";
+import { locales, localizedPath } from "./i18n-config";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://dtfstudio.site";
 
@@ -20,9 +20,7 @@ export function pageMetadata(
     alternates: {
       canonical: url,
       languages: {
-        nl: `${SITE}${localizedPath("nl", path)}`,
-        en: `${SITE}${localizedPath("en", path)}`,
-        ru: `${SITE}${localizedPath("ru", path)}`,
+        ...Object.fromEntries(locales.map((code) => [code, `${SITE}${localizedPath(code, path)}`])),
         "x-default": `${SITE}${localizedPath("nl", path)}`,
       },
     },
@@ -30,7 +28,18 @@ export function pageMetadata(
       title: fullTitle,
       description,
       url,
-      locale: locale === "nl" ? "nl_NL" : locale === "ru" ? "ru_RU" : "en_GB",
+      locale:
+        locale === "nl"
+          ? "nl_NL"
+          : locale === "uk"
+            ? "uk_UA"
+            : locale === "fr"
+              ? "fr_FR"
+              : locale === "de"
+                ? "de_DE"
+                : locale === "ar"
+                  ? "ar_SA"
+                  : "en_GB",
       siteName: "DTF Studio",
       type: "website",
     },

@@ -117,6 +117,9 @@ export function remainingToCutoff(config: SiteConfig, now = new Date()) {
 
 export function formatRemaining(hours: number, minutes: number, locale: string) {
   if (locale === "nl") return `${hours}u ${minutes}m`;
-  if (locale === "ru") return `${hours} ч ${minutes} мин`;
+  if (locale === "uk") return `${hours} год ${minutes} хв`;
+  if (locale === "de") return `${hours} Std. ${minutes} Min.`;
+  if (locale === "fr") return `${hours} h ${minutes} min`;
+  if (locale === "ar") return `${hours} س ${minutes} د`;
   return `${hours}h ${minutes}m`;
 }
