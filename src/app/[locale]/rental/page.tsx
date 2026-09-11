@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
-import { PageShell } from "@/components/page-shell";
+import { FrameCmyk } from "@/components/frame-cmyk";
+import { LoopClip } from "@/components/loop-clip";
 import { getDict, isLocale } from "@/lib/i18n";
 import { localizedPath } from "@/lib/i18n-config";
 import { money } from "@/lib/pricing";
@@ -27,21 +27,37 @@ export default async function RentalPage({
   const lang = isLocale(locale) ? locale : "nl";
   const t = getDict(lang);
   const c = defaultConfig;
+  const L = (p: string) => localizedPath(lang, p);
 
   return (
-    <PageShell kicker={t.rental.kicker} title={t.rental.title} lede={t.rental.lede} wide>
-      <div className="overflow-hidden border border-rule">
-        <Image
-          src="/press-rental.webp"
-          alt={t.rental.photoAlt}
-          width={1536}
-          height={678}
-          priority
-          className="h-auto w-full"
-        />
-      </div>
+    <article className="mx-auto w-full min-w-0 max-w-[1200px] overflow-x-clip px-4 py-16 md:py-24">
+      <section className="grid items-center gap-10 md:grid-cols-[minmax(0,1fr)_minmax(240px,0.72fr)]">
+        <div>
+          <p className="num text-xs uppercase tracking-[0.2em] text-muted">{t.rental.kicker}</p>
+          <h1 className="font-display mt-5 max-w-xl text-4xl leading-[1.08] tracking-tight break-words md:text-6xl">
+            {t.rental.title}
+          </h1>
+          <p className="mt-6 max-w-md text-lg leading-relaxed text-muted">{t.rental.lede}</p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link href={L("/contact")} className="btn btn-primary min-h-11">
+              {t.rental.cta}
+            </Link>
+            <Link href={L("/order")} className="btn btn-ghost min-h-11">
+              {t.rental.ctaOrder}
+            </Link>
+          </div>
+        </div>
+        <FrameCmyk className="mx-auto w-full max-w-[320px] md:mx-0 md:max-w-none">
+          <LoopClip
+            src="/rental-press.mp4"
+            poster="/rental-press.jpg"
+            label={t.rental.videoLabel}
+          />
+        </FrameCmyk>
+      </section>
 
-      <div className="mt-10 grid gap-px overflow-hidden rounded-xl border border-rule bg-rule sm:grid-cols-2">
+      <FrameCmyk className="mt-14 min-w-0 max-w-full overflow-x-clip bg-paper px-4 py-8 sm:px-6 sm:py-10 md:px-10 md:py-14">
+      <div className="grid gap-px overflow-hidden border border-rule bg-rule sm:grid-cols-2">
         <div className="bg-bg p-6">
           <p className="num text-3xl text-accent">
             {money(c.pressHirePerHour, lang)}
@@ -82,15 +98,8 @@ export default async function RentalPage({
         ))}
       </ul>
 
-      <div className="mt-14 flex flex-wrap gap-3">
-        <Link href={localizedPath(lang, "/contact")} className="btn btn-primary">
-          {t.rental.cta}
-        </Link>
-        <Link href={localizedPath(lang, "/order")} className="btn btn-ghost">
-          {t.rental.ctaOrder}
-        </Link>
-      </div>
-      <p className="mt-6 text-xs text-muted">{t.rental.note}</p>
-    </PageShell>
+      <p className="mt-10 text-xs text-muted">{t.rental.note}</p>
+      </FrameCmyk>
+    </article>
   );
 }

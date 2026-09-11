@@ -93,6 +93,7 @@ export const en = {
     title: "A heat press for the day, not for life.",
     lede: "Print on the spot: a guest picks a design and walks off wearing it a minute later. Take a press for a couple of hours and bring it back — no purchase, no servicing, no bench space.",
     photoAlt: "Heat presses: flat, large flat, cap and small",
+    videoLabel: "Pressing names on shirts, on the spot",
     hour: "hour",
     ratePlain: "Standard rate",
     rateWithOrder: "Alongside a film order with us",

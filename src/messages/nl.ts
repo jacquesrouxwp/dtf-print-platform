@@ -95,6 +95,7 @@ export const nl: typeof en = {
     title: "Een hittepers voor een dag, niet voor het leven.",
     lede: "Druk ter plekke: een gast kiest een ontwerp en loopt er een minuut later mee weg. Neem een pers voor een paar uur en breng hem terug — geen aanschaf, geen onderhoud, geen werkbank kwijt.",
     photoAlt: "Hittepersen: vlak, groot vlak, pet en klein",
+    videoLabel: "Namen persen op shirts, ter plekke",
     hour: "uur",
     ratePlain: "Normaal tarief",
     rateWithOrder: "Samen met een filmbestelling bij ons",
