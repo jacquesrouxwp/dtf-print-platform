@@ -589,35 +589,12 @@ export function BuilderApp() {
                 </span>
               </div>
 
-              <div className="space-y-2">
-                <p className="text-[11px] uppercase tracking-[0.16em] text-muted">
-                  {t.builder.designSize}
-                </p>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    className="btn-soft justify-center text-xs"
-                    onClick={() => autoSize(selectedDesign)}
-                  >
-                    {t.builder.autoSize}
-                  </button>
-                  {PRESETS_CM.map((cm) => (
-                    <button
-                      key={cm}
-                      type="button"
-                      className={`btn-soft num justify-center text-xs ${
-                        Math.round(selectedDesign.widthMm / 10) === cm
-                          ? "text-foreground ring-1 ring-accent"
-                          : ""
-                      }`}
-                      onClick={() => updateDesign(selectedDesign.id, { widthMm: cm * 10 }, config)}
-                    >
-                      {cm} {t.builder.cm}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-[11px] text-muted">{t.builder.autoSizeHint}</p>
-              </div>
+              <DesignSizeFields
+                design={selectedDesign}
+                t={t}
+                onResize={(w, h) => updateDesign(selectedDesign.id, { widthMm: w, heightMm: h }, config)}
+                onAuto={() => autoSize(selectedDesign)}
+              />
 
               <div className="flex items-center justify-between gap-3">
                 <span className="text-sm text-muted">{t.builder.qty}</span>
@@ -1611,13 +1588,25 @@ function PieceProperties({
     <div className="shrink-0 space-y-4 border-b border-line px-4 py-5 xl:px-5">
       <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{t.builder.properties}</p>
       <div className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
-        <NumField label={`${t.builder.width} (cm)`} value={design.widthMm / 10} onCommit={setWidthCm} />
-        <NumField label={`${t.builder.height} (cm)`} value={design.heightMm / 10} onCommit={setHeightCm} />
+        <NumField
+          label={`${t.builder.width} (cm)`}
+          value={design.widthMm / 10}
+          onCommit={setWidthCm}
+          step={0.1}
+          min={MIN_PIECE_MM / 10}
+        />
+        <NumField
+          label={`${t.builder.height} (cm)`}
+          value={design.heightMm / 10}
+          onCommit={setHeightCm}
+          step={0.1}
+          min={MIN_PIECE_MM / 10}
+        />
         <button
           type="button"
           onClick={() => setLockRatio((v) => !v)}
           title={t.builder.ratio}
-          className={`btn-soft h-[2.1rem] ${lockRatio ? "text-foreground" : "text-muted"}`}
+          className={`btn-soft h-11 min-w-11 ${lockRatio ? "text-foreground" : "text-muted"}`}
         >
           {lockRatio ? "⚭" : "⚮"}
         </button>
@@ -1711,39 +1700,150 @@ function PieceProperties({
   );
 }
 
-/** A number you can actually type into: commits on blur, reverts nonsense. */
+/** A number you can type, or nudge with arrows (0.1 cm on size fields). */
 function NumField({
   label,
   value,
   onCommit,
   disabled,
+  step,
+  min = 1,
 }: {
   label: string;
   value: number;
   onCommit: (n: number) => void;
   disabled?: boolean;
+  step?: number;
+  min?: number;
 }) {
   const [draft, setDraft] = useState(value.toFixed(1));
   useEffect(() => setDraft(value.toFixed(1)), [value]);
+
+  function commitDraft() {
+    const n = Number(draft.replace(",", "."));
+    if (Number.isFinite(n) && n > 0) onCommit(Math.max(min, n));
+    else setDraft(value.toFixed(1));
+  }
+
+  function bump(dir: 1 | -1) {
+    if (disabled || step == null) return;
+    const next = Number((value + dir * step).toFixed(1));
+    if (next >= min) onCommit(next);
+  }
+
   return (
-    <label className="grid gap-1 text-xs">
+    <label className="grid min-w-0 gap-1 text-xs">
       <span className="text-muted">{label}</span>
-      <input
-        className="field num py-1.5 text-sm disabled:opacity-40"
-        inputMode="decimal"
-        disabled={disabled}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={() => {
-          const n = Number(draft.replace(",", "."));
-          if (Number.isFinite(n) && n > 0) onCommit(n);
-          else setDraft(value.toFixed(1));
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") e.currentTarget.blur();
-        }}
-      />
+      <span className="flex items-stretch">
+        {step != null ? (
+          <button
+            type="button"
+            className="btn-soft shrink-0 px-0"
+            style={{ minWidth: 44, minHeight: 44 }}
+            disabled={disabled}
+            aria-label="−"
+            onClick={() => bump(-1)}
+          >
+            −
+          </button>
+        ) : null}
+        <input
+          className="field num min-w-0 flex-1 py-1.5 text-sm disabled:opacity-40"
+          inputMode="decimal"
+          disabled={disabled}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commitDraft}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+          }}
+        />
+        {step != null ? (
+          <button
+            type="button"
+            className="btn-soft shrink-0 px-0"
+            style={{ minWidth: 44, minHeight: 44 }}
+            disabled={disabled}
+            aria-label="+"
+            onClick={() => bump(1)}
+          >
+            +
+          </button>
+        ) : null}
+      </span>
     </label>
+  );
+}
+
+function DesignSizeFields({
+  design,
+  t,
+  onResize,
+  onAuto,
+}: {
+  design: Design;
+  t: ReturnType<typeof useI18n>["t"];
+  onResize: (widthMm: number, heightMm: number) => void;
+  onAuto: () => void;
+}) {
+  const [lockRatio, setLockRatio] = useState(true);
+  const ratio = design.aspectRatio > 0 ? design.aspectRatio : design.widthMm / Math.max(1, design.heightMm);
+
+  function setWidthCm(cm: number) {
+    const w = Math.max(MIN_PIECE_MM, Math.round(cm * 10));
+    onResize(w, lockRatio ? Math.max(MIN_PIECE_MM, Math.round(w / Math.max(0.01, ratio))) : design.heightMm);
+  }
+  function setHeightCm(cm: number) {
+    const h = Math.max(MIN_PIECE_MM, Math.round(cm * 10));
+    onResize(lockRatio ? Math.max(MIN_PIECE_MM, Math.round(h * ratio)) : design.widthMm, h);
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{t.builder.designSize}</p>
+      <div className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
+        <NumField
+          label={`${t.builder.width} (cm)`}
+          value={design.widthMm / 10}
+          onCommit={setWidthCm}
+          step={0.1}
+          min={MIN_PIECE_MM / 10}
+        />
+        <NumField
+          label={`${t.builder.height} (cm)`}
+          value={design.heightMm / 10}
+          onCommit={setHeightCm}
+          step={0.1}
+          min={MIN_PIECE_MM / 10}
+        />
+        <button
+          type="button"
+          onClick={() => setLockRatio((v) => !v)}
+          title={t.builder.ratio}
+          className={`btn-soft h-11 min-w-11 ${lockRatio ? "text-foreground" : "text-muted"}`}
+        >
+          {lockRatio ? "⚭" : "⚮"}
+        </button>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" className="btn-soft justify-center text-xs" onClick={onAuto}>
+          {t.builder.autoSize}
+        </button>
+        {PRESETS_CM.map((cm) => (
+          <button
+            key={cm}
+            type="button"
+            className={`btn-soft num justify-center text-xs ${
+              Math.round(design.widthMm / 10) === cm ? "text-foreground ring-1 ring-accent" : ""
+            }`}
+            onClick={() => setWidthCm(cm)}
+          >
+            {cm} {t.builder.cm}
+          </button>
+        ))}
+      </div>
+      <p className="text-[11px] text-muted">{t.builder.autoSizeHint}</p>
+    </div>
   );
 }
 
@@ -2092,16 +2192,12 @@ function Inspector({
   const dpi = Math.round(printDpi(design.pixelW, design.pixelH, printW, printH).dpi);
   const sizeW = piece?.widthMm ?? design.widthMm;
   const sizeH = piece?.heightMm ?? design.heightMm;
-  const [wDraft, setWDraft] = useState(String(Number((sizeW / 10).toFixed(1))));
-  const [hDraft, setHDraft] = useState(String(Number((sizeH / 10).toFixed(1))));
   const [qtyDraft, setQtyDraft] = useState(String(design.qty));
   const qtyTimer = useRef<number | null>(null);
 
   useEffect(() => {
     setQtyDraft(String(design.qty));
-    setWDraft(String(Number((sizeW / 10).toFixed(1))));
-    setHDraft(String(Number((sizeH / 10).toFixed(1))));
-  }, [design.qty, sizeW, sizeH, piece?.id]);
+  }, [design.qty]);
 
   function commitSize(nextWmm: number | undefined, nextHmm: number | undefined) {
     const ratio = sizeW / Math.max(1, sizeH);
@@ -2118,37 +2214,23 @@ function Inspector({
       <p className={`num mt-1 text-xs ${dpi < 150 ? "text-bad" : dpi < 200 ? "text-warn" : "text-muted"}`}>
         {t.builder.dpi} {dpi}
       </p>
-      <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
-        <label className="grid gap-1">
-          <span className="text-muted">{t.builder.width}</span>
-          <input
-            type="number"
-            min={1}
-            step={0.1}
-            value={wDraft}
-            className="field py-1.5 num"
-            onChange={(e) => {
-              setWDraft(e.target.value);
-              const n = Number(e.target.value);
-              if (n > 0) commitSize(n * 10, undefined);
-            }}
-          />
-        </label>
-        <label className="grid gap-1">
-          <span className="text-muted">{t.builder.height}</span>
-          <input
-            type="number"
-            min={1}
-            step={0.1}
-            value={hDraft}
-            className="field py-1.5 num"
-            onChange={(e) => {
-              setHDraft(e.target.value);
-              const n = Number(e.target.value);
-              if (n > 0) commitSize(undefined, n * 10);
-            }}
-          />
-        </label>
+      <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+        <NumField
+          label={`${t.builder.width} (cm)`}
+          value={sizeW / 10}
+          onCommit={(cm) => commitSize(cm * 10, undefined)}
+          step={0.1}
+          min={MIN_PIECE_MM / 10}
+        />
+        <NumField
+          label={`${t.builder.height} (cm)`}
+          value={sizeH / 10}
+          onCommit={(cm) => commitSize(undefined, cm * 10)}
+          step={0.1}
+          min={MIN_PIECE_MM / 10}
+        />
+      </div>
+      <div className="mt-2 grid grid-cols-1 gap-2 text-xs">
         <label className="grid gap-1">
           <span className="text-muted">{t.builder.qty}</span>
           <input
