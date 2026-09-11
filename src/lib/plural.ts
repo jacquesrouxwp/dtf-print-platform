@@ -12,6 +12,7 @@ export function filmsLabel(count: number, locale: string): string {
     return "плівок";
   }
   if (locale === "de") return n === 1 ? "Film" : "Filme";
+  if (locale === "es") return n === 1 ? "película" : "películas";
   if (locale === "ar") return n === 1 ? "فيلم" : "أفلام";
   if (locale === "nl") return n === 1 ? "film" : "films";
   return n === 1 ? "film" : "films";

@@ -37,9 +37,11 @@ export function pageMetadata(
               ? "fr_FR"
               : locale === "de"
                 ? "de_DE"
-                : locale === "ar"
-                  ? "ar_SA"
-                  : "en_GB",
+                : locale === "es"
+                  ? "es_ES"
+                  : locale === "ar"
+                    ? "ar_SA"
+                    : "en_GB",
       siteName: "DTF Studio",
       type: "website",
     },
