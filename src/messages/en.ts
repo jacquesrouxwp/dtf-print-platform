@@ -243,6 +243,27 @@ export const en = {
     specBody:
       "In the Netherlands DTF is sold per running meter, not per American-style gang sheet. Our roll is {width} cm wide. The builder nests your art and bills the length it occupies, rounded to {round} m.",
     specExample: "Example nest · 5 logos · billed length",
+    galleryCta: "Open the builder",
+    gallery: [
+      {
+        id: "film",
+        category: "DTF film",
+        title: "Your art on the roll",
+        alt: "Printed DTF transfers on PET film",
+      },
+      {
+        id: "print",
+        category: "Print",
+        title: "Printed in Ankeveen",
+        alt: "DTF printer laying colour on film",
+      },
+      {
+        id: "designs",
+        category: "Design",
+        title: "Create your own unique designs",
+        alt: "Pressing a custom DTF transfer onto a shirt",
+      },
+    ],
     slides: [
       {
         id: "per-meter",
