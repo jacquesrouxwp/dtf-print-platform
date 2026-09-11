@@ -107,14 +107,24 @@ function RulerMarks({
 export function BuilderCanvas({
   interactive,
   zoomPct,
+  chainScroll = false,
 }: {
   interactive: boolean;
   zoomPct: number;
+  /**
+   * Hand the scroll on to the page once the film reaches its end. Right when
+   * the film is a card inside a scrolling page; wrong in a full-screen viewer,
+   * where there is no page behind it to move.
+   */
+  chainScroll?: boolean;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const trRef = useRef<Konva.Transformer>(null);
   const pieceRefs = useRef<Record<string, Konva.Group | null>>({});
+  const panRef = useRef<{ x: number; y: number; top: number; left: number; moved: boolean } | null>(
+    null
+  );
   const [boxW, setBoxW] = useState(0);
   const [images, setImages] = useState<Record<string, HTMLImageElement>>({});
   const [swatch, setSwatch] = useState<HTMLCanvasElement | null>(null);
@@ -206,6 +216,45 @@ export function BuilderCanvas({
   const metreMarks: number[] = [];
   for (let mm = 1000; mm <= viewLength; mm += 1000) metreMarks.push(mm);
 
+  /**
+   * Press on empty film and drag: the film scrolls under the mouse, the way a
+   * map or a design tool does. A press that does not move is still a click on
+   * nothing, and clears the selection.
+   */
+  function startPan(e: Konva.KonvaEventObject<MouseEvent>) {
+    if (e.evt.button !== 0) return;
+    const box = scrollRef.current;
+    if (!box) return;
+    panRef.current = {
+      x: e.evt.clientX,
+      y: e.evt.clientY,
+      top: box.scrollTop,
+      left: box.scrollLeft,
+      moved: false,
+    };
+    const stageEl = e.target.getStage()?.container();
+    const move = (ev: MouseEvent) => {
+      const pan = panRef.current;
+      if (!pan) return;
+      const dx = ev.clientX - pan.x;
+      const dy = ev.clientY - pan.y;
+      if (!pan.moved && Math.hypot(dx, dy) < 4) return;
+      pan.moved = true;
+      if (stageEl) stageEl.style.cursor = "grabbing";
+      box.scrollTop = pan.top - dy;
+      box.scrollLeft = pan.left - dx;
+    };
+    const up = () => {
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseup", up);
+      if (stageEl) stageEl.style.cursor = "";
+      if (panRef.current && !panRef.current.moved) select(null);
+      panRef.current = null;
+    };
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+  }
+
   useLayoutEffect(() => {
     const tr = trRef.current;
     if (!tr) return;
@@ -225,7 +274,9 @@ export function BuilderCanvas({
         ref={scrollRef}
         // The film scrolls inside its own box: a finger that reaches the end of
         // it must not carry the page along with it.
-        className="h-full w-full max-w-full overflow-auto overscroll-contain rounded-xl bg-[#161412]"
+        className={`thin-scroll h-full w-full max-w-full overflow-auto rounded-xl bg-[#161412] ${
+          chainScroll ? "" : "overscroll-contain"
+        }`}
       >
         {drawScale > 0 && (
           <div
@@ -257,10 +308,13 @@ export function BuilderCanvas({
               <RulerMarks lengthMm={viewLength} pxPerMm={drawScale} axis="v" />
             </div>
             <div className="absolute" style={{ left: ruler, top: ruler }}>
-              {/* On a phone nothing here is draggable, so Konva must stop
-                  swallowing touchmove: without this the film cannot be
-                  scrolled with a finger at all. */}
-              <Stage width={stageW} height={stageH} preventDefault={interactive}>
+              {/* Konva cancels a touchstart whenever the shape under the
+                  finger has preventDefault() — and every shape does, by
+                  default. The stage's own flag is never consulted for that, so
+                  it is switched off on the shapes a finger should scroll
+                  across: the film itself always, and the pieces wherever they
+                  cannot be dragged anyway. */}
+              <Stage width={stageW} height={stageH}>
                 <Layer>
                   {swatch ? (
                     <Rect
@@ -271,7 +325,9 @@ export function BuilderCanvas({
                       fillPatternImage={swatch as unknown as HTMLImageElement}
                       fillPatternRepeat="repeat"
                       perfectDrawEnabled={false}
-                      onMouseDown={() => select(null)}
+                      preventDefault={false}
+                      onMouseDown={startPan}
+                      onTap={() => select(null)}
                     />
                   ) : (
                     <Rect
@@ -280,7 +336,9 @@ export function BuilderCanvas({
                       width={stageW}
                       height={stageH}
                       fill="#efe8dc"
-                      onMouseDown={() => select(null)}
+                      preventDefault={false}
+                      onMouseDown={startPan}
+                      onTap={() => select(null)}
                     />
                   )}
                   {placed.map((p) => {
@@ -309,13 +367,15 @@ export function BuilderCanvas({
                         clipWidth={boxWm}
                         clipHeight={boxHm}
                         draggable={canDrag}
+                        preventDefault={canDrag}
                         onMouseEnter={(e) => {
                           const el = e.target.getStage()?.container();
                           if (el) el.style.cursor = "move";
                         }}
                         onMouseLeave={(e) => {
                           const el = e.target.getStage()?.container();
-                          if (el) el.style.cursor = "default";
+                          // Back to the film's own cursor, set in CSS.
+                          if (el) el.style.cursor = "";
                         }}
                         onClick={(e) => {
                           e.cancelBubble = true;
@@ -368,6 +428,7 @@ export function BuilderCanvas({
                           width={boxWm}
                           height={boxHm}
                           fill="rgba(0,0,0,0.001)"
+                          preventDefault={canDrag}
                         />
                       </Group>
                     );

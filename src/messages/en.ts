@@ -574,7 +574,7 @@ export const en = {
     deleteHint: "Drag a corner to resize that copy. Ctrl+click or Delete removes it.",
     uploading: "Reading artwork…",
     loading: "Loading builder…",
-    uploadFailed: "Server could not store this file. Preview is from your computer.",
+    uploadFailed: "This file did not reach our server. Remove it and upload it again — we cannot print it otherwise.",
     tabImages: "Images",
     tabText: "Text",
     uploadImage: "Upload image",

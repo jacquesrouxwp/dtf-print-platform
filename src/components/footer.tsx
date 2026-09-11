@@ -20,13 +20,16 @@ export function Footer() {
           <BrandLogo height={56} />
           <p className="mt-3 max-w-sm text-sm text-muted">{t.footer.blurb}</p>
           <p className="mt-2 text-sm text-muted">Netherlands · Ankeveen</p>
-          <p className="mt-4 grid gap-2 text-sm">
+          {/* A <div>, not a <p>: the social links are a <ul>, and a list inside a
+              paragraph is invalid HTML that React answers with a hydration
+              failure and a full client re-render on every page. */}
+          <div className="mt-4 grid gap-2 text-sm">
             <a href={`mailto:${config.email}`}>{config.email}</a>
             <SocialLinks />
             <Link href={L("/rental")} className="text-muted hover:text-ink">
               {t.nav.rental}
             </Link>
-          </p>
+          </div>
           {config.kvk && config.btwNumber ? (
             <p className="num mt-6 text-xs text-muted">
               {interpolate(t.footer.imprint, { kvk: config.kvk, btw: config.btwNumber })}

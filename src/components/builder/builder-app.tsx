@@ -123,7 +123,6 @@ export function BuilderApp() {
   const updateDesign = useBuilderStore((s) => s.updateDesign);
   const removeDesign = useBuilderStore((s) => s.removeDesign);
   const autoArrange = useBuilderStore((s) => s.autoArrange);
-  const snapshot = useBuilderStore((s) => s.snapshot);
   const loadSnapshot = useBuilderStore((s) => s.loadSnapshot);
   const reset = useBuilderStore((s) => s.reset);
   const undo = useBuilderStore((s) => s.undo);
@@ -773,7 +772,9 @@ export function BuilderApp() {
                 )}
               </div>
               <CanvasGuard>
-                <BuilderCanvas interactive={false} zoomPct={100} />
+                {/* A card in a scrolling page: at the end of the film the
+                    finger carries on down the page instead of getting stuck. */}
+                <BuilderCanvas interactive={false} zoomPct={100} chainScroll />
               </CanvasGuard>
             </div>
 

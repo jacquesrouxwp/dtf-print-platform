@@ -307,7 +307,11 @@ export function nest(sources: NestSource[], config: RollConfig): Layout {
     const instances =
       src.instances && src.instances.length > 0
         ? src.instances
-        : Array.from({ length: Math.max(1, Math.floor(src.qty)) }, (_, i) => ({
+        : // A quantity is a count: 0 means none of this design, not one. The old
+          // floor of 1 printed and billed a design the customer had zeroed out,
+          // while NaN produced nothing — the same order came out differently
+          // depending on how the number was spelt.
+          Array.from({ length: Math.max(0, Math.floor(Number(src.qty) || 0)) }, (_, i) => ({
             id: `${src.designId}:${i}`,
             locked: src.locked,
             xMm: src.xMm,

@@ -328,6 +328,12 @@ input[type="number"]::-webkit-inner-spin-button {
   max-width: 100% !important;
 }
 
+/* Empty film can be grabbed and dragged to scroll; a piece sets its own
+   "move" cursor while the pointer is over it. */
+.builder-film .konvajs-content {
+  cursor: grab;
+}
+
 /* Konva parks touch-action: none on its own container, which is right while a
    piece can be dragged and wrong on a phone, where it means the film cannot be
    scrolled at all. Where nothing is draggable, the finger belongs to the page. */
