@@ -9,11 +9,23 @@ export function copyVars(config: SiteConfig, locale: string) {
     temp: String(config.pressTempC),
     time: String(config.pressTimeSec),
     peel:
-      locale === "ru"
+      locale === "uk"
         ? config.peel === "cold"
-          ? "холодный пил"
-          : "горячий пил"
-        : config.peel,
+          ? "холодний піл"
+          : "гарячий піл"
+        : locale === "de"
+          ? config.peel === "cold"
+            ? "kalt abziehen"
+            : "heiß abziehen"
+          : locale === "fr"
+            ? config.peel === "cold"
+              ? "pelage à froid"
+              : "pelage à chaud"
+            : locale === "ar"
+              ? config.peel === "cold"
+                ? "تقشير بارد"
+                : "تقشير ساخن"
+              : config.peel,
     wash: String(config.washCycles),
     line: String(config.minLineMm),
     text: String(config.minTextPt),

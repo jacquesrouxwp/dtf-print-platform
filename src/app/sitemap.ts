@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { locales } from "@/lib/i18n-config";
 
 const site = process.env.NEXT_PUBLIC_SITE_URL || "https://dtfstudio.site";
 
@@ -26,7 +27,7 @@ const paths = [
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return paths.flatMap((path) =>
-    (["nl", "en", "ru"] as const).map((locale) => ({
+    locales.map((locale) => ({
       url: `${site}/${locale}${path}`,
       changeFrequency: path === "/order" ? "weekly" : "monthly",
       priority: path === "" ? 1 : path === "/order" ? 0.9 : 0.6,

@@ -4,8 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Menu, X, ShoppingBag } from "lucide-react";
-import { locales, localizedPath } from "@/lib/i18n-config";
+import { localizedPath, pathWithoutLocale } from "@/lib/i18n-config";
 import { BrandLogo } from "./brand-logo";
+import { LanguageSwitch } from "./language-switch";
 import { useI18n } from "./providers";
 import { useCartStore } from "@/store/useCartStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
@@ -43,7 +44,7 @@ export function Header() {
     void useCartStore.persist.rehydrate();
   }, []);
 
-  const rest = pathname.replace(/^\/(nl|en|ru)/, "") || "/";
+  const rest = pathWithoutLocale(pathname);
 
   const NavLink = ({ href, label }: { href: string; label: string }) => {
     const active = rest === href || (href !== "/" && rest.startsWith(href));
@@ -96,41 +97,7 @@ export function Header() {
             {btwInclusive ? t.common.inclBtw : t.common.exclBtw}
           </button>
 
-          <nav className="hidden items-center border border-line md:flex" aria-label={t.nav.language}>
-            {locales.map((code) => (
-              <Link
-                key={code}
-                href={localizedPath(code, rest)}
-                hrefLang={code}
-                className={`num px-2.5 py-1 text-xs uppercase tracking-wider ${
-                  code === locale ? "bg-line text-ink" : "text-muted hover:text-ink"
-                }`}
-              >
-                {code}
-              </Link>
-            ))}
-          </nav>
-
-          {/* On a phone the language must be reachable without opening the
-              menu: the same switcher, compact enough to sit in the bar. */}
-          <nav
-            className="flex shrink-0 items-center border border-line md:hidden"
-            aria-label={t.nav.language}
-          >
-            {locales.map((code) => (
-              <Link
-                key={code}
-                href={localizedPath(code, rest)}
-                hrefLang={code}
-                className={`num px-1.5 py-2 text-[11px] uppercase tracking-wider ${
-                  code === locale ? "bg-line text-ink" : "text-muted"
-                }`}
-                onClick={() => setOpen(false)}
-              >
-                {code}
-              </Link>
-            ))}
-          </nav>
+          <LanguageSwitch pathRest={rest} />
 
           <Link
             href={localizedPath(locale, "/checkout")}
@@ -183,20 +150,6 @@ export function Header() {
           >
             {t.nav.account}
           </Link>
-          <div className="flex flex-wrap gap-2 pt-2">
-            {locales.map((code) => (
-              <Link
-                key={code}
-                href={localizedPath(code, rest)}
-                className={`num grid min-h-11 min-w-11 place-items-center border border-line px-3 text-xs uppercase tracking-wider ${
-                  code === locale ? "bg-line text-ink" : "text-muted"
-                }`}
-                onClick={() => setOpen(false)}
-              >
-                {code}
-              </Link>
-            ))}
-          </div>
           <button
             type="button"
             onClick={() => setBtwInclusive(!btwInclusive)}

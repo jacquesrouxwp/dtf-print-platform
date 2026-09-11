@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, vi } from "vitest";
 
 /**
- * Switching language is a full navigation to /ru/order, so the builder store
+ * Switching language is a full navigation to /uk/order, so the builder store
  * is rebuilt from localStorage. A design whose only preview was a blob: URL
  * came back with nothing to render — the customer sees their file vanish.
  */

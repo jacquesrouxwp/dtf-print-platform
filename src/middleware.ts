@@ -15,6 +15,11 @@ export function middleware(request: NextRequest) {
   }
 
   const first = pathname.split("/")[1];
+  if (first === "ru") {
+    const url = request.nextUrl.clone();
+    url.pathname = pathname.replace(/^\/ru(?=\/|$)/, "/en");
+    return NextResponse.redirect(url);
+  }
   if (locales.includes(first as (typeof locales)[number])) {
     return NextResponse.next();
   }

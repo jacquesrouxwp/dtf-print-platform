@@ -5,10 +5,10 @@ import { AppFrame, FooterSlot, SiteChrome } from "@/components/app-frame";
 import { HtmlLang } from "@/components/html-lang";
 import { I18nProvider } from "@/components/providers";
 import { SiteShell } from "@/components/site-shell";
-import { getDict, isLocale } from "@/lib/i18n";
+import { getDict, isLocale, locales } from "@/lib/i18n";
 
 export function generateStaticParams() {
-  return [{ locale: "nl" }, { locale: "en" }, { locale: "ru" }];
+  return locales.map((locale) => ({ locale }));
 }
 
 export default async function LocaleLayout({
