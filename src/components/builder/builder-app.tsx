@@ -34,6 +34,7 @@ import { cartStatus, lineFromFilm } from "@/lib/cart-lines";
 import { useJobStore, type JobFilm } from "@/store/useJobStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
 import { BrandLogo } from "../brand-logo";
+import { BuilderTour, TourReplayButton } from "./builder-tour";
 import { LanguageSwitch } from "../language-switch";
 import { FrameCmyk } from "../frame-cmyk";
 import { useI18n } from "../providers";
@@ -521,7 +522,8 @@ export function BuilderApp() {
           >
             <BrandLogo height={26} />
           </Link>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <TourReplayButton />
             <LanguageSwitch pathRest="/order" />
           </div>
         </header>
@@ -530,7 +532,7 @@ export function BuilderApp() {
           data-builder-main
           className="thin-scroll min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-3 py-3"
         >
-          <section className="space-y-3 rounded-2xl border border-line bg-paper p-4">
+          <section data-tour="upload" className="space-y-3 rounded-2xl border border-line bg-paper p-4">
             <h2 className="text-base font-medium">{t.builder.uploadImage}</h2>
             <label className="relative flex cursor-pointer flex-col items-center gap-1 rounded-xl border-2 border-dashed border-accent/50 bg-accent/5 px-4 py-8 text-center">
               <span className="text-base font-medium text-accent">{t.builder.dropFiles}</span>
@@ -637,7 +639,7 @@ export function BuilderApp() {
                 }
               />
 
-              <div className="space-y-2 border-t border-line pt-3">
+              <div data-tour="fill" className="space-y-2 border-t border-line pt-3">
                 <div className="flex items-center gap-2">
                   <select
                     className="field num w-24 py-2 text-sm"
@@ -673,7 +675,7 @@ export function BuilderApp() {
             <LayoutChoice mode={layoutMode} t={t} onPick={(m) => setLayoutMode(m, config)} />
           </section>
 
-          <section className="overflow-hidden rounded-2xl border border-line bg-paper">
+          <section data-tour="film" className="overflow-hidden rounded-2xl border border-line bg-paper">
             <div className="flex items-center justify-between gap-3 px-4 pt-4">
               <h2 className="text-base font-medium">{t.builder.film}</h2>
               <div className="flex items-center gap-2">
@@ -886,8 +888,12 @@ export function BuilderApp() {
             {fill(t.builder.billedHint, config, locale)}
           </p>
         </main>
+        <BuilderTour />
 
-        <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-line bg-paper px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+        <footer
+          data-tour="cart"
+          className="flex shrink-0 items-center justify-between gap-3 border-t border-line bg-paper px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+        >
           <div className="min-w-0">
             <p className={`truncate text-[11px] ${cartFlash ? "text-accent" : "text-muted"}`}>
               {cartFlash ?? t.builder.orderTotal}
@@ -969,7 +975,10 @@ export function BuilderApp() {
         )}
         {fitNote && <span className="text-xs text-muted">{fitNote}</span>}
         {cartNote && <span className="text-xs text-bad">{cartNote}</span>}
-        <LanguageSwitch pathRest="/order" className="ml-auto" />
+        <div className="ml-auto flex items-center gap-2">
+          <TourReplayButton />
+          <LanguageSwitch pathRest="/order" />
+        </div>
         <div className="flex items-center gap-2">
           {cartFlash && <span className="text-xs text-accent">{cartFlash}</span>}
           {cartLines.length > 0 && (
@@ -983,6 +992,7 @@ export function BuilderApp() {
           {!allInCart && (
             <button
               type="button"
+              data-tour="cart"
               className="btn btn-primary"
               disabled={adding || (!designs.length && films.length === 0)}
               onClick={addOrderToCart}
@@ -1014,7 +1024,10 @@ export function BuilderApp() {
           {tab === "images" ? (
             <>
               <div className="shrink-0 space-y-3 p-4 xl:p-5">
-                <label className="relative flex cursor-pointer flex-col items-center rounded-2xl bg-accent px-4 py-7 text-center text-white">
+                <label
+                  data-tour="upload"
+                  className="relative flex cursor-pointer flex-col items-center rounded-2xl bg-accent px-4 py-7 text-center text-white"
+                >
                   <span className="text-base font-medium">{t.builder.uploadImage}</span>
                   <span className="mt-1 text-[11px] text-white/80">{t.builder.pngHint}</span>
                   <span className="mt-2 text-xs text-white/90">{t.builder.dropFiles}</span>
@@ -1191,7 +1204,7 @@ export function BuilderApp() {
               </label>
             </div>
           </div>
-          <div className="relative min-h-0 flex-1 p-4 xl:p-7">
+          <div data-tour="film" className="relative min-h-0 flex-1 p-4 xl:p-7">
             <FrameCmyk className="pointer-events-none absolute inset-4 z-10 xl:inset-7">
               <span className="sr-only" />
             </FrameCmyk>
@@ -1331,7 +1344,7 @@ export function BuilderApp() {
           )}
         </aside>
       </div>
-
+      <BuilderTour />
     </div>
   );
 }
@@ -1587,7 +1600,7 @@ function PieceProperties({
   return (
     <div className="shrink-0 space-y-4 border-b border-line px-4 py-5 xl:px-5">
       <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{t.builder.properties}</p>
-      <div className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
+      <div data-tour="size" className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
         <NumField
           label={`${t.builder.width} (cm)`}
           value={design.widthMm / 10}
@@ -1633,7 +1646,7 @@ function PieceProperties({
           {Math.round(dpi)} {dpiOk ? t.builder.dpiGood : t.builder.dpiLow}
         </span>
       </div>
-      <div className="space-y-2 rounded-lg border border-line bg-surface p-2">
+      <div data-tour="fill" className="space-y-2 rounded-lg border border-line bg-surface p-2">
         <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{t.builder.autoFilm}</p>
         <div className="flex items-center gap-2">
           <select
@@ -1799,7 +1812,7 @@ function DesignSizeFields({
   }
 
   return (
-    <div className="space-y-2">
+    <div data-tour="size" className="space-y-2">
       <p className="text-[11px] uppercase tracking-[0.16em] text-muted">{t.builder.designSize}</p>
       <div className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
         <NumField
