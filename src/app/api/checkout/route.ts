@@ -168,7 +168,7 @@ export async function POST(request: Request) {
 
   const site = siteBaseUrl();
   const locale =
-    typeof body.locale === "string" && /^(nl|en|uk|fr|de|ar)$/.test(body.locale)
+    typeof body.locale === "string" && /^(nl|en|uk|fr|de|es|ar)$/.test(body.locale)
       ? body.locale
       : "nl";
   const res = await fetch("https://api.mollie.com/v2/payments", {

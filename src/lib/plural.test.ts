@@ -30,6 +30,8 @@ describe("filmsLabel (en, nl, de, fr, ar)", () => {
     expect(filmsLabel(2, "de")).toBe("Filme");
     expect(filmsLabel(1, "fr")).toBe("film");
     expect(filmsLabel(2, "fr")).toBe("films");
+    expect(filmsLabel(1, "es")).toBe("película");
+    expect(filmsLabel(2, "es")).toBe("películas");
     expect(filmsLabel(1, "ar")).toBe("فيلم");
     expect(filmsLabel(3, "ar")).toBe("أفلام");
   });

@@ -86,6 +86,7 @@ export function intlTag(locale: string): string {
   if (locale === "uk") return "uk-UA";
   if (locale === "fr") return "fr-FR";
   if (locale === "de") return "de-DE";
+  if (locale === "es") return "es-ES";
   if (locale === "ar") return "ar";
   return "en-NL";
 }

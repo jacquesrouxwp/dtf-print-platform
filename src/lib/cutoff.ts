@@ -120,6 +120,7 @@ export function formatRemaining(hours: number, minutes: number, locale: string) 
   if (locale === "uk") return `${hours} год ${minutes} хв`;
   if (locale === "de") return `${hours} Std. ${minutes} Min.`;
   if (locale === "fr") return `${hours} h ${minutes} min`;
+  if (locale === "es") return `${hours} h ${minutes} min`;
   if (locale === "ar") return `${hours} س ${minutes} د`;
   return `${hours}h ${minutes}m`;
 }
