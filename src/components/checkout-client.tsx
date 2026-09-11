@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
+import { CartLineCard } from "./cart-line-card";
 import { CheckoutProcessing } from "./checkout-processing";
 import { PageShell } from "./page-shell";
 import { useI18n } from "./providers";
@@ -253,18 +254,29 @@ export function CheckoutClient({ paidOrderId }: { paidOrderId?: string }) {
     <>
       {processing}
       <PageShell title={t.checkout.title} lede={t.checkout.lede}>
-      <ul className="mb-8 grid gap-3">
-        {lines.map((line) => (
-          <li key={line.id} className="flex justify-between gap-3 border border-rule px-3 py-3 text-sm">
-            <span>
-              {t.cart.film} · {line.designs.length} files
-            </span>
-            <button type="button" className="underline" onClick={() => removeLine(line.id)}>
-              {t.cart.remove}
-            </button>
-          </li>
+      <ul className="mb-4 grid gap-4">
+        {lines.map((line, i) => (
+          <CartLineCard
+            key={line.id}
+            line={line}
+            index={i}
+            rollWidthMm={config.rollWidthMm}
+            locale={locale}
+            labels={{
+              film: t.cart.film,
+              remove: t.cart.remove,
+              pieces: t.cart.pieces,
+              excl: t.cart.excl,
+            }}
+            onRemove={() => removeLine(line.id)}
+          />
         ))}
       </ul>
+      <p className="mb-8">
+        <Link href={localizedPath(locale, "/order")} className="inline-flex min-h-11 items-center text-sm underline">
+          {t.cart.addAnother}
+        </Link>
+      </p>
 
       <form
         ref={formRef}
