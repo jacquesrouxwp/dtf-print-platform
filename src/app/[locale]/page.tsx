@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { HomeHero } from "@/components/home-hero";
+import { HomeProcess } from "@/components/home-process";
 import { ProductGrid } from "@/components/product-grid";
 import { getDict, isLocale } from "@/lib/i18n";
 import { localizedPath } from "@/lib/i18n-config";
@@ -79,17 +80,7 @@ export default async function HomePage({
 
       <HomeHero specs={specs} />
 
-      <section className="mx-auto max-w-[1200px] px-4 py-8">
-        <p className="num text-xs uppercase tracking-[0.2em] text-muted">{t.home.howKicker}</p>
-        <div className="mt-6 grid gap-8 md:grid-cols-3">
-          {t.home.steps.map((step) => (
-            <div key={step.n}>
-              <p className="num text-xs text-muted">{step.n}</p>
-              <h2 className="font-display mt-2 text-2xl">{step.t}</h2>
-            </div>
-          ))}
-        </div>
-      </section>
+      <HomeProcess kicker={t.home.howKicker} steps={t.home.steps} />
 
       <section className="mx-auto max-w-[1200px] px-4 pb-16 pt-4">
         <ProductGrid products={products} />
