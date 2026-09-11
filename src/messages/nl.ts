@@ -245,6 +245,27 @@ export const nl: typeof en = {
     specBody:
       "In Nederland wordt DTF per strekkende meter verkocht, niet per Amerikaans gangsheet. Onze rol is {width} cm breed. De bouwer nest je artwork en factureert de lengte die het inneemt, afgerond op {round} m.",
     specExample: "Voorbeeldnest · 5 logo’s · gefactureerde lengte",
+    galleryCta: "Open de bouwer",
+    gallery: [
+      {
+        id: "film",
+        category: "DTF-film",
+        title: "Jouw artwork op de rol",
+        alt: "Gedrukte DTF-transfers op PET-film",
+      },
+      {
+        id: "print",
+        category: "Print",
+        title: "Gedrukt in Ankeveen",
+        alt: "DTF-printer legt kleur op de film",
+      },
+      {
+        id: "designs",
+        category: "Design",
+        title: "Maak je eigen unieke designs",
+        alt: "Een eigen DTF-transfer op een shirt persen",
+      },
+    ],
     slides: [
       {
         id: "per-meter",
