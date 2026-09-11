@@ -3,6 +3,10 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { safeStorage } from "@/lib/safe-storage";
+import { cartFingerprint, upsertLine, type CartLine } from "@/lib/cart-lines";
+
+export { cartFingerprint };
+export type { CartLine };
 
 /** One-shot: keep a real unpaid cart, then drop the old key so it cannot double-count. */
 function adoptLegacyCart() {
@@ -18,30 +22,6 @@ function adoptLegacyCart() {
   }
 }
 adoptLegacyCart();
-import type { PlacedPiece } from "@/lib/nesting";
-
-export type CartLine = {
-  id: string;
-  lengthMm: number;
-  billedMeters: number;
-  rate: number;
-  subtotalExcl: number;
-  trade: boolean;
-  rush: boolean;
-  /** Gap this film was laid out and priced with. */
-  gapMm?: number;
-  designs: {
-    id: string;
-    name: string;
-    storageKey?: string;
-    qty: number;
-    widthMm: number;
-    heightMm: number;
-    trimBox?: { x: number; y: number; w: number; h: number };
-  }[];
-  placed: PlacedPiece[];
-  createdAt: string;
-};
 
 export type DraftLayout = {
   id: string;
@@ -53,27 +33,13 @@ export type DraftLayout = {
 type CartState = {
   lines: CartLine[];
   drafts: DraftLayout[];
+  /** Adds a film, or replaces its line if that film is already in the cart. */
   addLine: (line: CartLine) => void;
   removeLine: (id: string) => void;
   clear: () => void;
   saveDraft: (draft: DraftLayout) => void;
   removeDraft: (id: string) => void;
 };
-
-export function cartFingerprint(line: {
-  lengthMm: number;
-  gapMm?: number;
-  designs: { id: string; qty: number; widthMm: number; heightMm: number; storageKey?: string }[];
-  placed?: { id: string; xMm: number; yMm: number; rotation: number; flipX?: boolean }[];
-}): string {
-  const designs = line.designs
-    .map((d) => `${d.id}:${d.qty}:${d.widthMm}x${d.heightMm}:${d.storageKey ?? ""}`)
-    .join(",");
-  const placed = (line.placed ?? [])
-    .map((p) => `${p.id}:${p.xMm}:${p.yMm}:${p.rotation}:${p.flipX ? 1 : 0}`)
-    .join(",");
-  return `${line.lengthMm}|${line.gapMm ?? ""}|${designs}|${placed}`;
-}
 
 function slimPayload(payload: string): string {
   try {
@@ -101,17 +67,8 @@ export const useCartStore = create<CartState>()(
       drafts: [],
       addLine: (line) =>
         set((s) => {
-          const fp = cartFingerprint(line);
-          if (s.lines.some((l) => cartFingerprint(l) === fp)) return s;
-          return {
-            lines: [
-              ...s.lines,
-              {
-                ...line,
-                designs: line.designs.map((d) => ({ ...d })),
-              },
-            ],
-          };
+          const lines = upsertLine(s.lines, line);
+          return lines === s.lines ? s : { lines };
         }),
       removeLine: (id) =>
         set((s) => ({ lines: s.lines.filter((l) => l.id !== id) })),

@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Image as ImageIcon, Type } from "lucide-react";
+import { Image as ImageIcon, ShoppingCart, Type } from "lucide-react";
 import { printDpi } from "@/lib/artwork";
 import { DEMO_FILENAMES, makeDemoDesigns } from "@/lib/demo-art";
 import { locales, localizedPath } from "@/lib/i18n-config";
@@ -29,7 +29,8 @@ import { rollFromSite } from "@/lib/roll";
 import type { SiteConfig } from "@/lib/site-config";
 import { fill } from "@/lib/tokens";
 import { useBuilderStore, type Design } from "@/store/useBuilderStore";
-import { cartFingerprint, useCartStore } from "@/store/useCartStore";
+import { useCartStore } from "@/store/useCartStore";
+import { cartStatus, lineFromFilm } from "@/lib/cart-lines";
 import { useJobStore, type JobFilm } from "@/store/useJobStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
 import { BrandLogo } from "../brand-logo";
@@ -90,7 +91,7 @@ export function BuilderApp() {
   const [query, setQuery] = useState("");
   const [zoomPct, setZoomPct] = useState(100);
   const [fitNote, setFitNote] = useState<string | null>(null);
-  const [added, setAdded] = useState(false);
+  const [cartFlash, setCartFlash] = useState<string | null>(null);
   const [cartNote, setCartNote] = useState<string | null>(null);
   const [previewNote, setPreviewNote] = useState<string | null>(null);
   const [previewBusy, setPreviewBusy] = useState(false);
@@ -153,6 +154,7 @@ export function BuilderApp() {
   const removeFilm = useJobStore((s) => s.remove);
   const setActiveFilm = useJobStore((s) => s.setActive);
   const addLine = useCartStore((s) => s.addLine);
+  const cartLines = useCartStore((s) => s.lines);
 
   const selectedPieceExact = placed.find((p) => p.id === selectedId) ?? null;
   const selectedPiece =
@@ -266,7 +268,9 @@ export function BuilderApp() {
     if (shot) upsertFilm(shot);
     reset();
     setActiveFilm(null);
-    setAdded(false);
+    // On a phone the upload sits at the top of a long page: go back to it, or
+    // the new, empty film looks as if nothing happened.
+    document.querySelector("[data-builder-main]")?.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function openFilm(film: JobFilm) {
@@ -285,22 +289,8 @@ export function BuilderApp() {
     }
   }
 
-  function filmFingerprint(film: JobFilm): string {
-    try {
-      const parsed = JSON.parse(film.payload) as {
-        designs?: { id: string; qty: number; widthMm: number; heightMm: number }[];
-      };
-      return cartFingerprint({
-        lengthMm: film.lengthMm,
-        designs: parsed.designs ?? [],
-      });
-    } catch {
-      return film.id;
-    }
-  }
-
   function addOrderToCart() {
-    if (added || adding) return;
+    if (adding) return;
     void useCartStore.persist.rehydrate();
     if (uploadBlocked) {
       setCartNote(t.builder.uploadFailed);
@@ -310,68 +300,32 @@ export function BuilderApp() {
       setCartNote(t.builder.overflow);
       return;
     }
+    // Save the current film into the job first so it has an id it keeps:
+    // adding it again later updates its line instead of adding a second one.
     const shot = captureCurrent(activeId);
     if (shot) upsertFilm(shot);
-    const all: JobFilm[] = [];
-    const seen = new Set<string>();
-    for (const film of [shot, ...useJobStore.getState().films]) {
-      if (!film || film.designCount <= 0 || film.lengthMm <= 0) continue;
-      const fp = filmFingerprint(film);
-      if (seen.has(fp) || seen.has(film.id)) continue;
-      seen.add(fp);
-      seen.add(film.id);
-      all.push(film);
-    }
-    const usable = all;
-    if (!usable.length) {
-      setCartNote(t.builder.empty);
+    const candidates = [shot, ...useJobStore.getState().films].filter(
+      (f): f is JobFilm => Boolean(f && f.designCount > 0 && f.lengthMm > 0)
+    );
+    const unique = candidates.filter((f, i) => candidates.findIndex((g) => g.id === f.id) === i);
+    const lines = unique
+      .map((f) => lineFromFilm(f, config))
+      .filter((l): l is NonNullable<typeof l> => Boolean(l));
+    if (!lines.length) {
+      setCartNote(fill(t.builder.empty, config, locale));
       return;
     }
-    if (
-      usable.some((f) => {
-        try {
-          const parsed = JSON.parse(f.payload) as { designs?: { storageKey?: string }[] };
-          return (parsed.designs ?? []).some((d) => !d.storageKey);
-        } catch {
-          return true;
-        }
-      })
-    ) {
+    if (lines.some((l) => l.designs.some((d) => !d.storageKey))) {
       setCartNote(t.builder.uploadFailed);
       return;
     }
-    for (const film of usable) {
-      const parsed = JSON.parse(film.payload) as {
-        designs: Design[];
-        placed: typeof placed;
-        lengthMm: number;
-        gapMm?: number | null;
-      };
-      const q = quoteFilm(film.lengthMm, config, { trade: false, includeShipping: false });
-      addLine({
-        id: crypto.randomUUID(),
-        lengthMm: film.lengthMm,
-        billedMeters: q.billedMeters,
-        rate: q.rate,
-        subtotalExcl: q.subtotalExcl,
-        trade: false,
-        rush: false,
-        gapMm: parsed.gapMm ?? gapMm ?? config.gapMm,
-        designs: (parsed.designs ?? []).map((d) => ({
-          id: d.id,
-          name: d.name,
-          storageKey: d.storageKey,
-          qty: d.qty,
-          widthMm: d.widthMm,
-          heightMm: d.heightMm,
-          trimBox: d.trimBox,
-        })),
-        placed: parsed.placed ?? [],
-        createdAt: new Date().toISOString(),
-      });
-    }
+    const before = cartStatus(unique, useCartStore.getState().lines, config);
+    for (const line of lines) addLine(line);
     setCartNote(null);
-    setAdded(true);
+    setCartFlash(
+      before.toUpdate.length && !before.toAdd.length ? t.builder.updatedNote : t.builder.addedNote
+    );
+    window.setTimeout(() => setCartFlash(null), 4000);
   }
 
   /** The metre this film is spilling over, if the spill is worth offering to fix. */
@@ -500,6 +454,29 @@ export function BuilderApp() {
     designCount: designs.length,
   };
 
+  // Where each film stands against the cart, worked out every render: a second
+  // film, or a change to the first, brings the add button straight back.
+  const currentShot = useMemo(
+    () => (designs.length ? captureCurrent(activeId) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [designs, placed, lengthMm, gapMm, activeId, films]
+  );
+  const cartView = useMemo(
+    () => cartStatus([currentShot, ...otherFilms], cartLines, config),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [currentShot, films, activeId, cartLines, config]
+  );
+  const allInCart =
+    cartView.toAdd.length + cartView.toUpdate.length === 0 && cartLines.length > 0;
+  const updateOnly = cartView.toUpdate.length > 0 && cartView.toAdd.length === 0;
+  const filmCartState = (id: string): "in" | "changed" | "out" =>
+    cartView.inCart.some((f) => f.id === id)
+      ? "in"
+      : cartView.toUpdate.some((f) => f.id === id)
+        ? "changed"
+        : "out";
+  const cartBadges = { in: t.builder.inCart, changed: t.builder.cartChanged };
+
   /**
    * A phone gets a document, not a shrunken desktop app: one column that
    * scrolls, the bar pinned to the top, the money pinned to the bottom, and
@@ -562,7 +539,10 @@ export function BuilderApp() {
           </nav>
         </header>
 
-        <main className="thin-scroll min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-3 py-3">
+        <main
+          data-builder-main
+          className="thin-scroll min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-3 py-3"
+        >
           <section className="space-y-3 rounded-2xl border border-line bg-paper p-4">
             <h2 className="text-base font-medium">{t.builder.uploadImage}</h2>
             <label className="relative flex cursor-pointer flex-col items-center gap-1 rounded-xl border-2 border-dashed border-accent/50 bg-accent/5 px-4 py-8 text-center">
@@ -897,6 +877,47 @@ export function BuilderApp() {
             )}
           </section>
 
+          {(designs.length > 0 || otherFilms.length > 0) && (
+            <section className="space-y-3 rounded-2xl border border-line bg-paper p-4">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-base font-medium">{t.builder.films}</h2>
+                <button
+                  type="button"
+                  className="btn-soft min-h-[44px] text-xs"
+                  disabled={!designs.length}
+                  onClick={newFilm}
+                >
+                  + {t.builder.newFilm}
+                </button>
+              </div>
+              {designs.length > 0 && (
+                <FilmCard
+                  film={liveCard}
+                  active
+                  locale={locale}
+                  trade={false}
+                  onOpen={() => undefined}
+                  cartState={filmCartState(liveCard.id)}
+                  labels={cartBadges}
+                />
+              )}
+              {otherFilms.map((f) => (
+                <FilmCard
+                  key={f.id}
+                  film={f}
+                  active={false}
+                  locale={locale}
+                  trade={false}
+                  onOpen={() => openFilm(f)}
+                  onRemove={() => dropFilm(f.id)}
+                  cartState={filmCartState(f.id)}
+                  labels={cartBadges}
+                />
+              ))}
+              <p className="text-[11px] leading-relaxed text-muted">{t.builder.newFilmHint}</p>
+            </section>
+          )}
+
           <p className="px-1 text-[11px] leading-relaxed text-muted">
             {fill(t.builder.billedHint, config, locale)}
           </p>
@@ -904,24 +925,39 @@ export function BuilderApp() {
 
         <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-line bg-paper px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <div className="min-w-0">
-            <p className="truncate text-[11px] text-muted">{t.builder.orderTotal}</p>
+            <p className={`truncate text-[11px] ${cartFlash ? "text-accent" : "text-muted"}`}>
+              {cartFlash ?? t.builder.orderTotal}
+            </p>
             <p className="num text-lg leading-tight text-accent">{money(displayJob, locale)}</p>
           </div>
           {cartNote && <p className="text-xs text-bad">{cartNote}</p>}
-          {added ? (
-            <Link href={localizedPath(locale, "/checkout")} className="btn btn-primary shrink-0">
-              {t.builder.checkout}
-            </Link>
-          ) : (
-            <button
-              type="button"
-              className="btn btn-primary shrink-0"
-              disabled={adding || (!designs.length && films.length === 0)}
-              onClick={addOrderToCart}
-            >
-              {t.builder.addCart}
-            </button>
-          )}
+          <div className="flex shrink-0 items-center gap-2">
+            {cartLines.length > 0 && !allInCart && (
+              <Link
+                href={localizedPath(locale, "/checkout")}
+                className="btn btn-ghost min-h-[44px] shrink-0 gap-1 px-3"
+                aria-label={`${t.builder.checkout} (${cartLines.length})`}
+                title={t.builder.checkout}
+              >
+                <ShoppingCart size={16} aria-hidden />
+                <span className="num">{cartLines.length}</span>
+              </Link>
+            )}
+            {allInCart ? (
+              <Link href={localizedPath(locale, "/checkout")} className="btn btn-primary shrink-0">
+                {t.builder.checkout} ({cartLines.length})
+              </Link>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-primary shrink-0"
+                disabled={adding || (!designs.length && films.length === 0)}
+                onClick={addOrderToCart}
+              >
+                {updateOnly ? t.builder.updateCart : t.builder.addCart}
+              </button>
+            )}
+          </div>
         </footer>
       </div>
     );
@@ -984,19 +1020,25 @@ export function BuilderApp() {
           ))}
         </nav>
         <div className="flex items-center gap-2">
-          {added && (
-            <Link href={localizedPath(locale, "/checkout")} className="btn btn-ghost">
-              {t.builder.checkout}
+          {cartFlash && <span className="text-xs text-accent">{cartFlash}</span>}
+          {cartLines.length > 0 && (
+            <Link
+              href={localizedPath(locale, "/checkout")}
+              className={`btn ${allInCart ? "btn-primary" : "btn-ghost"}`}
+            >
+              {t.builder.checkout} ({cartLines.length})
             </Link>
           )}
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={added || adding || (!designs.length && films.length === 0)}
-            onClick={addOrderToCart}
-          >
-            {added ? t.builder.added : t.builder.addAllCart}
-          </button>
+          {!allInCart && (
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={adding || (!designs.length && films.length === 0)}
+              onClick={addOrderToCart}
+            >
+              {updateOnly ? t.builder.updateCart : t.builder.addAllCart}
+            </button>
+          )}
         </div>
       </div>
       <div className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden border-x border-line bg-surface">
@@ -1288,6 +1330,8 @@ export function BuilderApp() {
                   locale={locale}
                   trade={false}
                   onOpen={() => undefined}
+                  cartState={designs.length ? filmCartState(liveCard.id) : undefined}
+                  labels={cartBadges}
                   onRemove={
                     designs.length
                       ? () => {
@@ -1306,6 +1350,8 @@ export function BuilderApp() {
                     trade={false}
                     onOpen={() => openFilm(f)}
                     onRemove={() => dropFilm(f.id)}
+                    cartState={filmCartState(f.id)}
+                    labels={cartBadges}
                   />
                 ))}
               </div>
@@ -1919,6 +1965,8 @@ function FilmCard({
   trade,
   onOpen,
   onRemove,
+  cartState,
+  labels,
 }: {
   film: JobFilm;
   active: boolean;
@@ -1926,6 +1974,8 @@ function FilmCard({
   trade: boolean;
   onOpen: () => void;
   onRemove?: () => void;
+  cartState?: "in" | "changed" | "out";
+  labels?: { in: string; changed: string };
 }) {
   const config = useSettingsStore((s) => s.config);
   const incl = useSettingsStore((s) => s.btwInclusive);
@@ -1949,6 +1999,12 @@ function FilmCard({
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm">{film.name}</p>
+          {cartState === "in" && labels && (
+            <p className="text-[11px] text-accent">{labels.in}</p>
+          )}
+          {cartState === "changed" && labels && (
+            <p className="text-[11px] text-warn">{labels.changed}</p>
+          )}
           <p className="num text-[11px] text-muted">
             {config.rollWidthMm / 10} cm × {(film.lengthMm / 10).toFixed(1)} cm
           </p>
