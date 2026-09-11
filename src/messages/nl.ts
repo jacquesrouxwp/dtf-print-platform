@@ -576,7 +576,7 @@ export const nl: typeof en = {
     deleteHint: "Sleep een hoek om dat exemplaar te schalen. Ctrl+klik of Delete haalt het weg.",
     uploading: "Bestand lezen…",
     loading: "Bouwer laden…",
-    uploadFailed: "Server kon dit bestand niet opslaan. Preview komt van je computer.",
+    uploadFailed: "Dit bestand kwam niet aan op onze server. Verwijder het en upload het opnieuw — anders kunnen we het niet drukken.",
     tabImages: "Beeld",
     tabText: "Tekst",
     uploadImage: "Afbeelding uploaden",
